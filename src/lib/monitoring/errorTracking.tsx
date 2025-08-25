@@ -10,7 +10,7 @@ export interface ErrorReport {
   userAgent: string
   url: string
   timestamp: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   severity: 'low' | 'medium' | 'high' | 'critical'
 }
 
@@ -55,7 +55,7 @@ export class ErrorTracker {
 
   captureError(error: Partial<ErrorReport>) {
     const errorReport: ErrorReport = {
-      id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       message: error.message || 'Unknown error',
       stack: error.stack,
       component: error.component || 'unknown',
@@ -83,7 +83,7 @@ export class ErrorTracker {
     return errorReport
   }
 
-  captureUserError(message: string, component: string, action?: string, metadata?: Record<string, any>) {
+  captureUserError(message: string, component: string, action?: string, metadata?: Record<string, unknown>) {
     return this.captureError({
       message,
       component,
@@ -93,7 +93,7 @@ export class ErrorTracker {
     })
   }
 
-  captureNetworkError(url: string, status: number, message: string, metadata?: Record<string, any>) {
+  captureNetworkError(url: string, status: number, message: string, metadata?: Record<string, unknown>) {
     return this.captureError({
       message: `Network Error: ${message}`,
       component: 'network',
@@ -142,7 +142,7 @@ export class ErrorTracker {
     )
 
     const errorsByComponent = this.errors.reduce((acc, error) => {
-      acc[error.component] = (acc[error.component] || 0) + 1
+      acc[error.component || 'unknown'] = (acc[error.component || 'unknown'] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
