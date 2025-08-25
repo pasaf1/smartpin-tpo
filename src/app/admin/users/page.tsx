@@ -6,15 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -22,7 +22,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth, useUsers } from '@/lib/hooks/useAuth'
-import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 export default function UserManagementPage() {
@@ -30,7 +29,7 @@ export default function UserManagementPage() {
   const { data: users = [] } = useUsers()
   const [searchTerm, setSearchTerm] = useState('')
   const currentUser = userProfile
-  
+
   // Mock mutation for status updates
   const updateStatusMutation = {
     mutateAsync: async ({ userId, status }: { userId: string, status: string }) => {
@@ -61,9 +60,9 @@ export default function UserManagementPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 You need Admin or QA Manager privileges to access user management.
               </p>
-              <Link href="/roofs">
-                <Button variant="outline">← Back to Roofs</Button>
-              </Link>
+              <Button asChild variant="outline">
+                <Link href="/roofs">← Back to Roofs</Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -71,7 +70,7 @@ export default function UserManagementPage() {
     )
   }
 
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = users.filter((user: any) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -86,8 +85,8 @@ export default function UserManagementPage() {
   }
 
   const totalUsers = users.length
-  const activeUsers = users.filter(u => u.status === 'active').length
-  const adminUsers = users.filter(u => u.role === 'Admin').length
+  const activeUsers = users.filter((u: any) => u.status === 'active').length
+  const adminUsers = users.filter((u: any) => u.role === 'Admin').length
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,12 +95,9 @@ export default function UserManagementPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/roofs">
-                {/* @ts-expect-error - React 19 type compatibility */}
-                <Button variant="ghost" size="sm">
-                  ← Back to Roofs
-                </Button>
-              </Link>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/roofs">← Back to Roofs</Link>
+              </Button>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">User Management</h1>
                 <p className="text-muted-foreground">
@@ -109,7 +105,7 @@ export default function UserManagementPage() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Badge variant="destructive">Admin Only</Badge>
             </div>
@@ -181,13 +177,12 @@ export default function UserManagementPage() {
                       Manage user accounts and their access status
                     </CardDescription>
                   </div>
-                  
+
                   <div className="w-80">
-                    {/* @ts-expect-error - React 19 type compatibility */}
                     <Input
                       placeholder="Search users..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </div>
@@ -205,7 +200,7 @@ export default function UserManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => (
+                    {filteredUsers.map((user: any) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -217,7 +212,7 @@ export default function UserManagementPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={user.role === 'Admin' ? 'destructive' : 'secondary'}
                             className="capitalize"
                           >
@@ -225,7 +220,7 @@ export default function UserManagementPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={user.status === 'active' ? 'default' : 'outline'}
                             className={cn(
                               'capitalize',
@@ -248,10 +243,7 @@ export default function UserManagementPage() {
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              {/* @ts-expect-error - React 19 type compatibility */}
-                              <Button variant="ghost" size="sm">
-                                ⚙️
-                              </Button>
+                              <Button variant="ghost" size="sm">⚙️</Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
