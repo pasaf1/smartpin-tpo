@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft, Home, Building2, BarChart3, Users } from 'lucide-react'
 import { LuxuryHeader } from '@/components/dashboard/LuxuryHeader'
 import { KPICards } from '@/components/dashboard/KPICards'
 import { RoofCard } from '@/components/dashboard/RoofCard'
@@ -144,8 +146,63 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-luxury-25 via-luxury-50 to-luxury-75">
-      <LuxuryHeader />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Navigation Header */}
+      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-white/20 shadow-xl shadow-indigo-500/5">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo & Title with Breadcrumb */}
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
+                <div className="w-6 h-6 bg-white rounded-md opacity-90"></div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                  <Link href="/" className="hover:text-indigo-600 transition-colors duration-200 flex items-center gap-1">
+                    <Home className="w-4 h-4" />
+                    Home
+                  </Link>
+                  <span>/</span>
+                  <span className="text-slate-700 font-medium">Dashboard</span>
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Advanced Dashboard
+                </h1>
+              </div>
+            </div>
+
+            {/* Navigation Menu */}
+            <div className="hidden md:flex items-center space-x-6">
+              <Link href="/" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                Home
+              </Link>
+              <Link href="/roofs" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Roofs
+              </Link>
+              <Link href="/demo/analytics" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Analytics
+              </Link>
+              <Link href="/admin/users" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Users
+              </Link>
+            </div>
+
+            {/* Back Button */}
+            <div className="flex items-center">
+              <Link href="/">
+                <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm border border-white/30 text-slate-700 font-medium rounded-lg shadow-lg shadow-slate-500/10 hover:bg-white/70 transition-all duration-300 hover:scale-105">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
       
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
         {!selectedRoof ? (

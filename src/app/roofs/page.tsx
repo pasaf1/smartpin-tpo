@@ -230,9 +230,11 @@ export default function RoofsPage() {
                   👥 Users
                 </Button>
               </Link>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg" size="sm">
-                + New Roof
-              </Button>
+              <Link href="/">
+                <Button className="bg-gradient-to-r from-emerald-600 to-green-700 text-white hover:from-emerald-700 hover:to-green-800 transition-all duration-300 shadow-lg" size="sm">
+                  + New Project
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

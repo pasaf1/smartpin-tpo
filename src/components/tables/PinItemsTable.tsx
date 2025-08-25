@@ -53,6 +53,7 @@ interface PinItemsTableProps {
   onlyOpenItems?: boolean
   showClosureButtons?: boolean
   onClosurePhotoClick?: (pinItemId: string) => void
+  onEditClick?: (pinItemId: string) => void
 }
 
 export function PinItemsTable({
@@ -65,6 +66,7 @@ export function PinItemsTable({
   onlyOpenItems = false,
   showClosureButtons = false,
   onClosurePhotoClick,
+  onEditClick,
 }: PinItemsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created_at', desc: true }
@@ -316,7 +318,13 @@ export function PinItemsTable({
                 📸 Close
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Edit item">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              title="Edit item"
+              onClick={() => onEditClick?.(row.original.id)}
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
@@ -331,7 +339,7 @@ export function PinItemsTable({
         size: 150,
       },
     ],
-    [updateStatusMutation.isPending, showClosureButtons, onClosurePhotoClick]
+    [updateStatusMutation.isPending, showClosureButtons, onClosurePhotoClick, onEditClick]
   )
 
   const table = useReactTable({

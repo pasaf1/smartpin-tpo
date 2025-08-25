@@ -151,7 +151,7 @@ export function ChatDemo() {
               <div>
                 <h4 className="font-medium text-sm">User Presence</h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Track who's online, away, or offline
+                  Track who&apos;s online, away, or offline
                 </p>
               </div>
             </div>

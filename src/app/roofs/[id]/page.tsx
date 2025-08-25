@@ -17,25 +17,36 @@ import { useRoof } from '@/lib/hooks/useRoofs'
 import { useCreatePin, usePins } from '@/lib/hooks/usePins'
 import { useAllPinItems } from '@/lib/hooks/usePinItems'
 import { useChat } from '@/lib/hooks/useChat'
-import { useUsers } from '@/lib/hooks/useAuth'
+import { useUsers, withAuth } from '@/lib/hooks/useAuth'
+import ChatInterface from '@/components/chat/ChatInterface'
+import { useRealTimeRoof, usePresence } from '@/lib/hooks/useSupabaseQueries'
+import { PresenceIndicator } from '@/components/ui/presence-indicator'
+import { RealtimeStatus } from '@/components/realtime/ConnectionStatus'
 import { cn } from '@/lib/utils'
 import type { PinWithRelations } from '@/lib/hooks/usePins'
 import { DockedChat } from '@/components/chat/DockedChat'
 
-export default function RoofDashboardPage() {
+function RoofDashboardPage() {
   const params = useParams()
   const roofId = params.id as string
   
   const [selectedPin, setSelectedPin] = useState<PinWithRelations | null>(null)
   const [showPinPopup, setShowPinPopup] = useState(false)
   const [closurePhotoItemId, setClosurePhotoItemId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Open' | 'ReadyForInspection' | 'Closed'>('all')
   
-  const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-  const { data: pins = [] } = usePins(roofId)
+  // Real-time roof data with live updates
+  const { roof, pins, isLoading: roofLoading, error: roofError } = useRealTimeRoof(roofId)
   const { data: pinItems = [] } = useAllPinItems(roofId)
   const { messages } = useChat(roofId, selectedPin?.id)
   const { data: users = [] } = useUsers()
   const createPinMutation = useCreatePin()
+  
+  // Presence tracking for collaborative features
+  const { users: onlineUsers, onlineCount } = usePresence(
+    `roof:${roofId}`,
+    { id: 'current-user', name: 'Current User', role: 'Inspector' } // Replace with actual user data
+  )
 
   const handlePinCreate = async (x: number, y: number) => {
     try {
@@ -123,9 +134,9 @@ export default function RoofDashboardPage() {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/roofs">
+              <Link href="/">
                 <Button variant="ghost" size="sm">
-                  ← Roofs
+                  ← Projects
                 </Button>
               </Link>
               <div>
@@ -145,6 +156,17 @@ export default function RoofDashboardPage() {
               <Badge className="bg-blue-500/20 text-blue-200 border-blue-400/30 text-sm px-3 py-1">
                 {pins.length} Pins
               </Badge>
+              
+              {/* Real-time Status */}
+              <RealtimeStatus roofId={roofId} showDetails className="text-white/80" />
+              
+              {/* Presence Indicator */}
+              <PresenceIndicator 
+                users={onlineUsers} 
+                maxVisible={4} 
+                className="text-white/90"
+              />
+              
               <ExportDialog
                 roofId={roofId}
                 roofName={roof.name}
@@ -154,7 +176,7 @@ export default function RoofDashboardPage() {
                 roofData={roof}
               >
                 <Button className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 transition-all duration-200" size="sm">
-                  📄
+                  📄 Export Report
                 </Button>
               </ExportDialog>
               <Link href={`/roofs/${roofId}/settings`}>
@@ -170,13 +192,20 @@ export default function RoofDashboardPage() {
       {/* Premium KPI Cards */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]">
+          <div 
+            onClick={() => setStatusFilter('Open')}
+            className={cn(
+              "bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]",
+              statusFilter === 'Open' ? "border-red-500 shadow-red-200" : "border-red-200/50"
+            )}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-red-700 mb-1">
                   {pinItems.filter(item => item.status === 'Open').length}
                 </div>
                 <div className="text-sm font-semibold text-red-600">Open Issues</div>
+                {statusFilter === 'Open' && <div className="text-xs text-red-500 mt-1 font-medium">● Active Filter</div>}
               </div>
               <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center shadow-lg">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,13 +215,20 @@ export default function RoofDashboardPage() {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-xl border border-amber-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]">
+          <div 
+            onClick={() => setStatusFilter('ReadyForInspection')}
+            className={cn(
+              "bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-xl border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]",
+              statusFilter === 'ReadyForInspection' ? "border-amber-500 shadow-amber-200" : "border-amber-200/50"
+            )}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-amber-700 mb-1">
                   {pinItems.filter(item => item.status === 'ReadyForInspection').length}
                 </div>
                 <div className="text-sm font-semibold text-amber-600">Ready for Inspection</div>
+                {statusFilter === 'ReadyForInspection' && <div className="text-xs text-amber-500 mt-1 font-medium">● Active Filter</div>}
               </div>
               <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,13 +238,20 @@ export default function RoofDashboardPage() {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-xl border border-emerald-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]">
+          <div 
+            onClick={() => setStatusFilter('Closed')}
+            className={cn(
+              "bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-xl border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]",
+              statusFilter === 'Closed' ? "border-emerald-500 shadow-emerald-200" : "border-emerald-200/50"
+            )}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-emerald-700 mb-1">
                   {pinItems.filter(item => item.status === 'Closed').length}
                 </div>
                 <div className="text-sm font-semibold text-emerald-600">Closed</div>
+                {statusFilter === 'Closed' && <div className="text-xs text-emerald-500 mt-1 font-medium">● Active Filter</div>}
               </div>
               <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,13 +261,20 @@ export default function RoofDashboardPage() {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]">
+          <div 
+            onClick={() => setStatusFilter('all')}
+            className={cn(
+              "bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:scale-[1.02]",
+              statusFilter === 'all' ? "border-blue-500 shadow-blue-200" : "border-blue-200/50"
+            )}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-blue-700 mb-1">
                   {pinItems.length}
                 </div>
                 <div className="text-sm font-semibold text-blue-600">All Issues</div>
+                {statusFilter === 'all' && <div className="text-xs text-blue-500 mt-1 font-medium">● Active Filter</div>}
               </div>
               <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -369,7 +419,43 @@ export default function RoofDashboardPage() {
                   setClosurePhotoItemId(pinItemId)
                   setShowPinPopup(true)
                 }}
+                onEditClick={(pinItemId) => {
+                  // Find the pin item and corresponding pin to open INCR modal
+                  const pinItem = pinItems.find(item => item.id === pinItemId)
+                  if (pinItem) {
+                    const pin = pins.find(p => p.id === pinItem.pin_id)
+                    if (pin) {
+                      setSelectedPin(pin)
+                    }
+                  }
+                }}
                 className="border-0 rounded-none h-full bg-transparent"
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Team Chat Panel */}
+        <div className="mt-8">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-900/50 to-indigo-800/50 p-6 border-b border-white/20">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Team Collaboration</h3>
+                  <p className="text-white/80 mt-1">Real-time chat with @mentions across project scopes</p>
+                </div>
+              </div>
+            </div>
+            <div className="h-96">
+              <ChatInterface
+                projectId={roof.project_id}
+                roofId={roofId}
+                className="h-full border-0 rounded-none bg-transparent"
               />
             </div>
           </div>
@@ -544,3 +630,6 @@ export default function RoofDashboardPage() {
     </div>
   )
 }
+
+// Protect this route - require at least Viewer role (all authenticated users can view)
+export default withAuth(RoofDashboardPage, 'Viewer')
