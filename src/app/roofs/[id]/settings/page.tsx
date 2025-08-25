@@ -141,7 +141,7 @@ export default function RoofSettingsPage() {
   const roofId = params.id as string
   
   const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-  const updateRoofMutation = useUpdateRoof()
+  // Removed edit capabilities - roof details can only be set during project creation
   
   const [formData, setFormData] = useState({
     name: '',
@@ -170,34 +170,9 @@ export default function RoofSettingsPage() {
     }
   }, [roof])
   
-  const handleSave = async () => {
-    try {
-      await updateRoofMutation.mutateAsync({
-        id: roofId,
-        updates: {
-          name: formData.name,
-          description: formData.description,
-          project_name: formData.project_name,
-          project_number: formData.project_number,
-          location: formData.location,
-          base_map_url: formData.base_map_url,
-          base_map_width: formData.base_map_width,
-          base_map_height: formData.base_map_height,
-        }
-      })
-      router.push(`/roofs/${roofId}`)
-    } catch (error) {
-      console.error('Failed to update roof:', error)
-    }
-  }
-  
-  const handleBaseMapUpdate = (url: string, width: number, height: number) => {
-    setFormData(prev => ({
-      ...prev,
-      base_map_url: url,
-      base_map_width: width,
-      base_map_height: height
-    }))
+  // Editing disabled - project details can only be set during creation
+  const handleRedirectToProjects = () => {
+    router.push('/')
   }
   
   if (roofLoading) {
@@ -248,9 +223,9 @@ export default function RoofSettingsPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Roof Settings</h1>
+                <h1 className="text-2xl font-bold text-foreground">Project Information</h1>
                 <p className="text-muted-foreground">
-                  {roof.name} • {roof.project_number}
+                  {roof.name} • {roof.project_number} • Read-only view
                 </p>
               </div>
             </div>
@@ -266,104 +241,104 @@ export default function RoofSettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Settings */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
+            {/* Basic Information - Read Only */}
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
                 <CardDescription>
-                  Update the basic details for this roof
+                  Project details (established during project creation)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Roof Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Building A - North Wing"
-                    />
+                    <Label>Roof Name</Label>
+                    <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
+                      {roof?.name || 'Not set'}
+                    </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="e.g., Downtown Campus"
-                    />
+                    <Label>Location</Label>
+                    <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
+                      {roof?.location || 'Not set'}
+                    </div>
                   </div>
                 </div>
                 
                 <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Brief description of this roof..."
-                    rows={3}
-                  />
+                  <Label>Description</Label>
+                  <div className="text-sm font-medium p-2 bg-muted/30 rounded border min-h-[80px]">
+                    {roof?.description || 'No description provided'}
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Project Information */}
+            {/* Project Information - Read Only */}
             <Card>
               <CardHeader>
                 <CardTitle>Project Information</CardTitle>
                 <CardDescription>
-                  Project-related details and identifiers
+                  Project-related details and identifiers (set during creation)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="project_name">Project Name</Label>
-                    <Input
-                      id="project_name"
-                      value={formData.project_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, project_name: e.target.value }))}
-                      placeholder="e.g., Metro Office Complex"
-                    />
+                    <Label>Project Name</Label>
+                    <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
+                      {roof?.project_name || 'Not set'}
+                    </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="project_number">Project Number</Label>
-                    <Input
-                      id="project_number"
-                      value={formData.project_number}
-                      onChange={(e) => setFormData(prev => ({ ...prev, project_number: e.target.value }))}
-                      placeholder="e.g., MOC-2024-102"
-                    />
+                    <Label>Project Number</Label>
+                    <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
+                      {roof?.project_number || 'Not set'}
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Base Map Upload */}
+            {/* Base Map - Read Only */}
             <Card>
               <CardHeader>
                 <CardTitle>Base Map Image</CardTitle>
                 <CardDescription>
-                  Upload a high-resolution image of the roof plan to use as the background for pin placement
+                  Roof plan image (set during project creation - cannot be changed)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <BaseMapUpload
-                  currentImageUrl={formData.base_map_url}
-                  onImageUpdate={handleBaseMapUpdate}
-                  isUploading={updateRoofMutation.isPending}
-                />
-                
-                {formData.base_map_url && formData.base_map_width > 0 && (
-                  <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                    <div className="text-sm font-medium mb-1">Image Details</div>
-                    <div className="text-sm text-muted-foreground">
-                      Dimensions: {formData.base_map_width} × {formData.base_map_height} pixels
+                {roof?.base_map_url ? (
+                  <div>
+                    <div className="relative border rounded-lg overflow-hidden">
+                      <img
+                        src={roof.base_map_url}
+                        alt="Base map preview"
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-black/50 text-white">Read Only</Badge>
+                      </div>
                     </div>
+                    
+                    {roof.base_map_width > 0 && (
+                      <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                        <div className="text-sm font-medium mb-1">Image Details</div>
+                        <div className="text-sm text-muted-foreground">
+                          Dimensions: {roof.base_map_width} × {roof.base_map_height} pixels
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                    <svg className="w-12 h-12 mx-auto mb-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-muted-foreground">No base map was uploaded during project creation</p>
                   </div>
                 )}
               </CardContent>
@@ -410,17 +385,24 @@ export default function RoofSettingsPage() {
 
             {/* Actions */}
             <div className="space-y-3">
-              <Button
-                onClick={handleSave}
-                disabled={updateRoofMutation.isPending}
-                className="w-full"
-              >
-                {updateRoofMutation.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="text-sm font-medium text-amber-800 mb-1">
+                  Editing Disabled
+                </div>
+                <div className="text-xs text-amber-700">
+                  Project details can only be set during project creation for data integrity.
+                </div>
+              </div>
+              
+              <Link href="/">
+                <Button className="w-full bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800">
+                  ← Back to Projects Dashboard
+                </Button>
+              </Link>
               
               <Link href={`/roofs/${roofId}`}>
                 <Button variant="outline" className="w-full">
-                  Cancel
+                  View Project Details
                 </Button>
               </Link>
             </div>

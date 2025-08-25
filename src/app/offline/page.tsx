@@ -14,10 +14,10 @@ export default function OfflinePage() {
           </svg>
         </div>
         
-        <h1 className="text-2xl font-bold text-luxury-900 mb-4">You're Offline</h1>
+        <h1 className="text-2xl font-bold text-luxury-900 mb-4">You&apos;re Offline</h1>
         
         <p className="text-luxury-600 mb-6">
-          It looks like you've lost your internet connection. Don't worry - you can still view cached content and any changes will sync when you're back online.
+          It looks like you&apos;ve lost your internet connection. Don&apos;t worry - you can still view cached content and any changes will sync when you&apos;re back online.
         </p>
         
         <div className="space-y-3 mb-6">
