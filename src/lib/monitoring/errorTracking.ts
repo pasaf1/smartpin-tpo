@@ -180,6 +180,8 @@ export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   fallbackComponent?: React.ComponentType<{ error: Error; reset: () => void }>
 ) {
+  const FallbackComponent = fallbackComponent
+  
   return class ErrorBoundaryWrapper extends React.Component<
     P,
     { hasError: boolean; error: Error | null }
@@ -208,8 +210,7 @@ export function withErrorBoundary<P extends object>(
 
     render() {
       if (this.state.hasError && this.state.error) {
-        if (fallbackComponent) {
-          const FallbackComponent = fallbackComponent
+        if (FallbackComponent) {
           return (
             <FallbackComponent 
               error={this.state.error}
