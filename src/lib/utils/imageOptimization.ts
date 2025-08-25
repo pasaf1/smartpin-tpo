@@ -14,9 +14,16 @@ export interface CompressionResult {
   quality: number
 }
 
+export interface BasicImageMetadata {
+  width: number
+  height: number
+  aspectRatio: number
+  megapixels: number
+}
+
 export class ImageOptimizer {
   static async compressImage(
-    file: File, 
+    file: File,
     options: ImageOptimizationOptions = {}
   ): Promise<CompressionResult> {
     const {
@@ -24,8 +31,13 @@ export class ImageOptimizer {
       maxHeight = 1920,
       quality = 0.8,
       format = 'jpeg',
-      progressive = true
+      progressive: _progressive = true, // hint only; canvas API has no progressive toggle
     } = options
+
+    // Use the flag to satisfy linters and document intent
+    if (_progressive && format === 'jpeg') {
+      // Progressive JPEG is encoder-level; kept here as a no-op hint for future encoders.
+    }
 
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas')
@@ -37,61 +49,79 @@ export class ImageOptimizer {
         return
       }
 
+      const objectUrl = URL.createObjectURL(file)
+
       img.onload = () => {
         try {
-          let { width, height } = img
+          URL.revokeObjectURL(objectUrl)
 
+          let { width, height } = img
           const aspectRatio = width / height
+
           if (width > maxWidth) {
             width = maxWidth
-            height = width / aspectRatio
+            height = Math.round(width / aspectRatio)
           }
           if (height > maxHeight) {
             height = maxHeight
-            width = height * aspectRatio
+            width = Math.round(height * aspectRatio)
           }
 
           canvas.width = width
           canvas.height = height
 
+          // Paint white background for JPEG to avoid black transparency
           if (format === 'jpeg') {
             ctx.fillStyle = '#FFFFFF'
             ctx.fillRect(0, 0, width, height)
           }
 
+          ctx.imageSmoothingEnabled = true
+          ctx.imageSmoothingQuality = 'high'
           ctx.drawImage(img, 0, 0, width, height)
 
           canvas.toBlob(
             (blob) => {
-              if (blob) {
-                const compressedFile = new File([blob], file.name, {
-                  type: `image/${format}`,
-                  lastModified: Date.now()
-                })
-
-                const compressionRatio = file.size > 0 ? blob.size / file.size : 1
-
-                resolve({
-                  file: compressedFile,
-                  originalSize: file.size,
-                  compressedSize: blob.size,
-                  compressionRatio,
-                  quality
-                })
-              } else {
+              if (!blob) {
                 reject(new Error('Compression failed'))
+                return
               }
+
+              const extMime: Record<typeof format, string> = {
+                jpeg: 'image/jpeg',
+                webp: 'image/webp',
+                png: 'image/png',
+              }
+
+              const compressedFile = new File([blob], file.name, {
+                type: extMime[format],
+                lastModified: Date.now(),
+              })
+
+              const compressionRatio = file.size > 0 ? blob.size / file.size : 1
+
+              resolve({
+                file: compressedFile,
+                originalSize: file.size,
+                compressedSize: blob.size,
+                compressionRatio,
+                quality,
+              })
             },
             `image/${format}`,
             quality
           )
-        } catch (error) {
-          reject(error)
+        } catch (e) {
+          reject(e)
         }
       }
 
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = URL.createObjectURL(file)
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error('Failed to load image'))
+      }
+
+      img.src = objectUrl
     })
   }
 
@@ -110,8 +140,12 @@ export class ImageOptimizer {
         return
       }
 
+      const objectUrl = URL.createObjectURL(file)
+
       img.onload = () => {
         try {
+          URL.revokeObjectURL(objectUrl)
+
           canvas.width = size
           canvas.height = size
 
@@ -122,30 +156,36 @@ export class ImageOptimizer {
           const x = (img.width - minDim) / 2
           const y = (img.height - minDim) / 2
 
+          ctx.imageSmoothingEnabled = true
+          ctx.imageSmoothingQuality = 'high'
           ctx.drawImage(img, x, y, minDim, minDim, 0, 0, size, size)
 
           canvas.toBlob(
             (blob) => {
-              if (blob) {
-                const thumbnailFile = new File([blob], `thumb_${file.name}`, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now()
-                })
-                resolve(thumbnailFile)
-              } else {
+              if (!blob) {
                 reject(new Error('Thumbnail generation failed'))
+                return
               }
+              const thumbnailFile = new File([blob], `thumb_${file.name}`, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              })
+              resolve(thumbnailFile)
             },
             'image/jpeg',
             quality
           )
-        } catch (error) {
-          reject(error)
+        } catch (e) {
+          reject(e)
         }
       }
 
-      img.onerror = () => reject(new Error('Failed to load image for thumbnail'))
-      img.src = URL.createObjectURL(file)
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error('Failed to load image for thumbnail'))
+      }
+
+      img.src = objectUrl
     })
   }
 
@@ -165,7 +205,7 @@ export class ImageOptimizer {
       fontSize = 16,
       color = '#FFFFFF',
       backgroundColor = 'rgba(0,0,0,0.5)',
-      opacity = 0.8
+      opacity = 0.8,
     } = options
 
     return new Promise((resolve, reject) => {
@@ -178,28 +218,27 @@ export class ImageOptimizer {
         return
       }
 
+      const objectUrl = URL.createObjectURL(file)
+
       img.onload = () => {
         try {
+          URL.revokeObjectURL(objectUrl)
+
           canvas.width = img.width
           canvas.height = img.height
-
           ctx.drawImage(img, 0, 0)
 
           ctx.font = `${fontSize}px Arial, sans-serif`
           ctx.globalAlpha = opacity
 
-          const textMetrics = ctx.measureText(watermarkText)
-          const textWidth = textMetrics.width
+          const metrics = ctx.measureText(watermarkText)
+          const textWidth = metrics.width
           const textHeight = fontSize
-
           const padding = 10
-          let x: number, y: number
 
+          let x: number
+          let y: number
           switch (position) {
-            case 'bottom-right':
-              x = canvas.width - textWidth - padding
-              y = canvas.height - padding
-              break
             case 'bottom-left':
               x = padding
               y = canvas.height - padding
@@ -216,14 +255,22 @@ export class ImageOptimizer {
               x = (canvas.width - textWidth) / 2
               y = canvas.height / 2
               break
+            case 'bottom-right':
             default:
               x = canvas.width - textWidth - padding
               y = canvas.height - padding
           }
 
+          // Background box
           ctx.fillStyle = backgroundColor
-          ctx.fillRect(x - padding/2, y - textHeight - padding/2, textWidth + padding, textHeight + padding)
+          ctx.fillRect(
+            x - padding / 2,
+            y - textHeight - padding / 2,
+            textWidth + padding,
+            textHeight + padding
+          )
 
+          // Text
           ctx.fillStyle = color
           ctx.fillText(watermarkText, x, y)
 
@@ -231,76 +278,74 @@ export class ImageOptimizer {
 
           canvas.toBlob(
             (blob) => {
-              if (blob) {
-                const watermarkedFile = new File([blob], file.name, {
-                  type: file.type,
-                  lastModified: Date.now()
-                })
-                resolve(watermarkedFile)
-              } else {
+              if (!blob) {
                 reject(new Error('Watermark failed'))
+                return
               }
+              const watermarkedFile = new File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now(),
+              })
+              resolve(watermarkedFile)
             },
             file.type,
             0.9
           )
-        } catch (error) {
-          reject(error)
+        } catch (e) {
+          reject(e)
         }
       }
 
-      img.onerror = () => reject(new Error('Failed to load image for watermarking'))
-      img.src = URL.createObjectURL(file)
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error('Failed to load image for watermarking'))
+      }
+
+      img.src = objectUrl
     })
   }
 
   static async generateImageHash(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      
       reader.onload = async () => {
         try {
           const arrayBuffer = reader.result as ArrayBuffer
           const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
           const hashArray = Array.from(new Uint8Array(hashBuffer))
-          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+          const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
           resolve(hashHex)
-        } catch (error) {
-          reject(error)
+        } catch (e) {
+          reject(e)
         }
       }
-
       reader.onerror = () => reject(new Error('Failed to read file for hashing'))
       reader.readAsArrayBuffer(file)
     })
   }
 
-  static getImageMetadata(file: File): Promise<{
-    width: number
-    height: number
-    aspectRatio: number
-    megapixels: number
-  }> {
+  static getImageMetadata(file: File): Promise<BasicImageMetadata> {
     return new Promise((resolve, reject) => {
       const img = new Image()
+      const objectUrl = URL.createObjectURL(file)
 
       img.onload = () => {
-        const metadata = {
+        URL.revokeObjectURL(objectUrl)
+        const metadata: BasicImageMetadata = {
           width: img.width,
           height: img.height,
           aspectRatio: img.width / img.height,
-          megapixels: (img.width * img.height) / 1000000
+          megapixels: (img.width * img.height) / 1_000_000,
         }
         resolve(metadata)
-        URL.revokeObjectURL(img.src)
       }
 
       img.onerror = () => {
-        URL.revokeObjectURL(img.src)
+        URL.revokeObjectURL(objectUrl)
         reject(new Error('Failed to load image metadata'))
       }
 
-      img.src = URL.createObjectURL(file)
+      img.src = objectUrl
     })
   }
 
@@ -308,16 +353,16 @@ export class ImageOptimizer {
     const allowedTypes = [
       'image/jpeg',
       'image/jpg',
-      'image/png', 
+      'image/png',
       'image/webp',
       'image/heic',
-      'image/heif'
+      'image/heif',
     ]
 
     if (!allowedTypes.includes(file.type)) {
       return {
         valid: false,
-        error: `File type ${file.type} is not supported. Please use: JPEG, PNG, WebP, or HEIC`
+        error: `File type ${file.type} is not supported. Please use: JPEG, PNG, WebP, or HEIC`,
       }
     }
 
@@ -325,7 +370,7 @@ export class ImageOptimizer {
     if (file.size > maxSize) {
       return {
         valid: false,
-        error: `File size ${(file.size / 1024 / 1024).toFixed(1)}MB exceeds maximum of 25MB`
+        error: `File size ${(file.size / 1024 / 1024).toFixed(1)}MB exceeds maximum of 25MB`,
       }
     }
 
@@ -343,7 +388,7 @@ export class ImageOptimizer {
     main: CompressionResult
     thumbnail?: File
     hash: string
-    metadata: any
+    metadata: BasicImageMetadata
   }> {
     const validation = this.validateImageFile(file)
     if (!validation.valid) {
@@ -353,7 +398,7 @@ export class ImageOptimizer {
     const [compressed, metadata, hash] = await Promise.all([
       this.compressImage(file, options),
       this.getImageMetadata(file),
-      this.generateImageHash(file)
+      this.generateImageHash(file),
     ])
 
     let thumbnail: File | undefined
@@ -363,21 +408,16 @@ export class ImageOptimizer {
 
     let finalFile = compressed.file
     if (options.addWatermark && options.watermarkText) {
-      finalFile = await this.addWatermark(
-        compressed.file,
-        options.watermarkText,
-        { position: 'bottom-right' }
-      )
+      finalFile = await this.addWatermark(compressed.file, options.watermarkText, {
+        position: 'bottom-right',
+      })
     }
 
     return {
-      main: {
-        ...compressed,
-        file: finalFile
-      },
+      main: { ...compressed, file: finalFile },
       thumbnail,
       hash,
-      metadata
+      metadata,
     }
   }
 }

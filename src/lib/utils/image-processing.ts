@@ -1,21 +1,32 @@
 'use client'
 
+/* ---------- Types ---------- */
+export interface ImageMetadata {
+  width: number
+  height: number
+  size: number
+  format: string
+  uploadedAt: string
+}
+
 export interface ImageProcessingResult {
   originalUrl: string
   annotatedUrl: string
-  annotations: any[]
-  metadata: {
-    width: number
-    height: number
-    size: number
-    format: string
-    uploadedAt: string
-  }
+  annotations: AnnotationData[]
+  metadata: ImageMetadata
+}
+
+export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical'
+export type AnnotationType = 'arrow' | 'rectangle' | 'circle' | 'text' | 'freehand'
+
+export interface Point {
+  x: number
+  y: number
 }
 
 export interface AnnotationData {
   id: string
-  type: 'arrow' | 'rectangle' | 'circle' | 'text' | 'freehand'
+  type: AnnotationType
   x: number
   y: number
   width?: number
@@ -23,267 +34,228 @@ export interface AnnotationData {
   color: string
   strokeWidth: number
   text?: string
-  severity?: 'Low' | 'Medium' | 'High' | 'Critical'
+  severity?: SeverityLevel
   timestamp: number
   author: string
-  points?: { x: number; y: number }[]
+  points?: Point[]
 }
 
+/* ---------- Implementation ---------- */
 export class ImageProcessor {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
 
   constructor() {
     this.canvas = document.createElement('canvas')
-    this.ctx = this.canvas.getContext('2d')!
+    const context = this.canvas.getContext('2d')
+    if (!context) throw new Error('2D context is not available')
+    this.ctx = context
   }
 
   async processImage(
-    imageFile: File, 
+    imageFile: File,
     annotations: AnnotationData[] = []
   ): Promise<ImageProcessingResult> {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      
-      img.onload = () => {
-        try {
-          // Set canvas dimensions to match image
-          this.canvas.width = img.width
-          this.canvas.height = img.height
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(imageFile)
 
-          // Clear canvas and draw original image
-          this.ctx.clearRect(0, 0, img.width, img.height)
-          this.ctx.drawImage(img, 0, 0)
+    try {
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = objectUrl
+      })
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
 
-          // Create original image URL
-          const originalUrl = this.canvas.toDataURL('image/png', 0.95)
+    // Size canvas to image
+    this.canvas.width = img.width
+    this.canvas.height = img.height
 
-          // Draw annotations if provided
-          let annotatedUrl = originalUrl
-          if (annotations.length > 0) {
-            this.drawAnnotations(annotations)
-            annotatedUrl = this.canvas.toDataURL('image/png', 0.95)
-          }
+    // Draw base image
+    this.ctx.clearRect(0, 0, img.width, img.height)
+    this.ctx.drawImage(img, 0, 0)
 
-          const result: ImageProcessingResult = {
-            originalUrl,
-            annotatedUrl,
-            annotations,
-            metadata: {
-              width: img.width,
-              height: img.height,
-              size: imageFile.size,
-              format: imageFile.type,
-              uploadedAt: new Date().toISOString()
-            }
-          }
+    // Original snapshot
+    const originalUrl = this.canvas.toDataURL('image/png')
 
-          resolve(result)
-        } catch (error) {
-          reject(error)
-        }
-      }
+    // Draw annotations (if any)
+    if (annotations.length > 0) {
+      this.drawAnnotations(annotations)
+    }
 
-      img.onerror = () => {
-        reject(new Error('Failed to load image'))
-      }
+    const annotatedUrl = this.canvas.toDataURL('image/png')
 
-      // Create object URL for the image
-      const objectUrl = URL.createObjectURL(imageFile)
-      img.src = objectUrl
+    const result: ImageProcessingResult = {
+      originalUrl,
+      annotatedUrl,
+      annotations,
+      metadata: {
+        width: img.width,
+        height: img.height,
+        size: imageFile.size,
+        format: imageFile.type || 'image/png',
+        uploadedAt: new Date().toISOString(),
+      },
+    }
 
-      // Cleanup
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl)
-        img.onload()
-      }
-    })
+    return result
   }
 
-  private drawAnnotations(annotations: AnnotationData[]) {
-    annotations.forEach(annotation => {
+  private drawAnnotations(annotations: AnnotationData[]): void {
+    for (const a of annotations) {
       this.ctx.save()
-      
-      // Set annotation style
-      this.ctx.strokeStyle = annotation.color
-      this.ctx.lineWidth = annotation.strokeWidth
-      this.ctx.fillStyle = annotation.color
+      this.ctx.lineWidth = Math.max(1, a.strokeWidth)
+      this.ctx.strokeStyle = a.color
+      this.ctx.fillStyle = a.color
 
-      switch (annotation.type) {
+      switch (a.type) {
         case 'arrow':
-          this.drawArrow(annotation)
+          this.drawArrow(a)
           break
         case 'rectangle':
-          this.drawRectangle(annotation)
+          this.drawRectangle(a)
           break
         case 'circle':
-          this.drawCircle(annotation)
+          this.drawCircle(a)
           break
         case 'text':
-          this.drawText(annotation)
+          this.drawText(a)
           break
         case 'freehand':
-          this.drawFreehand(annotation)
+          this.drawFreehand(a)
           break
       }
 
       this.ctx.restore()
-    })
+    }
   }
 
-  private drawArrow(annotation: AnnotationData) {
-    if (!annotation.width || !annotation.height) return
+  private drawArrow(a: AnnotationData): void {
+    if (a.width == null || a.height == null) return
+    const startX = a.x
+    const startY = a.y
+    const endX = a.x + a.width
+    const endY = a.y + a.height
 
-    const startX = annotation.x
-    const startY = annotation.y
-    const endX = annotation.x + annotation.width
-    const endY = annotation.y + annotation.height
-
-    // Draw arrow line
     this.ctx.beginPath()
     this.ctx.moveTo(startX, startY)
     this.ctx.lineTo(endX, endY)
     this.ctx.stroke()
 
-    // Draw arrowhead
-    const headLength = Math.min(20, Math.sqrt(annotation.width ** 2 + annotation.height ** 2) * 0.2)
-    const angle = Math.atan2(annotation.height, annotation.width)
-    
+    const len = Math.hypot(a.width, a.height)
+    const head = Math.min(20, len * 0.2)
+    const angle = Math.atan2(a.height, a.width)
+
     this.ctx.beginPath()
     this.ctx.moveTo(endX, endY)
     this.ctx.lineTo(
-      endX - headLength * Math.cos(angle - Math.PI / 6),
-      endY - headLength * Math.sin(angle - Math.PI / 6)
+      endX - head * Math.cos(angle - Math.PI / 6),
+      endY - head * Math.sin(angle - Math.PI / 6)
     )
     this.ctx.moveTo(endX, endY)
     this.ctx.lineTo(
-      endX - headLength * Math.cos(angle + Math.PI / 6),
-      endY - headLength * Math.sin(angle + Math.PI / 6)
+      endX - head * Math.cos(angle + Math.PI / 6),
+      endY - head * Math.sin(angle + Math.PI / 6)
     )
     this.ctx.stroke()
   }
 
-  private drawRectangle(annotation: AnnotationData) {
-    if (!annotation.width || !annotation.height) return
-
+  private drawRectangle(a: AnnotationData): void {
+    if (a.width == null || a.height == null) return
     this.ctx.beginPath()
-    this.ctx.rect(annotation.x, annotation.y, annotation.width, annotation.height)
+    this.ctx.rect(a.x, a.y, a.width, a.height)
     this.ctx.stroke()
   }
 
-  private drawCircle(annotation: AnnotationData) {
-    if (!annotation.width || !annotation.height) return
-
-    const centerX = annotation.x + annotation.width / 2
-    const centerY = annotation.y + annotation.height / 2
-    const radius = Math.min(annotation.width, annotation.height) / 2
-
+  private drawCircle(a: AnnotationData): void {
+    if (a.width == null || a.height == null) return
+    const cx = a.x + a.width / 2
+    const cy = a.y + a.height / 2
+    const r = Math.min(a.width, a.height) / 2
     this.ctx.beginPath()
-    this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI)
+    this.ctx.arc(cx, cy, r, 0, 2 * Math.PI)
     this.ctx.stroke()
   }
 
-  private drawText(annotation: AnnotationData) {
-    if (!annotation.text) return
-
-    const fontSize = annotation.strokeWidth * 3
-    this.ctx.font = `${fontSize}px Arial`
+  private drawText(a: AnnotationData): void {
+    if (!a.text) return
+    const fontSize = Math.max(10, Math.round(a.strokeWidth * 3))
+    this.ctx.font = `${fontSize}px Arial, sans-serif`
     this.ctx.textAlign = 'left'
     this.ctx.textBaseline = 'top'
-    
-    // Draw text background
-    const metrics = this.ctx.measureText(annotation.text)
+
+    const metrics = this.ctx.measureText(a.text)
     const padding = 4
-    
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
-    this.ctx.fillRect(
-      annotation.x - padding,
-      annotation.y - padding,
-      metrics.width + padding * 2,
-      fontSize + padding * 2
-    )
-    
-    // Draw text
-    this.ctx.fillStyle = annotation.color
-    this.ctx.fillText(annotation.text, annotation.x, annotation.y)
+    // background
+    this.ctx.save()
+    this.ctx.fillStyle = 'rgba(255,255,255,0.85)'
+    this.ctx.fillRect(a.x - padding, a.y - padding, metrics.width + padding * 2, fontSize + padding * 2)
+    this.ctx.restore()
+
+    // text
+    this.ctx.fillStyle = a.color
+    this.ctx.fillText(a.text, a.x, a.y)
   }
 
-  private drawFreehand(annotation: AnnotationData) {
-    if (!annotation.points || annotation.points.length < 2) return
-
+  private drawFreehand(a: AnnotationData): void {
+    if (!a.points || a.points.length < 2) return
     this.ctx.beginPath()
-    this.ctx.moveTo(annotation.points[0].x, annotation.points[0].y)
-    
-    for (let i = 1; i < annotation.points.length; i++) {
-      this.ctx.lineTo(annotation.points[i].x, annotation.points[i].y)
+    this.ctx.moveTo(a.points[0].x, a.points[0].y)
+    for (let i = 1; i < a.points.length; i++) {
+      this.ctx.lineTo(a.points[i].x, a.points[i].y)
     }
-    
     this.ctx.stroke()
   }
 
   async uploadToSupabase(
     originalBlob: Blob,
     annotatedBlob: Blob | null,
-    metadata: any
+    metadata: ImageMetadata
   ): Promise<{ originalPath: string; annotatedPath?: string }> {
-    // Mock implementation for demo mode
-    const timestamp = Date.now()
-    const originalPath = `images/original_${timestamp}.png`
-    const annotatedPath = annotatedBlob ? `images/annotated_${timestamp}.png` : undefined
+    const ts = Date.now()
+    const originalPath = `images/original_${ts}.png`
+    const annotatedPath = annotatedBlob ? `images/annotated_${ts}.png` : undefined
 
-    // In production, this would upload to Supabase Storage
-    // const { data: originalData, error: originalError } = await supabase.storage
-    //   .from('pin-images')
-    //   .upload(originalPath, originalBlob)
-    
+    // Example for production (uncomment and ensure bucket exists):
+    // const { error: e1 } = await supabase.storage.from('pin-images').upload(originalPath, originalBlob)
+    // if (e1) throw e1
     // if (annotatedBlob) {
-    //   const { data: annotatedData, error: annotatedError } = await supabase.storage
-    //     .from('pin-images')
-    //     .upload(annotatedPath, annotatedBlob)
+    //   const { error: e2 } = await supabase.storage.from('pin-images').upload(annotatedPath!, annotatedBlob)
+    //   if (e2) throw e2
     // }
 
-    console.log('Demo: Would upload images to Supabase:', {
-      originalPath,
-      annotatedPath,
-      metadata
-    })
-
+    console.debug('Upload planned', { originalPath, annotatedPath, metadata })
     return { originalPath, annotatedPath }
   }
 
   dataURLToBlob(dataURL: string): Blob {
-    const arr = dataURL.split(',')
-    const mime = arr[0].match(/:(.*?);/)![1]
-    const bstr = atob(arr[1])
-    let n = bstr.length
-    const u8arr = new Uint8Array(n)
-    
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n)
-    }
-    
-    return new Blob([u8arr], { type: mime })
+    const [meta, b64] = dataURL.split(',')
+    const mimeMatch = meta.match(/data:(.*?);base64/)
+    const mime = mimeMatch ? mimeMatch[1] : 'image/png'
+    const bin = atob(b64)
+    const len = bin.length
+    const u8 = new Uint8Array(len)
+    for (let i = 0; i < len; i++) u8[i] = bin.charCodeAt(i)
+    return new Blob([u8], { type: mime })
   }
 
-  cleanup() {
-    // Clean up canvas and context if needed
+  cleanup(): void {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
   }
 }
 
-// Singleton instance for performance
+/* ---------- Singleton ---------- */
 let processorInstance: ImageProcessor | null = null
 
 export function getImageProcessor(): ImageProcessor {
-  if (!processorInstance) {
-    processorInstance = new ImageProcessor()
-  }
+  if (!processorInstance) processorInstance = new ImageProcessor()
   return processorInstance
 }
 
-export function cleanupImageProcessor() {
-  if (processorInstance) {
-    processorInstance.cleanup()
-    processorInstance = null
-  }
+export function cleanupImageProcessor(): void {
+  if (!processorInstance) return
+  processorInstance.cleanup()
+  processorInstance = null
 }
