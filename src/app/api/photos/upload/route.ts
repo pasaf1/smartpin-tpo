@@ -62,8 +62,9 @@ export async function POST(request: NextRequest) {
     }
 
     let thumbnailUrl: string | null = null
+    let thumbnailPath: string | null = null
     if (processed.thumbnail) {
-      const thumbnailPath = photoStorage.generateStoragePath(
+      thumbnailPath = photoStorage.generateStoragePath(
         pinId,
         uploadType as 'defect' | 'completion' | 'general',
         'thumbnail.jpg',
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     if (dbError) {
       console.error('Database insert failed:', dbError)
       await photoStorage.deleteFile(uploadResult.data.path)
-      if (thumbnailUrl) {
+      if (thumbnailUrl && thumbnailPath) {
         await photoStorage.deleteFile(thumbnailPath)
       }
       

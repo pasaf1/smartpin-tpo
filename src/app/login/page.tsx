@@ -63,7 +63,6 @@ export default function LoginPage() {
 
   const adminUsers = demoUsers.filter(u => u.role === 'Admin')
   const regularUsers = demoUsers.filter(u => u.role !== 'Admin' && u.status === 'active')
-  const inactiveUsers = demoUsers.filter(u => u.status === 'inactive')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -87,7 +86,9 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             {error && (
+              /* @ts-ignore - React 19 type compatibility */
               <Alert className="mb-4 border-red-200 bg-red-50">
+                {/* @ts-ignore - React 19 type compatibility */}
                 <AlertDescription className="text-red-700">
                   {error}
                 </AlertDescription>

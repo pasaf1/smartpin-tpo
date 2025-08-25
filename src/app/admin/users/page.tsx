@@ -29,6 +29,7 @@ export default function UserManagementPage() {
   const { userProfile, isLoading, canManageUsers } = useAuth()
   const { data: users = [] } = useUsers()
   const [searchTerm, setSearchTerm] = useState('')
+  const currentUser = userProfile
   
   // Mock mutation for status updates
   const updateStatusMutation = {
@@ -256,7 +257,7 @@ export default function UserManagementPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={() => handleStatusToggle(user.id, user.status)}
-                                disabled={user.id === currentUser.id || updateStatusMutation.isPending}
+                                disabled={user.id === currentUser?.id || updateStatusMutation.isPending}
                               >
                                 {user.status === 'active' ? '⛔ Deactivate' : '✅ Activate'}
                               </DropdownMenuItem>
