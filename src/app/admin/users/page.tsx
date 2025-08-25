@@ -62,7 +62,6 @@ export default function UserManagementPage() {
                 You need Admin or QA Manager privileges to access user management.
               </p>
               <Link href="/roofs">
-                {/* @ts-expect-error - React 19 type compatibility */}
                 <Button variant="outline">← Back to Roofs</Button>
               </Link>
             </div>
