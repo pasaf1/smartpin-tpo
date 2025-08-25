@@ -20,13 +20,6 @@ export const metadata: Metadata = {
   title: "SmartPin TPO - Quality Management Platform",
   description: "Advanced construction quality management with intelligent pin tracking and real-time collaboration.",
   manifest: "/manifest.json",
-  themeColor: "#d97706",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -40,6 +33,14 @@ export const metadata: Metadata = {
     shortcut: "/icons/icon-192x192.png",
     apple: "/icons/icon-192x192.png",
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#d97706",
 };
 
 export default function RootLayout({

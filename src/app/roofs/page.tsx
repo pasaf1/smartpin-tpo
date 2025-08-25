@@ -38,7 +38,7 @@ function RoofCard({ roof }: { roof: any }) {
 
   return (
     <Link href={`/roofs/${roof.id}`}>
-      <Card className="cursor-pointer transition-all duration-300 bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl hover:shadow-2xl hover:bg-white/15 hover:border-white/30">
+      <Card className="cursor-pointer card-3d bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 hover:border-white/30">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
@@ -241,21 +241,21 @@ export default function RoofsPage() {
       <div className="relative container mx-auto px-4 py-6 space-y-6">
         {/* Overview Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-xl">
+          <div className="kpi card-3d bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
             <div className="text-sm font-medium text-white/80 mb-2">
               Total Roofs
             </div>
             <div className="text-3xl font-bold text-white">{roofs.length}</div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-xl">
+          <div className="kpi card-3d bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
             <div className="text-sm font-medium text-white/80 mb-2">
               Total Pins
             </div>
             <div className="text-3xl font-bold text-blue-300">{totalPins}</div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-xl">
+          <div className="kpi card-3d bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
             <div className="text-sm font-medium text-white/80 mb-2">
               Open Defects
             </div>
@@ -274,7 +274,7 @@ export default function RoofsPage() {
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-xl">
+          <div className="kpi card-3d bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
             <div className="text-sm font-medium text-white/80 mb-2">
               Avg Completion
             </div>
