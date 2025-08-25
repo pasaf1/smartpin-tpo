@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,26 +21,87 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth, useUsers } from '@/lib/hooks/useAuth'
+import { useAuth } from '@/lib/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase/client'
 
+/** ---- Types ---- **/
+type UserRole = 'Admin' | 'QA_Manager' | 'Supervisor' | 'Foreman' | 'Inspector' | 'Viewer' | 'Contractor'
+type UserStatus = 'active' | 'inactive'
+
+type DbUser = {
+  id: string
+  auth_user_id: string | null
+  full_name: string | null
+  email: string | null
+  role: string | null
+  status?: string | null
+  created_at?: string | null
+  last_login_at?: string | null
+}
+
+type UiUser = {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  status: UserStatus
+  created_at?: string
+  last_login_at?: string
+}
+
+/** ---- Normalizers ---- **/
+const normalizeRole = (r: string | null | undefined): UserRole => {
+  const role = (r || '').trim() as UserRole
+  const allowed: UserRole[] = ['Admin','QA_Manager','Supervisor','Foreman','Inspector','Viewer','Contractor']
+  return allowed.includes(role) ? role : 'Viewer'
+}
+const normalizeStatus = (s: string | null | undefined): UserStatus =>
+  s === 'inactive' ? 'inactive' : 'active'
+
+const toUiUser = (u: DbUser): UiUser => ({
+  id: u.id,
+  name: (u.full_name || '').trim() || (u.email || 'User'),
+  email: u.email || '',
+  role: normalizeRole(u.role),
+  status: normalizeStatus(u.status),
+  created_at: u.created_at || undefined,
+  last_login_at: u.last_login_at || undefined,
+})
+
+/** ---- Page ---- **/
 export default function UserManagementPage() {
   const { userProfile, isLoading, canManageUsers } = useAuth()
-  const { data: users = [] } = useUsers()
+
   const [searchTerm, setSearchTerm] = useState('')
-  const currentUser = userProfile
+  const [users, setUsers] = useState<UiUser[]>([])
+  const [isUsersLoading, setIsUsersLoading] = useState(true)
+  const [isMutating, setIsMutating] = useState(false)
 
-  // Mock mutation for status updates
-  const updateStatusMutation = {
-    mutateAsync: async ({ userId, status }: { userId: string, status: string }) => {
-      console.log('Status update:', { userId, status })
-      // This would typically call an API endpoint
-      return Promise.resolve()
-    },
-    isPending: false
-  }
+  /** Load users from Supabase (no demo) */
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setIsUsersLoading(true)
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, auth_user_id, full_name, email, role, status, created_at, last_login_at')
+        .order('created_at', { ascending: false })
+      if (!cancelled) {
+        if (error) {
+          console.error('Failed to fetch users:', error)
+          setUsers([])
+        } else {
+          setUsers((data || []).map(toUiUser))
+        }
+        setIsUsersLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
-  // Show loading state
+  /** Guards */
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -49,7 +110,6 @@ export default function UserManagementPage() {
     )
   }
 
-  // Check if current user can manage users
   if (!canManageUsers) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -70,23 +130,36 @@ export default function UserManagementPage() {
     )
   }
 
-  const filteredUsers = users.filter((user: any) =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const handleStatusToggle = async (userId: string, currentStatus: 'active' | 'inactive') => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
-    try {
-      await updateStatusMutation.mutateAsync({ userId, status: newStatus })
-    } catch (error) {
-      console.error('Failed to update user status:', error)
-    }
-  }
+  /** Derivations */
+  const filteredUsers = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase()
+    if (!q) return users
+    return users.filter(u =>
+      u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    )
+  }, [users, searchTerm])
 
   const totalUsers = users.length
-  const activeUsers = users.filter((u: any) => u.status === 'active').length
-  const adminUsers = users.filter((u: any) => u.role === 'Admin').length
+  const activeUsers = users.filter(u => u.status === 'active').length
+  const adminUsers = users.filter(u => u.role === 'Admin').length
+
+  /** Mutations */
+  const handleStatusToggle = async (userId: string, currentStatus: UserStatus) => {
+    const next = currentStatus === 'active' ? 'inactive' : 'active'
+    setIsMutating(true)
+    try {
+      // optimistic update
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: next } : u))
+      const { error } = await supabase.from('users').update({ status: next }).eq('id', userId)
+      if (error) {
+        // revert on error
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: currentStatus } : u))
+        console.error('Failed to update user status:', error)
+      }
+    } finally {
+      setIsMutating(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,7 +178,6 @@ export default function UserManagementPage() {
                 </p>
               </div>
             </div>
-
             <div className="flex items-center gap-2">
               <Badge variant="destructive">Admin Only</Badge>
             </div>
@@ -122,7 +194,7 @@ export default function UserManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                    <p className="text-2xl font-bold">{totalUsers}</p>
+                    <p className="text-2xl font-bold">{isUsersLoading ? '—' : totalUsers}</p>
                   </div>
                   <div className="text-2xl">👥</div>
                 </div>
@@ -134,7 +206,9 @@ export default function UserManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Active Users</p>
-                    <p className="text-2xl font-bold text-green-600">{activeUsers}</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {isUsersLoading ? '—' : activeUsers}
+                    </p>
                   </div>
                   <div className="text-2xl">✅</div>
                 </div>
@@ -146,7 +220,9 @@ export default function UserManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Inactive Users</p>
-                    <p className="text-2xl font-bold text-red-600">{totalUsers - activeUsers}</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {isUsersLoading ? '—' : totalUsers - activeUsers}
+                    </p>
                   </div>
                   <div className="text-2xl">⛔</div>
                 </div>
@@ -158,7 +234,9 @@ export default function UserManagementPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Admin Users</p>
-                    <p className="text-2xl font-bold text-blue-600">{adminUsers}</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {isUsersLoading ? '—' : adminUsers}
+                    </p>
                   </div>
                   <div className="text-2xl">👑</div>
                 </div>
@@ -200,74 +278,86 @@ export default function UserManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="text-2xl">👤</div>
-                            <div>
-                              <div className="font-medium">{user.name}</div>
-                              <div className="text-sm text-muted-foreground">{user.email}</div>
-                            </div>
+                    {isUsersLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <div className="flex items-center justify-center py-10 text-muted-foreground">
+                            Loading users…
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={user.role === 'Admin' ? 'destructive' : 'secondary'}
-                            className="capitalize"
-                          >
-                            {user.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={user.status === 'active' ? 'default' : 'outline'}
-                            className={cn(
-                              'capitalize',
-                              user.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' : ''
-                            )}
-                          >
-                            {user.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">Never</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {new Date().toLocaleDateString()}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">⚙️</Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleStatusToggle(user.id, user.status)}
-                                disabled={user.id === currentUser?.id || updateStatusMutation.isPending}
-                              >
-                                {user.status === 'active' ? '⛔ Deactivate' : '✅ Activate'}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-muted-foreground">
-                                📧 Send Email
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-muted-foreground">
-                                🔄 Reset Password
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="text-2xl">👤</div>
+                              <div>
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={user.role === 'Admin' ? 'destructive' : 'secondary'}
+                              className="capitalize"
+                            >
+                              {user.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={user.status === 'active' ? 'default' : 'outline'}
+                              className={cn(
+                                'capitalize',
+                                user.status === 'active'
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : ''
+                              )}
+                            >
+                              {user.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" disabled={isMutating}>⚙️</Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleStatusToggle(user.id, user.status)}
+                                  disabled={isMutating || user.id === userProfile?.id}
+                                >
+                                  {user.status === 'active' ? '⛔ Deactivate' : '✅ Activate'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-muted-foreground">
+                                  📧 Send Email
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-muted-foreground">
+                                  🔄 Reset Password
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
 
-                {filteredUsers.length === 0 && (
+                {!isUsersLoading && filteredUsers.length === 0 && (
                   <div className="text-center py-12">
                     <div className="text-muted-foreground">
                       <p>No users found</p>
