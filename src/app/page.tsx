@@ -1,11 +1,50 @@
-import React from 'react'
-import { Search, Settings, User, Bell, ChevronDown, Eye, BarChart3, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
-import { ChatDock } from '@/components/chat/ChatDock'
+'use client'
 
-export default function HomePage() {
+import React, { useState, useMemo } from 'react'
+import Link from 'next/link'
+import { Search, Settings, User, Bell, ChevronDown, Eye, BarChart3, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react'
+import { ChatDock } from '@/components/chat/ChatDock'
+import { MentionInput } from '@/components/ui/mention-input'
+import { withAuth, useAuth } from '@/lib/hooks/useAuth'
+import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
+import { ConnectionStatus } from '@/components/realtime/ConnectionStatus'
+
+function HomePage() {
+  const { userProfile } = useAuth()
+  const { connectionStatus } = useRealTimeProjectDashboard()
+  
+  // Filter state
+  const [filters, setFilters] = useState({
+    status: 'all',
+    completion: 'all',
+    sort: 'name'
+  })
+
+  // New Project Modal state
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false)
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [newProjectForm, setNewProjectForm] = useState({
+    name: '',
+    description: '',
+    location: '',
+    priority: 'normal',
+    roofPlanFile: null as File | null,
+    roofPlanPreview: ''
+  })
+
+  // Global Chat state
+  const [globalChatMessage, setGlobalChatMessage] = useState('')
+
+  // Demo users for mentions
+  const demoUsers = [
+    { id: '1', name: 'Asaf Peer', email: 'asaf6peer@gmail.com', role: 'Inspector', status: 'active' as const },
+    { id: '2', name: 'John Doe', email: 'john@contractor.com', role: 'Foreman', status: 'active' as const },
+    { id: '3', name: 'Sarah Miller', email: 'sarah@qa.com', role: 'Supervisor', status: 'active' as const },
+    { id: '4', name: 'Mike Smith', email: 'mike@contractor.com', role: 'Contractor', status: 'active' as const }
+  ]
   const roofData = [
     {
-      id: "E1",
+      id: "roof-e1-demo",
       name: "Demo Roof",
       description: "Main demonstration roof with sample defects and pins",
       status: "Critical",
@@ -16,7 +55,7 @@ export default function HomePage() {
       site: "SPT2024-001•Demo Site_Construction City"
     },
     {
-      id: "R2",
+      id: "roof-building-a",
       name: "Office Complex A",
       description: "Commercial building roof inspection",
       status: "Review",
@@ -27,7 +66,7 @@ export default function HomePage() {
       site: "SPT2024-002•Downtown Complex"
     },
     {
-      id: "R3",
+      id: "roof-warehouse-12",
       name: "Residential Block B",
       description: "Multi-family housing roof assessment",
       status: "Active",
@@ -38,6 +77,49 @@ export default function HomePage() {
       site: "SPT2024-003•Suburban Development"
     }
   ]
+
+  // Filtered and sorted data
+  const filteredRoofData = useMemo(() => {
+    let filtered = [...roofData]
+
+    // Filter by status
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(roof => 
+        roof.status.toLowerCase() === filters.status.toLowerCase()
+      )
+    }
+
+    // Filter by completion
+    if (filters.completion !== 'all') {
+      filtered = filtered.filter(roof => {
+        const completion = parseInt(roof.completion)
+        switch (filters.completion) {
+          case '0-25': return completion >= 0 && completion <= 25
+          case '26-50': return completion >= 26 && completion <= 50
+          case '51-75': return completion >= 51 && completion <= 75
+          case '76-100': return completion >= 76 && completion <= 100
+          default: return true
+        }
+      })
+    }
+
+    // Sort data
+    filtered.sort((a, b) => {
+      switch (filters.sort) {
+        case 'completion':
+          return parseInt(b.completion) - parseInt(a.completion)
+        case 'status':
+          return a.status.localeCompare(b.status)
+        case 'updated':
+          return new Date(b.created_at || Date.now()).getTime() - new Date(a.created_at || Date.now()).getTime()
+        case 'name':
+        default:
+          return a.name.localeCompare(b.name)
+      }
+    })
+
+    return filtered
+  }, [roofData, filters])
 
   const getStatusStyles = (statusColor: string) => {
     switch (statusColor) {
@@ -50,6 +132,138 @@ export default function HomePage() {
       default:
         return 'bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg shadow-slate-500/25'
     }
+  }
+
+  const handleFilterChange = (filterType: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }))
+  }
+
+  const handleNewProjectFormChange = (field: string, value: any) => {
+    setNewProjectForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, etc.)')
+      return
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB')
+      return
+    }
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file)
+    
+    setNewProjectForm(prev => ({
+      ...prev,
+      roofPlanFile: file,
+      roofPlanPreview: previewUrl
+    }))
+  }
+
+  const resetNewProjectForm = () => {
+    // Clean up preview URL
+    if (newProjectForm.roofPlanPreview) {
+      URL.revokeObjectURL(newProjectForm.roofPlanPreview)
+    }
+    
+    setNewProjectForm({
+      name: '',
+      description: '',
+      location: '',
+      priority: 'normal',
+      roofPlanFile: null,
+      roofPlanPreview: ''
+    })
+  }
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validate required fields
+    if (!newProjectForm.name.trim()) {
+      alert('Project name is required')
+      return
+    }
+
+    if (!newProjectForm.location.trim()) {
+      alert('Site location is required')
+      return
+    }
+
+    setIsCreatingProject(true)
+
+    try {
+      // Generate unique project ID
+      const projectId = `project-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const projectNumber = `SPT${new Date().getFullYear()}-${String(roofData.length + 1).padStart(3, '0')}`
+      
+      // Create new project data
+      const newProject = {
+        id: projectId,
+        name: newProjectForm.name,
+        description: newProjectForm.description,
+        status: newProjectForm.priority === 'critical' ? 'Critical' : 
+               newProjectForm.priority === 'high' ? 'Review' : 'Active',
+        statusColor: newProjectForm.priority === 'critical' ? 'danger' : 
+                    newProjectForm.priority === 'high' ? 'warning' : 'success',
+        completion: '0%',
+        pins: 0,
+        defects: 0,
+        site: `${projectNumber}•${newProjectForm.location}`,
+        project_name: newProjectForm.name,
+        project_number: projectNumber,
+        location: newProjectForm.location,
+        base_map_url: newProjectForm.roofPlanPreview || '',
+        created_at: new Date().toISOString(),
+        priority: newProjectForm.priority
+      }
+
+      // In a real app, this would save to your backend/database
+      // For now, we'll simulate the API call and add to local state
+      console.log('Creating new project:', newProject)
+      console.log('Roof plan file:', newProjectForm.roofPlanFile)
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Close modal and reset form
+      setShowNewProjectModal(false)
+      resetNewProjectForm()
+
+      // Show success message
+      alert(`Project "${newProject.name}" created successfully!\n\nProject ID: ${projectId}\nProject Number: ${projectNumber}`)
+
+      // In a real implementation, you would:
+      // 1. Upload the roof plan image to your storage service
+      // 2. Save project data to your database
+      // 3. Refresh the projects list from your API
+      
+    } catch (error) {
+      console.error('Failed to create project:', error)
+      alert('Failed to create project. Please try again.')
+    } finally {
+      setIsCreatingProject(false)
+    }
+  }
+
+  const handleSendGlobalMessage = (message: string) => {
+    console.log('Sending global message:', message)
+    // In a real implementation, this would send the message to your chat system
+    // with the mentioned users extracted for notifications
   }
 
   return (
@@ -71,10 +285,17 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Navigation Menu - Removed Roofs and Users as per requirements */}
+            <div className="hidden md:flex items-center space-x-6">
+              <Link href="/settings" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200">
+                Settings
+              </Link>
+            </div>
+
             {/* Navigation Actions */}
             <div className="flex items-center space-x-3">
               {/* Search */}
-              <div className="relative">
+              <div className="relative hidden sm:block">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <input
                   type="text"
@@ -83,13 +304,18 @@ export default function HomePage() {
                 />
               </div>
               
+              {/* Connection Status */}
+              <ConnectionStatus variant="inline" />
+              
               {/* Action Buttons */}
               <button className="p-2 bg-white/50 hover:bg-white/70 backdrop-blur-sm border border-white/30 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
                 <Bell className="w-5 h-5 text-slate-600" />
               </button>
-              <button className="p-2 bg-white/50 hover:bg-white/70 backdrop-blur-sm border border-white/30 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                <Settings className="w-5 h-5 text-slate-600" />
-              </button>
+              <Link href="/settings">
+                <button className="p-2 bg-white/50 hover:bg-white/70 backdrop-blur-sm border border-white/30 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  <Settings className="w-5 h-5 text-slate-600" />
+                </button>
+              </Link>
               <button className="p-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-lg shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
                 <User className="w-5 h-5" />
               </button>
@@ -101,161 +327,533 @@ export default function HomePage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         
-        {/* Filter Bar */}
-        <div className="flex flex-wrap items-center gap-4">
-          <button className="btn-filter inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200">
-            Open Issues
-            <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">12</span>
-          </button>
-          <button className="btn-filter inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200">
-            Ready
-            <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold">8</span>
-          </button>
-          <button className="btn-filter inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200">
-            Closed
-            <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">145</span>
-          </button>
-          <button className="btn-filter inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200">
-            All Issues
-            <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">165</span>
-          </button>
+        {/* Project Overview Filters - Now positioned above KPI cards */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <h2 className="text-2xl font-bold text-slate-800">Project Dashboard</h2>
+          </div>
+          
+          {/* Project Status Filters */}
+          <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
+                Open
+                <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">2</span>
+              </button>
+              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
+                In Progress
+                <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold">1</span>
+              </button>
+              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
+                Completed
+                <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">0</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Roofs */}
-          <div className="kpi card-3d">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-white" />
+          {/* Total Projects */}
+          <div 
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            style={{
+              background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #4338ca 100%)',
+              boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.4)'
+            }}
+          >
+            <div className="relative z-10 flex flex-col items-center">
+              <div 
+                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}
+              >
+                <TrendingUp className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-slate-500">Total Roofs</span>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Total Projects</span>
+              <div className="text-4xl font-bold text-white mb-2">3</div>
+              <p className="text-sm text-white opacity-80 font-medium">Active roofs</p>
             </div>
-            <div className="text-3xl font-bold text-slate-800 mb-2">5</div>
-            <p className="text-sm text-emerald-600 font-medium">↗ Active projects</p>
+            <div 
+              className="absolute inset-0 animate-pulse"
+              style={{
+                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
+              }}
+            />
           </div>
 
-          {/* Total Pins */}
-          <div className="kpi card-3d">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg flex items-center justify-center">
-                <Eye className="w-6 h-6 text-white" />
+          {/* Open INCRs */}
+          <div 
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            style={{
+              background: 'linear-gradient(135deg, #fb923c 0%, #ef4444 50%, #dc2626 100%)',
+              boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.4)'
+            }}
+          >
+            <div className="relative z-10 flex flex-col items-center">
+              <div 
+                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}
+              >
+                <AlertTriangle className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-slate-500">Total Pins</span>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Open INCRs</span>
+              <div className="text-4xl font-bold text-white mb-2">12</div>
+              <p className="text-sm text-white opacity-80 font-medium">Need attention</p>
             </div>
-            <div className="text-3xl font-bold text-slate-800 mb-2">197</div>
-            <p className="text-sm text-blue-600 font-medium">Inspection points</p>
+            <div 
+              className="absolute inset-0 animate-pulse"
+              style={{
+                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
+              }}
+            />
           </div>
 
-          {/* Open Defects */}
-          <div className="kpi card-3d">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl shadow-lg flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-white" />
+          {/* Ready for Inspection */}
+          <div 
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            style={{
+              background: 'linear-gradient(135deg, #818cf8 0%, #8b5cf6 50%, #a855f7 100%)',
+              boxShadow: '0 25px 50px -12px rgba(139, 92, 246, 0.4)'
+            }}
+          >
+            <div className="relative z-10 flex flex-col items-center">
+              <div 
+                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}
+              >
+                <Eye className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-slate-500">Open Defects</span>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Ready for Inspection</span>
+              <div className="text-4xl font-bold text-white mb-2">8</div>
+              <p className="text-sm text-white opacity-80 font-medium">Pending review</p>
             </div>
-            <div className="text-3xl font-bold text-slate-800 mb-2">62</div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-red-600 font-medium">11 Critical</span>
-              <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-            </div>
+            <div 
+              className="absolute inset-0 animate-pulse"
+              style={{
+                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
+              }}
+            />
           </div>
 
-          {/* Avg Completion */}
-          <div className="kpi card-3d">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-white" />
+          {/* Closed */}
+          <div 
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            style={{
+              background: 'linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%)',
+              boxShadow: '0 25px 50px -12px rgba(16, 185, 129, 0.4)'
+            }}
+          >
+            <div className="relative z-10 flex flex-col items-center">
+              <div 
+                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}
+              >
+                <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-slate-500">Avg Completion</span>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Closed</span>
+              <div className="text-4xl font-bold text-white mb-2">145</div>
+              <p className="text-sm text-white opacity-80 font-medium">Completed items</p>
             </div>
-            <div className="text-3xl font-bold text-slate-800 mb-2">72%</div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div className="bg-gradient-to-r from-emerald-500 to-green-600 h-2 rounded-full" style={{ width: '72%' }}></div>
-            </div>
+            <div 
+              className="absolute inset-0 animate-pulse"
+              style={{
+                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
+              }}
+            />
           </div>
         </div>
 
-        {/* Roofs List */}
+        {/* Central New Project Button */}
+        <div className="flex justify-center py-8">
+          <button 
+            onClick={() => setShowNewProjectModal(true)}
+            className="group relative px-12 py-6 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 text-white text-lg font-bold rounded-2xl shadow-2xl shadow-emerald-500/50 hover:shadow-3xl hover:shadow-emerald-500/60 hover:scale-105 transition-all duration-500 transform"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+            <div className="relative flex items-center gap-4">
+              <Plus className="w-8 h-8" />
+              <span>New Project</span>
+            </div>
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse opacity-75"></div>
+          </button>
+        </div>
+
+        {/* Project Management Section - Now positioned at bottom */}
         <div className="bg-white/70 backdrop-blur-sm border border-white/40 rounded-2xl shadow-xl shadow-slate-500/10">
           <div className="p-6 border-b border-white/30">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-800">Active Roofs</h2>
-              <span className="text-sm text-slate-500 font-medium">5 of 5 roofs</span>
+              <h2 className="text-xl font-bold text-slate-800">Projects Table</h2>
+              <div className="flex items-center gap-4">
+                {/* Quick filter/search above the table */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search projects..."
+                    className="pl-10 pr-4 py-2 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Project Filters */}
+          <div className="p-6 border-b border-white/30">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Status:</label>
+                <select 
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="review">Review</option>
+                  <option value="critical">Critical</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Completion:</label>
+                <select 
+                  value={filters.completion}
+                  onChange={(e) => handleFilterChange('completion', e.target.value)}
+                  className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="all">All Projects</option>
+                  <option value="0-25">0-25%</option>
+                  <option value="26-50">26-50%</option>
+                  <option value="51-75">51-75%</option>
+                  <option value="76-100">76-100%</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Sort:</label>
+                <select 
+                  value={filters.sort}
+                  onChange={(e) => handleFilterChange('sort', e.target.value)}
+                  className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="name">Name</option>
+                  <option value="completion">Completion</option>
+                  <option value="status">Status</option>
+                  <option value="updated">Last Updated</option>
+                </select>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-sm text-slate-500 font-medium">{filteredRoofData.length} of {roofData.length} projects</span>
+              </div>
             </div>
           </div>
           
-          <div className="divide-y divide-white/20">
-            {roofData.map((roof) => (
-              <div key={roof.id} className="p-6 hover:bg-white/30 transition-all duration-300 group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
-                        {roof.name}
-                      </h3>
+          {/* Projects Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-white/50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Project</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Completion</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Issues</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Last Updated</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/20">
+                {filteredRoofData.map((roof) => (
+                  <tr key={roof.id} className="hover:bg-white/30 transition-all duration-200 group">
+                    <td className="px-6 py-4">
+                      <div>
+                        <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
+                          {roof.name}
+                        </h3>
+                        <p className="text-slate-600 text-sm">{roof.description}</p>
+                        <p className="text-xs text-slate-500 font-mono mt-1">{roof.site}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusStyles(roof.statusColor)}`}>
                         {roof.status}
                       </span>
-                    </div>
-                    <p className="text-slate-600 text-sm mb-2">{roof.description}</p>
-                    <p className="text-xs text-slate-500 font-mono">{roof.site}</p>
-                  </div>
-                  
-                  <div className="text-right space-y-1">
-                    <div className="text-sm font-medium text-slate-700">
-                      Completion: <span className="text-emerald-600">{roof.completion}</span>
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {roof.pins} pins • {roof.defects} defects
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      {roof.pins} pins
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      {roof.defects} issues
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Updated today
-                    </span>
-                  </div>
-                  
-                  <button className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300 opacity-0 group-hover:opacity-100">
-                    View Details
-                  </button>
-                </div>
-              </div>
-            ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-slate-200 rounded-full h-2">
+                          <div 
+                            className="bg-gradient-to-r from-emerald-500 to-green-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: roof.completion }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium text-emerald-600">{roof.completion}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-slate-600">
+                          <Eye className="w-3 h-3" />
+                          {roof.pins} pins
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-red-600">
+                          <AlertTriangle className="w-3 h-3" />
+                          {roof.defects} issues
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <Clock className="w-3 h-3" />
+                        Today
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Link href={`/roofs/${roof.id}`}>
+                          <button className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300">
+                            Open
+                          </button>
+                        </Link>
+                        <button className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200">
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Background Image Section */}
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-500/20">
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-transparent z-10"></div>
-          <img 
-            src="/api/placeholder/800/400" 
-            alt="Construction buildings" 
-            className="w-full h-64 object-cover"
-          />
-          <div className="absolute bottom-6 left-6 z-20 text-white">
-            <h3 className="text-xl font-bold mb-2">Professional Construction Quality Management</h3>
-            <p className="text-white/80 text-sm">Advanced 3D inspection tools for modern construction projects</p>
+        {/* Global Chat Section - For all projects */}
+        <div className="bg-white/70 backdrop-blur-sm border border-white/40 rounded-2xl shadow-xl shadow-slate-500/10">
+          <div className="p-6 border-b border-white/30">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Project Communications
+            </h2>
+            <p className="text-sm text-slate-600 mt-1">Global chat for all projects - stay connected with your team</p>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4 max-h-64 overflow-y-auto">
+              {/* Sample messages - in real implementation this would be from your chat system */}
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  JD
+                </div>
+                <div className="flex-1">
+                  <div className="bg-white/80 rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-slate-800">John Doe</span>
+                      <span className="text-xs text-slate-500">2 minutes ago</span>
+                    </div>
+                    <p className="text-slate-700 text-sm">New defects found in Building A roof section. Please review when possible.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  SM
+                </div>
+                <div className="flex-1">
+                  <div className="bg-white/80 rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-slate-800">Sarah Miller</span>
+                      <span className="text-xs text-slate-500">15 minutes ago</span>
+                    </div>
+                    <p className="text-slate-700 text-sm">@JohnDoe Residential Block B inspection completed. All items closed.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <MentionInput
+                value={globalChatMessage}
+                onChange={setGlobalChatMessage}
+                onSubmit={handleSendGlobalMessage}
+                placeholder="Type a message... use @username to mention team members"
+                users={demoUsers}
+                className="bg-white/60 backdrop-blur-sm border-white/40 focus:ring-indigo-500"
+              />
+            </div>
           </div>
         </div>
 
       </div>
+
+      {/* New Project Modal */}
+      {showNewProjectModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/90 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-white/30">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-slate-800">Create New Project</h2>
+                <button 
+                  onClick={() => {
+                    setShowNewProjectModal(false)
+                    resetNewProjectForm()
+                  }}
+                  className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+            </div>
+            
+            <form onSubmit={handleCreateProject} className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Project Name *</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter project name..."
+                  value={newProjectForm.name}
+                  onChange={(e) => handleNewProjectFormChange('name', e.target.value)}
+                  className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+                <textarea 
+                  placeholder="Project description..."
+                  rows={3}
+                  value={newProjectForm.description}
+                  onChange={(e) => handleNewProjectFormChange('description', e.target.value)}
+                  className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none"
+                ></textarea>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Site Location *</label>
+                  <input 
+                    type="text" 
+                    placeholder="Site address..."
+                    value={newProjectForm.location}
+                    onChange={(e) => handleNewProjectFormChange('location', e.target.value)}
+                    className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
+                  <select 
+                    value={newProjectForm.priority}
+                    onChange={(e) => handleNewProjectFormChange('priority', e.target.value)}
+                    className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Roof Plan Image</label>
+                <div className="border-2 border-dashed border-white/30 rounded-lg hover:border-indigo-400 transition-colors">
+                  {newProjectForm.roofPlanPreview ? (
+                    <div className="relative">
+                      <img 
+                        src={newProjectForm.roofPlanPreview} 
+                        alt="Roof plan preview" 
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newProjectForm.roofPlanPreview) {
+                              URL.revokeObjectURL(newProjectForm.roofPlanPreview)
+                            }
+                            setNewProjectForm(prev => ({ ...prev, roofPlanFile: null, roofPlanPreview: '' }))
+                          }}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold mr-2"
+                        >
+                          Remove
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('roof-image')?.click()}
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        id="roof-image"
+                        onChange={handleFileUpload}
+                      />
+                      <label htmlFor="roof-image" className="cursor-pointer">
+                        <div className="flex flex-col items-center">
+                          <Camera className="w-12 h-12 text-slate-400 mb-4" />
+                          <p className="text-slate-600 font-medium">Click to upload roof plan image</p>
+                          <p className="text-sm text-slate-500 mt-2">PNG, JPG up to 10MB</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+                </div>
+                {newProjectForm.roofPlanFile && (
+                  <div className="mt-2 text-sm text-slate-600">
+                    File: {newProjectForm.roofPlanFile.name} ({(newProjectForm.roofPlanFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center justify-end gap-4 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowNewProjectModal(false)
+                    resetNewProjectForm()
+                  }}
+                  className="px-6 py-3 text-slate-700 font-semibold hover:bg-white/50 rounded-lg transition-colors"
+                  disabled={isCreatingProject}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isCreatingProject}
+                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {isCreatingProject ? 'Creating Project...' : 'Create Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       
       {/* Chat Dock */}
       <ChatDock />
     </div>
   )
 }
+
+// Protect the homepage - require at least Viewer role (all authenticated users can access)
+export default withAuth(HomePage, 'Viewer')

@@ -259,7 +259,7 @@ export function SmartSearchInput({
                   handleSearch(example)
                 }}
               >
-                "{example}"
+&quot;{example}&quot;
               </Button>
             ))}
           </div>

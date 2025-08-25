@@ -21,18 +21,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useUsers, useCurrentUser, useUpdateUserStatus } from '@/lib/hooks/useAuth'
+import { useAuth, useUsers } from '@/lib/hooks/useAuth'
 import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 export default function UserManagementPage() {
-  const { data: currentUser } = useCurrentUser()
+  const { userProfile, isLoading, canManageUsers } = useAuth()
   const { data: users = [] } = useUsers()
-  const updateStatusMutation = useUpdateUserStatus()
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Check if current user is admin
-  if (!currentUser || currentUser.role !== 'admin') {
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    )
+  }
+
+  // Check if current user can manage users
+  if (!canManageUsers) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card>
@@ -40,7 +48,7 @@ export default function UserManagementPage() {
             <div className="text-center">
               <p className="text-lg font-medium text-destructive mb-2">Access Denied</p>
               <p className="text-sm text-muted-foreground mb-4">
-                You need admin privileges to access user management.
+                You need Admin or QA Manager privileges to access user management.
               </p>
               <Link href="/roofs">
                 <Button variant="outline">← Back to Roofs</Button>
