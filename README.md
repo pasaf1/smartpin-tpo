@@ -6,6 +6,16 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 
 ---
 
+## What’s new (highlights)
+- Parent/Child pins with status timeline (Open → ReadyForInspection → Closed) and parent aggregates. New UI: PinDetailsModalV2.
+- Photos stored in a dedicated public bucket `pin-photos`; child closure requires a Closure photo.
+- Project creation is RLS-gated: only roles Admin or QA_Manager can create projects. UI is gated accordingly with clear messages.
+- Chat improvements: edit/delete actions, with a DELETE RLS policy migration included.
+- SSR-safe Supabase client with diagnostics and `/api/env-check` + `/api/health` endpoints.
+- Simplified ESLint (flat config) and hardened `next.config.js`. Legacy demo pages were removed.
+
+---
+
 ## Stack and Technologies (English)
 - Framework: Next.js 15 (App Router), React 18
 - Language: TypeScript
@@ -39,6 +49,7 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - Recommend setting in package.json: "packageManager": "pnpm@9.x"
 - Node.js >= 18.17
 - Monorepo note: if using pnpm-workspace.yaml, ensure apps/smartpin-tpo is included.
+  - If you see a Next.js "inferred workspace root" warning (multiple lockfiles), either remove extra lockfiles or set `outputFileTracingRoot` in `next.config.js` to silence it.
 
 ## מנהל חבילות וסקריפטים (עברית)
 - מועדף: PNPM
@@ -51,6 +62,7 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - מומלץ להוסיף ל-package.json: "packageManager": "pnpm@9.x"
 - Node.js גרסה 18.17 ומעלה
 - הערת מונורפו: אם קיים pnpm-workspace.yaml ודאו שהתיקייה apps/smartpin-tpo כלולה.
+  - אם מתקבלת אזהרת Next.js לגבי root מזוהה ויותר מקובץ lock אחד, הסירו lock מיותר או הגדירו outputFileTracingRoot בקובץ next.config.js.
 
 ---
 
@@ -58,11 +70,13 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - Use Flat Config at apps/smartpin-tpo/eslint.config.mjs with Next presets (next/core-web-vitals, next/typescript).
 - Do not import eslint-plugin-react manually (Next presets load it).
 - Remove old .eslintrc.* files to avoid conflicts.
+- Note: Next may warn that its ESLint plugin wasn’t detected when using flat config; this is informational in our setup.
 
 ## ESLint (עברית)
 - השתמשו ב-Flat Config בקובץ apps/smartpin-tpo/eslint.config.mjs עם ה-Presets של Next (next/core-web-vitals, next/typescript).
 - אין לייבא eslint-plugin-react ידנית (ה-Presets של Next כבר טוענים אותו).
 - הסירו קבצי .eslintrc.* ישנים כדי למנוע קונפליקטים.
+- הערה: ייתכן שתופיע אזהרה ש-Next ESLint plugin לא זוהה עם flat config; אצלנו היא אינפורמטיבית.
 
 ---
 
@@ -93,8 +107,8 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 
 2) /
     - File: src/app/page.tsx
-    - Purpose: Home dashboard/overview.
-    - Data: useRoofs summaries, quick links.
+    - Purpose: Home dashboard/overview; lists real projects from Supabase.
+    - Data: Projects via Supabase; create project modal (Admin/QA_Manager only).
     - Navigation: to /roofs/[id], /roofs/[id]/settings, /admin/users.
     - Chat scope: global.
 
@@ -107,7 +121,7 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 4) /roofs/[id]
     - File: src/app/roofs/[id]/page.tsx (if present)
     - Purpose: Roof details with pins.
-    - Components: PinCanvas, PinDetailsCard, PhotoDashboard, ChatPanel.
+    - Components: PinCanvas, PinDetailsModalV2, PhotoDashboard, ChatPanel.
     - Navigation: to settings /roofs/[id]/settings.
     - Chat scope: roof (scope_id = roofId).
 
@@ -141,8 +155,8 @@ Navigation graph (text):
 
 2) /
     - קובץ: src/app/page.tsx
-    - מטרה: דשבורד ביתי/סקירה.
-    - דאטה: תקצירי useRoofs, ניווט מהיר.
+    - מטרה: דשבורד ביתי/סקירה; מציג פרויקטים אמיתיים מסביבת Supabase.
+    - דאטה: פרויקטים מסופבאייס; יצירת פרויקט אפשרית רק ל-Admin/QA_Manager.
     - ניווט: ל-/roofs/[id], הגדרות /roofs/[id]/settings, /admin/users.
     - היקף צ׳אט: global.
 
@@ -155,7 +169,7 @@ Navigation graph (text):
 4) /roofs/[id]
     - קובץ: src/app/roofs/[id]/page.tsx (אם קיים)
     - מטרה: פרטי גג עם פינים.
-    - רכיבים: PinCanvas, PinDetailsCard, PhotoDashboard, ChatPanel.
+    - רכיבים: PinCanvas, PinDetailsModalV2, PhotoDashboard, ChatPanel.
     - ניווט: להגדרות /roofs/[id]/settings.
     - היקף צ׳אט: roof (scope_id = roofId).
 
@@ -199,6 +213,15 @@ Pin
 - parent?: Pin | null
 - children?: Pin[]
 
+PinChild
+- id: string
+- pin_id: string (parent)
+- child_code: string (display like 1.1, 1.2 …)
+- status: 'Open' | 'ReadyForInspection' | 'Closed'
+- open_photo_id?: string | null
+- closure_photo_id?: string | null
+- created_at: string | Date
+
 Roof
 - id: string
 - project_id?: string | null
@@ -216,7 +239,8 @@ Roof
 
 Photo
 - id: string
-- pin_id: string
+- pin_id?: string | null
+- child_id?: string | null
 - url: string
 - thumb_url?: string | null
 - width?: number | null
@@ -239,7 +263,7 @@ User
 - id: string
 - name?: string | null
 - email?: string | null
-- role?: 'Inspector' | 'Foreman' | 'Supervisor' | 'Contractor' | 'Admin' | string
+- role?: 'Inspector' | 'Foreman' | 'Supervisor' | 'Contractor' | 'Admin' | 'QA_Manager' | string
 - status?: 'active' | 'inactive'
 
 ## מודל דומיין (עברית)
@@ -259,6 +283,15 @@ Pin (פין)
 - parent?: Pin | null
 - children?: Pin[]
 
+PinChild (תת־פין)
+- id: string
+- pin_id: string (הורה)
+- child_code: string (תצוגה כמו 1.1, 1.2 …)
+- status: 'Open' | 'ReadyForInspection' | 'Closed'
+- open_photo_id?: string | null
+- closure_photo_id?: string | null
+- created_at: string | Date
+
 Roof (גג)
 - id: string
 - project_id?: string | null
@@ -276,7 +309,8 @@ Roof (גג)
 
 Photo (תמונה)
 - id: string
-- pin_id: string
+- pin_id?: string | null
+- child_id?: string | null
 - url: string
 - thumb_url?: string | null
 - width?: number | null
@@ -299,32 +333,32 @@ User (משתמש)
 - id: string
 - name?: string | null
 - email?: string | null
-- role?: 'Inspector' | 'Foreman' | 'Supervisor' | 'Contractor' | 'Admin' | string
+- role?: 'Inspector' | 'Foreman' | 'Supervisor' | 'Contractor' | 'Admin' | 'QA_Manager' | string
 - status?: 'active' | 'inactive'
 
 ---
 
 ## Key Components and Contracts (English)
-- PinDetailsCard
-   - Props: { pin, roofId, roofName?, backgroundImageUrl?, onStatusChange?, onSeverityChange?, onChildPinCreate? }
-   - Handles INCR form, photos, child pins, status/severity updates, and pin chat UI.
+- PinDetailsModalV2
+   - Purpose: Parent/child pin UI, timeline (Open → Ready → Closed), per-child Open/Closure images, prevents closing a child without a closure photo. Aggregates Closed/Total on parent.
+   - Hooks: usePinWithChildren, useCreatePinChild, useUpdatePinChildStatus, useAttachChildPhoto.
 - PinCanvas
    - Displays pins on a plan using normalized x_position/y_position (0..1).
 - PhotoDashboard
-   - Props: { pinId: string }; upload, manage, and analyze photos per pin.
+   - Props: { pinId: string }; upload, manage, and analyze photos per pin/child.
 - ChatPanel
    - Scope-aware chat: 'global' | 'roof' | 'pin'. Use useChatSystem without conditional hook calls.
 - usePinStatusManager
    - Child pin close flow, validation, parent status updates, and summary functions.
 
 ## רכיבים מרכזיים וחוזים (עברית)
-- PinDetailsCard
-   - Props: { pin, roofId, roofName?, backgroundImageUrl?, onStatusChange?, onSeverityChange?, onChildPinCreate? }
-   - מנהל טופס INCR, תמונות, תתי־פינים, עדכוני סטטוס/חומרה וצ׳אט לפין.
+- PinDetailsModalV2
+   - מטרה: ממשק הורה/תתי־פינים, ציר סטטוס (Open → Ready → Closed), תמונות פתיחה/סגירה לכל תת־פין, ומניעת סגירה ללא תמונת Closure. מציג סיכום Closed/Total ברמת ההורה.
+   - הוקים: usePinWithChildren, useCreatePinChild, useUpdatePinChildStatus, useAttachChildPhoto.
 - PinCanvas
    - מציג פינים על גבי תכנית עם x_position/y_position מנורמלים (0..1).
 - PhotoDashboard
-   - Props: { pinId: string }; העלאה, ניהול ואנליזה של תמונות לפי פין.
+   - Props: { pinId: string }; העלאה, ניהול ואנליזה של תמונות לפי פין/תת־פין.
 - ChatPanel
    - צ׳אט לפי היקף: 'global' | 'roof' | 'pin'. להשתמש ב-useChatSystem ללא קריאה מותנית להוקים.
 - usePinStatusManager
@@ -350,9 +384,9 @@ A professional roof inspection and project management application built with Nex
 
 ## 🚀 Features
 
-- **Pin-based Inspection System** - Mark and track defects with interactive pins
-- **Real-time Collaboration** - Live updates and team chat
-- **Photo Management** - Upload, organize, and analyze inspection photos  
+- **Pin-based Inspection System** - Parent/child pins, status timeline, and aggregates
+- **Real-time Collaboration** - Live updates and scoped chat (global/roof/pin), edit/delete
+- **Photo Management** - Upload to `pin-photos`, per-child Open/Closure pairs  
 - **Project Analytics** - Quality trends and performance metrics
 - **Mobile Responsive** - Works seamlessly on all devices
 - **Offline Support** - Continue working without internet connection
@@ -375,39 +409,41 @@ cp .env.example .env.local
 
 Update `.env.local` with your production values:
 ```env
-# Replace with your actual Supabase project details
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key-here
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key # server-side only
 
-# Update with your production domain
-NEXT_PUBLIC_API_BASE_URL=https://your-domain.vercel.app
+# App
+NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
+NODE_ENV=production
 ```
 
 ### 2. Supabase Database Setup
 
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Run the database migrations:
-   ```bash
-   npx supabase db push --linked
-   ```
-3. Set up Row Level Security (RLS) policies
-4. Configure storage buckets for file uploads
+1. Create a new Supabase project at https://supabase.com
+2. Apply the SQL migrations from `supabase/migrations/` in order:
+   - 20240826_initial_schema.sql
+   - 20240827_functions_views.sql
+   - 20240828_rls_policies.sql
+   - 20240829_chats_delete_policy.sql
+3. Ensure RLS is enabled and policies are active. Project INSERT is allowed only for roles `Admin` or `QA_Manager`.
+4. Create a public storage bucket named `pin-photos` and grant read access for public URLs.
 
 ### 3. Install Dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 4. Build & Test Locally
 
 ```bash
 # Run production build
-npm run build
+pnpm build
 
 # Test production build locally
-npm start
+pnpm start
 ```
 
 ### 5. Deploy to Vercel
@@ -426,10 +462,10 @@ npm start
 ### Local Development
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+Open http://localhost:3000 to view the application.
 
 ### Production Build Script
 
@@ -460,6 +496,25 @@ src/
 └── types/              # TypeScript definitions
 ```
 
+## 👩‍💻 Admin/Operations Scripts
+
+Run from `apps/smartpin-tpo/`:
+
+```bash
+# Create an admin user (prints user id)
+pnpm node scripts/create-admin-user.mjs
+
+# Generate a one-time admin magic link
+pnpm node scripts/generate-admin-link.mjs
+
+# Set an admin password (requires service role key)
+pnpm node scripts/set-admin-password.mjs
+```
+
+Notes:
+- After first login, ensure the user row in `users` has `role = 'Admin'` or `QA_Manager` for project creation.
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser; it is used server-side only.
+
 ## 🚀 Production Features
 
 - **Real-time Updates** - Live collaboration enabled
@@ -483,6 +538,9 @@ The application includes built-in monitoring for:
 - Authentication via Supabase Auth
 - Environment variable protection
 
+Project creation permissions:
+- Only `Admin` or `QA_Manager` can INSERT into `projects` per RLS. The UI disables the action for other roles and shows a clear message.
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -505,3 +563,21 @@ For support and questions:
 ---
 
 **SmartPin TPO v1.0.0** - Professional roof inspection made simple.
+
+---
+
+## 🔎 Troubleshooting
+
+- Failed to create project (permission denied / RLS):
+  - Ensure your `users.role` is `Admin` or `QA_Manager`.
+  - Verify `20240828_rls_policies.sql` was applied.
+  - Sign out/in to refresh the JWT after role changes.
+
+- Next.js "inferred workspace root" warning (multiple lockfiles):
+  - Remove extra lockfiles or set `outputFileTracingRoot` in `next.config.js` to your monorepo root.
+
+- ESLint warning about Next plugin not detected:
+  - Expected with flat config; informational only in this project.
+
+- Photo upload 401/403 or missing images:
+  - Confirm `pin-photos` bucket exists and is public-read; check upload path and returned public URL.
