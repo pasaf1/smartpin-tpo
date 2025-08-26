@@ -26,8 +26,12 @@ export function getSupabaseClient(): SupabaseClient<Database> {
 	if (!url || !key) {
 		// On the server/build, return a proxy to avoid crashing the build.
 		if (typeof window === 'undefined') return createBuildSafeProxy()
-		// In the browser at runtime, fail fast to surface misconfiguration.
-		throw new Error('Supabase client not configured: missing NEXT_PUBLIC_SUPABASE_URL/ANON_KEY')
+		// In the browser at runtime, avoid crashing the UI; log clear diagnostics and return a noop client.
+		console.error(
+			'Supabase client not configured: missing NEXT_PUBLIC_SUPABASE_URL/ANON_KEY.\n' +
+			'Set these in Vercel Project Settings (Environment Variables) and redeploy with Ignore Build Cache.'
+		)
+		return createBuildSafeProxy()
 	}
 
 	browserClient = createClient<Database>(url, key)
