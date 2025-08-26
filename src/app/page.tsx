@@ -9,14 +9,15 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
 import { ConnectionStatus } from '@/components/realtime/ConnectionStatus'
-import { useRoofs } from '@/lib/hooks/useRoofs'
+import { useProjects, useCreateProject } from '@/lib/hooks/useSupabaseQueries'
 
 function HomePage() {
-  const { } = useAuth() // userProfile not used
+  const { userProfile } = useAuth()
   const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
-  // טען דאטה אמיתית מ-Supabase
-  const { data: roofData = [], isLoading: roofsLoading } = useRoofs()
+  // Real projects from Supabase
+  const { data: projects = [], isLoading: projectsLoading } = useProjects()
+  const createProject = useCreateProject()
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -48,18 +49,13 @@ function HomePage() {
     { id: '4', name: 'Mike Smith', email: 'mike@contractor.com', role: 'Contractor', status: 'active' as const }
   ]
 
-  // Filtered and sorted data - התאם לסכמה האמיתית של Roof
-  const filteredRoofData = useMemo(() => {
-    const filtered = [...roofData]
-
-    // TODO: התאם את הסינון לשדות האמיתיים במסד הנתונים
-    // כרגע מציג את כל הנתונים ללא סינון
-    
-    // מיון פשוט לפי שם
+  // Filtered and sorted projects
+  const filteredProjects = useMemo(() => {
+    const filtered = [...projects]
+    // basic sort
     filtered.sort((a, b) => a.name.localeCompare(b.name))
-
     return filtered
-  }, [roofData])
+  }, [projects])
 
   // Remove unused function getStatusStyles - it's not used anymore with real data
   
@@ -136,50 +132,22 @@ function HomePage() {
     setIsCreatingProject(true)
 
     try {
-      // Generate unique project ID
-      const projectId = `project-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const projectNumber = `SPT${new Date().getFullYear()}-${String(roofData.length + 1).padStart(3, '0')}`
-      
-      // Create new project data
-      const newProject = {
-        id: projectId,
-        name: newProjectForm.name,
-        description: newProjectForm.description,
-        status: newProjectForm.priority === 'critical' ? 'Critical' : 
-               newProjectForm.priority === 'high' ? 'Review' : 'Active',
-        statusColor: newProjectForm.priority === 'critical' ? 'danger' : 
-                    newProjectForm.priority === 'high' ? 'warning' : 'success',
-        completion: '0%',
-        pins: 0,
-        defects: 0,
-        site: `${projectNumber}•${newProjectForm.location}`,
-        project_name: newProjectForm.name,
-        project_number: projectNumber,
-        location: newProjectForm.location,
-        base_map_url: newProjectForm.roofPlanPreview || '',
-        created_at: new Date().toISOString(),
-        priority: newProjectForm.priority
-      }
-
-      // In a real app, this would save to your backend/database
-      // For now, we'll simulate the API call and add to local state
-      console.log('Creating new project:', newProject)
-      console.log('Roof plan file:', newProjectForm.roofPlanFile)
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Map priority to status
+      const status = 'Open' as const
+      // Create project in Supabase
+      await createProject.mutateAsync({
+        name: newProjectForm.name.trim(),
+        status,
+        contractor: null,
+        created_by: userProfile?.id || null,
+      })
 
       // Close modal and reset form
       setShowNewProjectModal(false)
       resetNewProjectForm()
 
       // Show success message
-      alert(`Project "${newProject.name}" created successfully!\n\nProject ID: ${projectId}\nProject Number: ${projectNumber}`)
-
-      // In a real implementation, you would:
-      // 1. Upload the roof plan image to your storage service
-      // 2. Save project data to your database
-      // 3. Refresh the projects list from your API
+      alert(`Project "${newProjectForm.name}" created successfully!`)
       
     } catch (error) {
       console.error('Failed to create project:', error)
@@ -196,12 +164,12 @@ function HomePage() {
   }
 
   // הצג טעינה אם הדאטה עדיין נטענת
-  if (roofsLoading) {
+  if (projectsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">טוען פרויקטים...</p>
+          <p className="text-slate-600 font-medium">Loading projects...</p>
         </div>
       </div>
     )
@@ -499,7 +467,7 @@ function HomePage() {
                 </select>
               </div>
               <div className="ml-auto flex items-center gap-2">
-                <span className="text-sm text-slate-500 font-medium">{filteredRoofData.length} of {roofData.length} projects</span>
+                <span className="text-sm text-slate-500 font-medium">{filteredProjects.length} of {projects.length} projects</span>
               </div>
             </div>
           </div>
@@ -509,63 +477,41 @@ function HomePage() {
             <table className="w-full">
               <thead className="bg-white/50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Project</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Completion</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Issues</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Last Updated</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Project</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Contractor</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Created</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/20">
-                {filteredRoofData.map((roof) => (
-                  <tr key={roof.id} className="hover:bg-white/30 transition-all duration-200 group">
+                  {filteredProjects.map((p) => (
+                    <tr key={p.project_id} className="hover:bg-white/30 transition-all duration-200 group">
                     <td className="px-6 py-4">
                       <div>
-                        <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
-                          {roof.name}
-                        </h3>
-                        <p className="text-slate-600 text-sm">{roof.building || 'No building specified'}</p>
-                        <p className="text-xs text-slate-500 font-mono mt-1">{roof.code}</p>
+                          <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
+                            {p.name}
+                          </h3>
+                          <p className="text-xs text-slate-500 font-mono mt-1">{p.project_id}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25">
-                        Active
-                      </span>
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg">
+                          {p.status}
+                        </span>
+                    </td>
+                    <td className="px-6 py-4">
+                        <div className="text-sm text-slate-600">{p.contractor || '—'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                          <Clock className="w-3 h-3" />
+                          {new Date(p.created_at).toLocaleDateString()} {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-24 bg-slate-200 rounded-full h-2">
-                          <div 
-                            className="bg-gradient-to-r from-emerald-500 to-green-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: '0%' }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium text-emerald-600">0%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-slate-600">
-                          <Eye className="w-3 h-3" />
-                          0 pins
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-red-600">
-                          <AlertTriangle className="w-3 h-3" />
-                          0 issues
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 text-xs text-slate-500">
-                        <Clock className="w-3 h-3" />
-                        Today
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/roofs/${roof.id}`}>
+                          <Link href={`/dashboard`}>
                           <button className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300">
                             Open
                           </button>

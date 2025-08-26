@@ -245,6 +245,32 @@ export function useSendChatMessage() {
   })
 }
 
+export function useEditChatMessage(scope: Chat['scope'], scopeId?: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ messageId, text }: { messageId: string; text: string }) => db.chat.update(messageId, text),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatMessages(scope, scopeId) })
+    },
+    onError: (error) => {
+      console.error('Failed to edit chat message:', error)
+    }
+  })
+}
+
+export function useDeleteChatMessage(scope: Chat['scope'], scopeId?: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (messageId: string) => db.chat.remove(messageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatMessages(scope, scopeId) })
+    },
+    onError: (error) => {
+      console.error('Failed to delete chat message:', error)
+    }
+  })
+}
+
 // Photo management hooks
 export function usePhotosByPin(pinId: string) {
   return useQuery({

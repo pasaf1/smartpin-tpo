@@ -54,6 +54,7 @@ interface PinItemsTableProps {
   showClosureButtons?: boolean
   onClosurePhotoClick?: (pinItemId: string) => void
   onEditClick?: (pinItemId: string) => void
+  defaultStatusFilter?: 'all' | 'Open' | 'ReadyForInspection' | 'Closed'
 }
 
 export function PinItemsTable({
@@ -67,6 +68,7 @@ export function PinItemsTable({
   showClosureButtons = false,
   onClosurePhotoClick,
   onEditClick,
+  defaultStatusFilter = 'all',
 }: PinItemsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
   { id: 'opened_at', desc: true }
@@ -316,6 +318,18 @@ export function PinItemsTable({
       },
     },
   })
+
+  // Apply initial status filter from props
+  useMemo(() => {
+    const col = table.getColumn('status')
+    if (!col) return
+    const current = (col.getFilterValue() as string) ?? ''
+    const desired = defaultStatusFilter === 'all' ? '' : defaultStatusFilter
+    if (current !== desired) {
+      col.setFilterValue(desired)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, defaultStatusFilter])
 
   if (isLoading) {
     return (

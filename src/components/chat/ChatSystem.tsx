@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useChatMessages, useSendChatMessage, useRealTimeChat } from '@/lib/hooks/useSupabaseQueries';
+import { useChatMessages, useSendChatMessage, useRealTimeChat, useEditChatMessage, useDeleteChatMessage } from '@/lib/hooks/useSupabaseQueries';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Users, MessageCircle, Hash, Building2, Home, Pin, AtSign, Send } from 'lucide-react';
+import { Users, MessageCircle, Hash, Building2, Home, Pin, AtSign, Send, MoreVertical, Edit2, Trash2, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 // Utility function for conditional className concatenation
 function cn(...classes: (string | undefined | false | null)[]) {
@@ -40,8 +41,11 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const sendMessageMutation = useSendChatMessage();
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>('');
 
   const userInfo = user ? {
     id: user.id,
@@ -53,6 +57,9 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
   const scopeType = ['global', 'roof', 'pin'].includes(activeScope?.type) 
     ? (activeScope.type as 'global' | 'roof' | 'pin') 
     : 'global';
+  // Scope-aware mutations so cache invalidation targets the active chat feed
+  const editMessageMutation = useEditChatMessage(scopeType, activeScope?.id);
+  const deleteMessageMutation = useDeleteChatMessage(scopeType, activeScope?.id);
   
   const {
     messages,
@@ -138,6 +145,42 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
     u.name.toLowerCase().includes(mentionSearch.toLowerCase())
   );
 
+  // Action handlers for edit/delete
+  const canManageMessage = (createdBy?: string | null) => {
+    const isOwn = createdBy && userProfile?.id && createdBy === userProfile.id;
+    const isAdmin = userProfile?.role === 'Admin';
+    return Boolean(isOwn || isAdmin);
+  };
+
+  const startEditing = (id: string, text: string | null) => {
+    setEditingId(id);
+    setEditingText(text ?? '');
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    try {
+      await editMessageMutation.mutateAsync({ messageId: editingId, text: editingText.trim() });
+      setEditingId(null);
+      setEditingText('');
+    } catch (e) {
+      console.error('Failed to edit message:', e);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingText('');
+  };
+
+  const deleteMessage = async (id: string) => {
+    try {
+      await deleteMessageMutation.mutateAsync(id);
+    } catch (e) {
+      console.error('Failed to delete message:', e);
+    }
+  };
+
   return (
     <Card className={cn("h-full flex flex-col", className)}>
       <CardHeader className="pb-3">
@@ -174,21 +217,57 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {filteredMessages.map(msg => (
-              <div key={msg.message_id} className="flex gap-3">
+              <div key={msg.message_id} className="flex gap-3 group">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {(msg.created_by?.charAt(0).toUpperCase() || '?')}
+                  {((msg as any).creator?.full_name?.charAt(0).toUpperCase() || '?')}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm">{msg.created_by || 'Unknown'}</span>
+                    <span className="font-medium text-sm">{(msg as any).creator?.full_name || 'Unknown'}</span>
                     <Badge variant="outline" className="text-xs">
-                      {/* If you have a role, display it, otherwise default */}
                       {'Viewer'}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(msg.created_at), 'MMM d, HH:mm')}
                     </span>
+                    {canManageMessage(msg.created_by) && (
+                      <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-36">
+                            <DropdownMenuItem onClick={() => startEditing(msg.message_id, msg.text)}>
+                              <Edit2 className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => deleteMessage(msg.message_id)} className="text-red-600 focus:text-red-700">
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
                   </div>
+                  {editingId === msg.message_id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        className="min-h-[60px] max-h-32 resize-none"
+                        disabled={editMessageMutation.isPending}
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" onClick={saveEdit} disabled={editMessageMutation.isPending}>
+                          <Check className="h-4 w-4 mr-1" /> Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={cancelEdit} disabled={editMessageMutation.isPending}>
+                          <X className="h-4 w-4 mr-1" /> Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
                   <div className="text-sm leading-relaxed">
                     {(msg.text ?? '').split(/(@\w+)/).map((part, index) => {
                       if (part.match(/^@\w+$/)) {
@@ -212,6 +291,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
                       return part;
                     })}
                   </div>
+                  )}
                   {msg.mentions && msg.mentions.length > 0 && (
                     <div className="flex items-center gap-1 mt-2">
                       <AtSign className="h-3 w-3 text-muted-foreground" />

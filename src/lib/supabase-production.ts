@@ -352,10 +352,7 @@ export class SupabaseService {
 
     const query = this.client
       .from('chats')
-      .select(`
-        *,
-        created_by:users(full_name, email)
-      `)
+  .select(`*, creator:users(full_name, email)`) // keep created_by as id; joined user in 'creator'
       .eq('scope', scope)
       .order('created_at', { ascending: true })
 
@@ -389,6 +386,33 @@ export class SupabaseService {
     }
 
     return data
+  }
+
+  async updateChatMessage(messageId: string, text: string): Promise<Chat> {
+    const { data, error } = await this.client
+      .from('chats')
+      .update({ text })
+      .eq('message_id', messageId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating chat message:', error)
+      throw error
+    }
+    return data
+  }
+
+  async deleteChatMessage(messageId: string): Promise<void> {
+    const { error } = await this.client
+      .from('chats')
+      .delete()
+      .eq('message_id', messageId)
+
+    if (error) {
+      console.error('Error deleting chat message:', error)
+      throw error
+    }
   }
 
   // Advanced database functions
@@ -534,6 +558,8 @@ export const db = {
     getMessages: (scope: Chat['scope'], scopeId?: string) => 
       supabaseService.getChatMessages(scope, scopeId),
     send: (chat: ChatInsert) => supabaseService.sendChatMessage(chat),
+  update: (messageId: string, text: string) => supabaseService.updateChatMessage(messageId, text),
+  remove: (messageId: string) => supabaseService.deleteChatMessage(messageId),
     subscribe: (scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) =>
       supabaseService.subscribeToChatUpdates(scope, scopeId, callback)
   },

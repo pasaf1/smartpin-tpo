@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ArrowLeft, Home, Building2, BarChart3, Users } from 'lucide-react'
 import { LuxuryHeader } from '@/components/dashboard/LuxuryHeader'
 import { KPICards } from '@/components/dashboard/KPICards'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import { RoofCard } from '@/components/dashboard/RoofCard'
 import { FilterPanel } from '@/components/dashboard/FilterPanel'
 import { InteractiveRoofPlan } from '@/components/dashboard/InteractiveRoofPlan'
@@ -51,6 +53,9 @@ export default function DashboardPage() {
   const [activeKPIFilter, setActiveKPIFilter] = useState<string>('all')
   const [pins, setPins] = useState<Pin[]>([])
   const [highlightedPinId, setHighlightedPinId] = useState<string>()
+  const [kpiModal, setKpiModal] = useState<{ open: boolean; filter: 'all' | 'Open' | 'ReadyForInspection' | 'Closed'; title: string }>(
+    { open: false, filter: 'all', title: '' }
+  )
 
   // Sample roof data
   const roofs = [
@@ -137,6 +142,17 @@ export default function DashboardPage() {
     } else if (filter === 'ready') {
       // Could highlight ready pins
     }
+
+    // Open drill-down modal with mapped status filter
+    const map: Record<string, { status: 'Open' | 'ReadyForInspection' | 'Closed' | 'all'; title: string }> = {
+      open: { status: 'Open', title: 'Open Issues' },
+      ready: { status: 'ReadyForInspection', title: 'Ready for Inspection' },
+      closed: { status: 'Closed', title: 'Closed Issues' },
+      parent: { status: 'all', title: 'Parent Pins (legacy view)' },
+      all: { status: 'all', title: 'All Issues' },
+    }
+    const m = map[filter] || map.all
+    setKpiModal({ open: true, filter: m.status, title: m.title })
   }
 
   const handleUpdatePin = (pinId: string, updates: Partial<PinDetails>) => {
@@ -307,6 +323,24 @@ export default function DashboardPage() {
         onClose={() => setSelectedPin(null)}
         onUpdatePin={handleUpdatePin}
       />
+
+      {/* KPI Drill-down Modal */}
+      <Dialog open={kpiModal.open} onOpenChange={(open) => setKpiModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-5xl w-full">
+          <DialogHeader>
+            <DialogTitle>{kpiModal.title}</DialogTitle>
+          </DialogHeader>
+          <div className="mt-2">
+            <PinItemsTable
+              maxHeight="60vh"
+              showPagination={true}
+              enableVirtualization={true}
+              onlyOpenItems={false}
+              defaultStatusFilter={kpiModal.filter}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
