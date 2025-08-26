@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Search, Settings, User, Bell, ChevronDown, Eye, BarChart3, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react'
+import Image from 'next/image'
+import { Search, Settings, User, Bell, Eye, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react'
 import { ChatDock } from '@/components/chat/ChatDock'
 import { MentionInput } from '@/components/ui/mention-input'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
@@ -11,8 +12,8 @@ import { ConnectionStatus } from '@/components/realtime/ConnectionStatus'
 import { useRoofs } from '@/lib/hooks/useRoofs'
 
 function HomePage() {
-  const { userProfile } = useAuth()
-  const { connectionStatus } = useRealTimeProjectDashboard()
+  const { } = useAuth() // userProfile not used
+  const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
   // טען דאטה אמיתית מ-Supabase
   const { data: roofData = [], isLoading: roofsLoading } = useRoofs()
@@ -49,7 +50,7 @@ function HomePage() {
 
   // Filtered and sorted data - התאם לסכמה האמיתית של Roof
   const filteredRoofData = useMemo(() => {
-    let filtered = [...roofData]
+    const filtered = [...roofData]
 
     // TODO: התאם את הסינון לשדות האמיתיים במסד הנתונים
     // כרגע מציג את כל הנתונים ללא סינון
@@ -58,21 +59,10 @@ function HomePage() {
     filtered.sort((a, b) => a.name.localeCompare(b.name))
 
     return filtered
-  }, [roofData, filters])
+  }, [roofData])
 
-  const getStatusStyles = (statusColor: string) => {
-    switch (statusColor) {
-      case 'danger':
-        return 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
-      case 'warning':
-        return 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25'
-      case 'success':
-        return 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25'
-      default:
-        return 'bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg shadow-slate-500/25'
-    }
-  }
-
+  // Remove unused function getStatusStyles - it's not used anymore with real data
+  
   const handleFilterChange = (filterType: string, value: string) => {
     setFilters(prev => ({
       ...prev,
@@ -80,7 +70,7 @@ function HomePage() {
     }))
   }
 
-  const handleNewProjectFormChange = (field: string, value: any) => {
+  const handleNewProjectFormChange = (field: string, value: string | File) => {
     setNewProjectForm(prev => ({
       ...prev,
       [field]: value
@@ -722,9 +712,11 @@ function HomePage() {
                 <div className="border-2 border-dashed border-white/30 rounded-lg hover:border-indigo-400 transition-colors">
                   {newProjectForm.roofPlanPreview ? (
                     <div className="relative">
-                      <img 
+                      <Image 
                         src={newProjectForm.roofPlanPreview} 
                         alt="Roof plan preview" 
+                        width={400}
+                        height={192}
                         className="w-full h-48 object-cover rounded-lg"
                       />
                       <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
