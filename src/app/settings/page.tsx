@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,8 @@ import {
   Trash2,
   Edit2
 } from 'lucide-react'
+import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -90,6 +92,22 @@ export default function SettingsPage() {
     offlineMode: false
   })
 
+  const [isSaving, setIsSaving] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
+
+  // Hydrate from localStorage if available
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('smartpin:settings')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setSettings((prev) => ({ ...prev, ...parsed }))
+      }
+    } catch (_) {
+      // ignore
+    }
+  }, [])
+
   // Project Status Categories
   const [statusCategories, setStatusCategories] = useState([
     { id: '1', name: 'Open', color: '#ef4444', description: 'New or active defects' },
@@ -121,9 +139,71 @@ export default function SettingsPage() {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
-  const handleSave = () => {
-    console.log('Saving settings:', settings)
-    // TODO: Implement settings save functionality
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      // Persist to localStorage as fast local fallback
+      try {
+        localStorage.setItem('smartpin:settings', JSON.stringify(settings))
+      } catch (_) {}
+
+      // Try to persist to Supabase user_prefs
+      const { data: authData } = await supabase.auth.getUser()
+      const authUser = authData?.user
+      if (!authUser) {
+        toast.error('You must be signed in to save settings')
+        return
+      }
+
+      // Resolve internal profile user_id
+      let userId: string | null = null
+      try {
+        const { data: profileByAuth } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_user_id', authUser.id)
+          .single()
+        userId = profileByAuth?.id ?? null
+      } catch (_) {
+        // fallback: try id === auth id
+        try {
+          const { data: profileById } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', authUser.id)
+            .single()
+          userId = profileById?.id ?? null
+        } catch (_) {
+          userId = null
+        }
+      }
+
+      if (!userId) {
+        toast.warning('Saved locally. User profile not found yet.')
+        return
+      }
+
+      // Try update first
+      const { error: updateErr } = await supabase
+        .from('user_prefs')
+        .update({ filter_settings: settings, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+
+      if (updateErr) {
+        // If update fails because row not found, attempt insert
+        const { error: insertErr } = await supabase
+          .from('user_prefs')
+          .insert([{ user_id: userId, filter_settings: settings }])
+        if (insertErr) throw insertErr
+      }
+
+      toast.success('Settings saved')
+    } catch (err: any) {
+      console.error('Save settings failed:', err)
+      toast.error('Save failed. Saved locally for now.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleExportSettings = () => {
@@ -144,7 +224,7 @@ export default function SettingsPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/">
+              <Link href="/dashboard" prefetch onClick={() => setIsNavigating(true)}>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <ArrowLeft className="w-4 h-4" />
                   Back to Dashboard
@@ -160,14 +240,27 @@ export default function SettingsPage() {
                 <Download className="w-4 h-4" />
                 Export
               </Button>
-              <Button onClick={handleSave} className="gap-2">
+              <Button onClick={handleSave} className="gap-2" disabled={isSaving} aria-busy={isSaving}>
                 <Save className="w-4 h-4" />
-                Save Changes
+                {isSaving ? 'Saving…' : 'Save Changes'}
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Navigation overlay to avoid white flash during route change */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-950/95 flex items-center justify-center">
+          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-200">
+            <svg className="animate-spin h-5 w-5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span>Loading…</span>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -225,7 +318,7 @@ export default function SettingsPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                       <SelectItem value="America/New_York">Eastern Time</SelectItem>
                       <SelectItem value="America/Chicago">Central Time</SelectItem>
                       <SelectItem value="America/Denver">Mountain Time</SelectItem>
@@ -240,7 +333,7 @@ export default function SettingsPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                       <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
                       <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
                       <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
@@ -253,7 +346,7 @@ export default function SettingsPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                       <SelectItem value="en-US">English (US)</SelectItem>
                       <SelectItem value="en-GB">English (UK)</SelectItem>
                       <SelectItem value="es-ES">Spanish</SelectItem>
@@ -299,7 +392,7 @@ export default function SettingsPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                       <SelectItem value="admin">Administrator</SelectItem>
                       <SelectItem value="inspector">Quality Inspector</SelectItem>
                       <SelectItem value="contractor">Contractor</SelectItem>
@@ -617,7 +710,7 @@ export default function SettingsPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                       <SelectItem value="1280x720">HD (1280x720)</SelectItem>
                       <SelectItem value="1920x1080">Full HD (1920x1080)</SelectItem>
                       <SelectItem value="2560x1440">QHD (2560x1440)</SelectItem>
@@ -631,7 +724,7 @@ export default function SettingsPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                      <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                       <SelectItem value="5MB">5MB</SelectItem>
                       <SelectItem value="10MB">10MB</SelectItem>
                       <SelectItem value="25MB">25MB</SelectItem>
@@ -654,7 +747,7 @@ export default function SettingsPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                       <SelectItem value="realtime">Real-time</SelectItem>
                       <SelectItem value="hourly">Hourly</SelectItem>
                       <SelectItem value="daily">Daily</SelectItem>
@@ -785,7 +878,7 @@ export default function SettingsPage() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                           <SelectItem value="10">10 Users</SelectItem>
                           <SelectItem value="25">25 Users</SelectItem>
                           <SelectItem value="50">50 Users</SelectItem>
@@ -799,7 +892,7 @@ export default function SettingsPage() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                           <SelectItem value="6months">6 Months</SelectItem>
                           <SelectItem value="1year">1 Year</SelectItem>
                           <SelectItem value="2years">2 Years</SelectItem>
@@ -831,7 +924,7 @@ export default function SettingsPage() {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                         <SelectItem value="light">Light</SelectItem>
                         <SelectItem value="dark">Dark</SelectItem>
                         <SelectItem value="auto">Auto</SelectItem>
@@ -902,7 +995,7 @@ export default function SettingsPage() {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
                         <SelectItem value="100MB">100MB</SelectItem>
                         <SelectItem value="250MB">250MB</SelectItem>
                         <SelectItem value="500MB">500MB</SelectItem>
