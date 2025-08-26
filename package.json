@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
   "start": "next start",
-  "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=0"
+  "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=0",
+  "create:admin:asaf": "node scripts/create-admin-user.mjs --email=Asaf6peer@gmail.com --name=\"Asaf Peer\" --role=Admin"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -68,5 +69,5 @@
     "tw-animate-css": "^1.3.7",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@9"
+  "packageManager": "pnpm@9.0.0"
 }
