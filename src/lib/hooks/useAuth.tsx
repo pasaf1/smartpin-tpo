@@ -123,10 +123,26 @@ export function withAuth<P extends object>(Component: React.ComponentType<P>) {
     const router = useRouter();
 
     useEffect(() => {
-      if (!isLoading && !user) router.replace('/login');
+      if (!isLoading && !user) {
+        router.replace('/login');
+      }
     }, [isLoading, user, router]);
 
-    if (isLoading || !user) return <div>Loading...</div>;
+    if (isLoading) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 font-medium">Loading...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    if (!user) {
+      return null; // or a fallback component, but router.replace should handle it
+    }
+
     return <Component {...props} />;
   };
 

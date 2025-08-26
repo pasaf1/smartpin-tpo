@@ -236,7 +236,7 @@ export function useSendChatMessage() {
     onSuccess: (data) => {
       // Invalidate the relevant chat query
       queryClient.invalidateQueries({ 
-        queryKey: queryKeys.chatMessages(data.scope, data.scope_id || undefined)
+        queryKey: queryKeys.chatMessages(data.scope, data.scope_id ?? undefined)
       })
     },
     onError: (error) => {

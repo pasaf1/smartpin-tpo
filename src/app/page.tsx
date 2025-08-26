@@ -208,9 +208,7 @@ function HomePage() {
 
             {/* Navigation Menu - Removed Roofs and Users as per requirements */}
             <div className="hidden md:flex items-center space-x-6">
-              <Link href="/settings" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200">
-                Settings
-              </Link>
+             
             </div>
 
             {/* Navigation Actions */}
