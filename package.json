@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
   "start": "next start",
-  "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0"
+  "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { supabase as sharedSupabase } from '@/lib/supabase/client'
 
 export interface StorageConfig {
   bucket: string
@@ -32,12 +32,7 @@ export const PHOTO_STORAGE_CONFIG: StorageConfig = {
 }
 
 export class PhotoStorageService {
-  private supabase = createClient
-    ? createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-      )
-    : (null as any)
+  private supabase = sharedSupabase
 
   async ensureBucketExists(): Promise<boolean> {
     try {
