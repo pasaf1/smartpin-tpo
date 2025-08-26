@@ -11,6 +11,7 @@ import { RoofCard } from '@/components/dashboard/RoofCard'
 import { FilterPanel } from '@/components/dashboard/FilterPanel'
 import { InteractiveRoofPlan } from '@/components/dashboard/InteractiveRoofPlan'
 import { PinDetailsModal } from '@/components/dashboard/PinDetailsModal'
+import { PinDetailsModalV2 } from '@/components/dashboard/PinDetailsModalV2'
 
 interface FilterState {
   issueType: string
@@ -45,6 +46,7 @@ interface PinDetails {
 export default function DashboardPage() {
   const [selectedRoof, setSelectedRoof] = useState<string | null>(null)
   const [selectedPin, setSelectedPin] = useState<PinDetails | null>(null)
+  const [selectedPinIdV2, setSelectedPinIdV2] = useState<string | null>(null)
   const [filters, setFilters] = useState<FilterState>({
     issueType: '',
     status: ['open', 'ready'],
@@ -113,7 +115,8 @@ export default function DashboardPage() {
       images: [],
       coordinates: { x: pin.x, y: pin.y }
     }
-    setSelectedPin(pinDetails)
+  setSelectedPin(pinDetails)
+  setSelectedPinIdV2(pin.id)
   }
 
   const handleAddPin = (x: number, y: number) => {
@@ -317,11 +320,18 @@ export default function DashboardPage() {
       </main>
 
       {/* Pin Details Modal */}
+      {/* Legacy modal kept for now; new hierarchical modal below */}
       <PinDetailsModal
         pin={selectedPin}
         isOpen={!!selectedPin}
         onClose={() => setSelectedPin(null)}
         onUpdatePin={handleUpdatePin}
+      />
+
+      <PinDetailsModalV2
+        pinId={selectedPinIdV2}
+        isOpen={!!selectedPinIdV2}
+        onClose={() => setSelectedPinIdV2(null)}
       />
 
       {/* KPI Drill-down Modal */}

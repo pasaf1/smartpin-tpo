@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface UploadResult {
   success: boolean;
@@ -32,24 +32,28 @@ export function usePhotoUpload() {
   const uploadPhoto = async (file: File, path: string) => {
     const id = `${path}-${Date.now()}`;
     setUploads(prev => [...prev, {
-      id,
+  id,
       file,
       success: false,
       progress: 0,
       status: 'uploading'
     }]);
     try {
+      // Use the public 'pin-photos' bucket
       const { data, error } = await supabase.storage
-        .from('photos')
-        .upload(path, file);
+        .from('pin-photos')
+        .upload(path, file, { upsert: false });
       if (error || !data) throw error || new Error('Upload failed');
       // לאחר העלאה, ניתן לקבל URL ציבורי
-      const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(data.path);
+      // Get a public URL to store in DB
+      const { data: pub } = supabase.storage
+        .from('pin-photos')
+        .getPublicUrl(data.path);
       // עדכון סטטוס הצלחה
       setUploads(prev => prev.map(u => 
         u.id === id ? { ...u, success: true, status: 'completed', progress: 100 } : u
       ));
-      return publicUrl || '';
+  return pub.publicUrl || '';
     } catch (err: any) {
       setUploads(prev => prev.map(u => 
         u.id === id ? { ...u, success: false, error: err.message || 'Error', status: 'error' } : u
@@ -70,7 +74,7 @@ export function usePhotoUpload() {
     const results: UploadResult[] = [];
     let completed = 0;
     for (const file of files) {
-      const path = `${type}/${pinId}/${file.name}`;
+  const path = `${type}/${pinId}/${Date.now()}-${file.name}`;
       await uploadPhoto(file, path);
       completed += 1;
       options?.onProgress?.(completed, files.length);
