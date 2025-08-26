@@ -439,7 +439,6 @@ function RoofDashboardPage() {
             </div>
             <div className="h-96">
               <ChatInterface
-                projectId={roof.project_id}
                 roofId={roofId}
                 className="h-full border-0 rounded-none bg-transparent"
               />

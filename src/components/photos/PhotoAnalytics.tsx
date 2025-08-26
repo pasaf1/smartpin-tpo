@@ -20,7 +20,6 @@ interface AnalyticsData {
 
 interface PhotoAnalyticsProps {
   pinId?: string
-  projectId?: string
   className?: string
 }
 
@@ -63,7 +62,7 @@ function formatPercentage(value: number, total: number): string {
  * @param {string} [projectId] - Optional project identifier to filter analytics.
  * @param {string} [className] - Optional CSS class for custom styling.
  */
-export default function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsProps) {
+export default function PhotoAnalytics({ pinId, className }: PhotoAnalyticsProps) {
   const analyticsQuery = usePhotoAnalytics(pinId)
   const a = (analyticsQuery.data as Partial<AnalyticsData> | undefined) ?? {}
 
