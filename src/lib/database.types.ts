@@ -260,6 +260,13 @@ export interface Database {
           roof_id: string | null
           pin_id: string | null
           child_id: string | null
+          file_name: string | null // חדש
+          file_size: number | null // חדש
+          upload_type: string | null // חדש
+          thumbnail_url: string | null // חדש
+          mime_type: string | null // חדש
+          uploader: Json | null // חדש, אובייקט
+          metadata: Json | null // חדש, אובייקט
         }
         Insert: {
           photo_id?: string

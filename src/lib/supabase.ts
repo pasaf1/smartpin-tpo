@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://demo.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'demo-anon-key'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-const isDemoMode = supabaseUrl === 'https://demo.supabase.co'
-
-if (isDemoMode) {
-  console.warn('⚠️  SmartPin TPO is running in DEMO MODE. Supabase integration is disabled.')
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing required Supabase environment variables')
 }
+
+console.log('🚀 SmartPin TPO connected to production Supabase:', supabaseUrl)
 
 // Create a single supabase client for interacting with your database
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -27,7 +27,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 // Admin client for server-side operations
 export const supabaseAdmin = createClient<Database>(
   supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'demo-service-role-key',
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
     auth: {
       autoRefreshToken: false,
@@ -35,9 +35,6 @@ export const supabaseAdmin = createClient<Database>(
     }
   }
 )
-
-// Export demo mode flag
-export { isDemoMode }
 
 // Helper function to get the current user
 export const getCurrentUser = async () => {

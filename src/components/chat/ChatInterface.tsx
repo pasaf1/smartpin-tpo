@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import ChatSystem from './ChatSystem'
+import { ChatSystem } from './ChatSystem'
 import ChatNotifications from './ChatNotifications'
 import MentionInput from './MentionInput'
-import useChatSystem, { ChatScope } from '@/lib/hooks/useChatSystem'
+import { useChatSystem, ChatScope } from '@/lib/hooks/useChatSystem'
 import { 
   MessageCircle, 
   Hash, 

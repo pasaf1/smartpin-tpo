@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePhotoAnalytics, usePhotosByPin } from '@/lib/hooks/useSupabaseQueries'
-import PhotoGallery from './PhotoGallery'
-import PhotoUploadZone from './PhotoUploadZone'
+import { PhotoGallery, PinPhoto } from './PhotoGallery'
+import { PhotoUploadZone } from './PhotoUploadZone'
 import { 
   Camera, 
   BarChart3, 
@@ -29,7 +29,46 @@ export function PhotoDashboard({ pinId, className }: PhotoDashboardProps) {
   const photosQuery = usePhotosByPin(pinId)
   const analyticsQuery = usePhotoAnalytics(pinId)
 
-  const photos = photosQuery.data || []
+  // Map raw photos to PinPhoto shape, fallback for missing fields
+  const rawPhotos = photosQuery.data || [];
+  const photos: PinPhoto[] = rawPhotos.map((p) => ({
+    id: p.photo_id,
+    pin_id: p.pin_id ?? '',
+    file_name: p.file_name ?? p.photo_id,
+    file_path: p.file_url_public ?? '',
+    file_size: p.file_size ?? 0,
+    mime_type: p.mime_type ?? '',
+    upload_type:
+      p.upload_type === 'defect' ? 'defect'
+      : p.upload_type === 'completion' ? 'completion'
+      : p.upload_type === 'general' ? 'general'
+      : (p.type === 'OpenPIC' ? 'defect' : p.type === 'ClosurePIC' ? 'completion' : 'general'),
+    storage_url: p.file_url_public ?? '',
+    thumbnail_url: p.thumbnail_url ?? '',
+    uploaded_by: p.uploaded_by ?? '',
+    uploaded_at: p.uploaded_at ?? '',
+    uploader:
+      typeof p.uploader === 'object' &&
+      p.uploader !== null &&
+      !Array.isArray(p.uploader) &&
+      typeof (p.uploader as any).name === 'string'
+        ? { name: (p.uploader as any).name, avatar_url: typeof (p.uploader as any).avatar_url === 'string' ? (p.uploader as any).avatar_url : undefined }
+        : undefined,
+    metadata:
+      typeof p.metadata === 'object' &&
+      p.metadata !== null &&
+      !Array.isArray(p.metadata) &&
+      (
+        'originalName' in p.metadata ||
+        'originalSize' in p.metadata ||
+        'compressed' in p.metadata ||
+        'hasThumbnail' in p.metadata ||
+        '_offline' in p.metadata ||
+        '_cachedAt' in p.metadata
+      )
+        ? p.metadata
+        : undefined,
+  }));
   const analytics = analyticsQuery.data || {}
 
   const formatFileSize = (bytes: number): string => {
@@ -45,12 +84,12 @@ export function PhotoDashboard({ pinId, className }: PhotoDashboardProps) {
       defect: photos.filter(p => p.upload_type === 'defect').length,
       completion: photos.filter(p => p.upload_type === 'completion').length,
       general: photos.filter(p => p.upload_type === 'general').length
-    }
-    return stats
-  }
+    };
+    return stats;
+  };
 
   const typeStats = getPhotoTypeStats()
-  const totalSize = photos.reduce((sum, photo) => sum + photo.file_size, 0)
+  const totalSize = photos.reduce((sum, photo) => sum + (photo.file_size || 0), 0);
   const avgSize = photos.length > 0 ? totalSize / photos.length : 0
 
   return (
@@ -262,28 +301,30 @@ export function PhotoDashboard({ pinId, className }: PhotoDashboardProps) {
                 <div className="space-y-3">
                   {Object.entries(
                     photos.reduce((acc, photo) => {
-                      const uploaderName = photo.uploader?.name || 'Unknown'
+                      const uploaderName = photo.uploader && typeof photo.uploader === 'object' && 'name' in photo.uploader ? photo.uploader.name : 'Unknown';
                       if (!acc[uploaderName]) {
-                        acc[uploaderName] = { count: 0, size: 0 }
+                        acc[uploaderName] = { count: 0, size: 0 };
                       }
-                      acc[uploaderName].count++
-                      acc[uploaderName].size += photo.file_size
-                      return acc
+                      acc[uploaderName].count++;
+                      acc[uploaderName].size += photo.file_size || 0;
+                      return acc;
                     }, {} as Record<string, { count: number; size: number }>)
                   )
-                    .sort(([,a], [,b]) => b.count - a.count)
+                    .sort(([,a], [,b]) => (typeof b === 'object' && typeof a === 'object' ? (b.count - a.count) : 0))
                     .map(([name, stats]) => (
-                      <div key={name} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {stats.count} photo{stats.count > 1 ? 's' : ''} • {formatFileSize(stats.size)}
-                          </p>
+                      typeof stats === 'object' ? (
+                        <div key={name} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <p className="font-medium">{name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {stats.count} photo{stats.count > 1 ? 's' : ''} • {formatFileSize(stats.size)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold">{stats.count}</div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold">{stats.count}</div>
-                        </div>
-                      </div>
+                      ) : null
                     ))
                   }
                 </div>
