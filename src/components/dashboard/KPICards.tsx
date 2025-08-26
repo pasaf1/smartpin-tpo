@@ -18,12 +18,13 @@ interface KPICardsProps {
   className?: string
   onFilterChange?: (filter: string) => void
   activeFilter?: string
+  kpiKeys?: string[]
 }
 
-export function KPICards({ className, onFilterChange, activeFilter }: KPICardsProps) {
+export function KPICards({ className, onFilterChange, activeFilter, kpiKeys = ['open', 'ready', 'closed', 'parent', 'all'] }: KPICardsProps) {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
 
-  const kpiCards: KPICard[] = [
+  const allKpiCards: KPICard[] = [
     {
       id: 'open',
       title: 'Open Issues',
@@ -95,6 +96,8 @@ export function KPICards({ className, onFilterChange, activeFilter }: KPICardsPr
       )
     }
   ]
+
+  const kpiCards = allKpiCards.filter(card => kpiKeys.includes(card.id));
 
   const handleCardClick = (filter: string) => {
     onFilterChange?.(filter)

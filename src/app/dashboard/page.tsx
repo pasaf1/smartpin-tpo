@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Home, Building2, BarChart3, Users } from 'lucide-react'
+import { ArrowLeft, Home } from 'lucide-react'
 import { LuxuryHeader } from '@/components/dashboard/LuxuryHeader'
 import { KPICards } from '@/components/dashboard/KPICards'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import { RoofCard } from '@/components/dashboard/RoofCard'
 import { FilterPanel } from '@/components/dashboard/FilterPanel'
-import { InteractiveRoofPlan } from '@/components/dashboard/InteractiveRoofPlan'
 import { PinDetailsModal } from '@/components/dashboard/PinDetailsModal'
 import { PinDetailsModalV2 } from '@/components/dashboard/PinDetailsModalV2'
 
@@ -151,7 +150,6 @@ export default function DashboardPage() {
       open: { status: 'Open', title: 'Open Issues' },
       ready: { status: 'ReadyForInspection', title: 'Ready for Inspection' },
       closed: { status: 'Closed', title: 'Closed Issues' },
-      parent: { status: 'all', title: 'Parent Pins (legacy view)' },
       all: { status: 'all', title: 'All Issues' },
     }
     const m = map[filter] || map.all
@@ -179,7 +177,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
                   <Link href="/" className="hover:text-indigo-600 transition-colors duration-200 flex items-center gap-1">
                     <Home className="w-4 h-4" />
-                    Home
+                    Projects
                   </Link>
                   <span>/</span>
                   <span className="text-slate-700 font-medium">Dashboard</span>
@@ -189,134 +187,37 @@ export default function DashboardPage() {
                 </h1>
               </div>
             </div>
-
-            {/* Navigation Menu */}
-            <div className="hidden md:flex items-center space-x-6">
-              <Link href="/" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
-                <Home className="w-4 h-4" />
-                Home
-              </Link>
-              <Link href="/roofs" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
-                <Building2 className="w-4 h-4" />
-                Roofs
-              </Link>
-              {/* Demo link removed */}
-              {/* <Link href="/demo/analytics" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Analytics
-              </Link> */}
-              <Link href="/admin/users" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Users
-              </Link>
-            </div>
-
-            {/* Back Button */}
-            <div className="flex items-center">
-              <Link href="/">
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm border border-white/30 text-slate-700 font-medium rounded-lg shadow-lg shadow-slate-500/10 hover:bg-white/70 transition-all duration-300 hover:scale-105">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Home
-                </button>
-              </Link>
-            </div>
           </div>
         </div>
       </nav>
       
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        {!selectedRoof ? (
-          // Main Dashboard View
-          <div className="space-y-8">
-            {/* KPI Cards */}
-            <KPICards 
-              onFilterChange={handleKPIFilterChange}
-              activeFilter={activeKPIFilter}
-            />
-            
-            {/* Filters */}
-            <FilterPanel onFilterChange={handleFilterChange} />
-            
-            {/* Roofs Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {roofs.map((roof) => (
-                <RoofCard
-                  key={roof.id}
-                  roof={roof}
-                  onViewDetails={handleRoofSelect}
-                />
-              ))}
+        <div className="space-y-8">
+          {/* KPI Cards & Filters */}
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-1">
+              <KPICards 
+                onFilterChange={handleKPIFilterChange}
+                activeFilter={activeKPIFilter}
+                kpiKeys={['open', 'ready', 'closed', 'all']}
+              />
+            </div>
+            <div className="w-full md:w-auto">
+              <FilterPanel onFilterChange={handleFilterChange} />
             </div>
           </div>
-        ) : (
-          // Detailed Roof View
-          <div className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setSelectedRoof(null)}
-                  className="w-10 h-10 bg-white/80 backdrop-blur-sm hover:bg-white/90 rounded-xl flex items-center justify-center text-luxury-600 hover:text-luxury-900 transition-all shadow-luxury"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-                  </svg>
-                </button>
-                <div>
-                  <h1 className="text-3xl font-bold text-luxury-900">
-                    {roofs.find(r => r.id === selectedRoof)?.name}
-                  </h1>
-                  <p className="text-luxury-600">
-                    Code: {roofs.find(r => r.id === selectedRoof)?.code} • 
-                    Area: {roofs.find(r => r.id === selectedRoof)?.area}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Interactive Roof Plan */}
-              <div className="lg:col-span-3">
-                <div className="bg-white rounded-2xl shadow-luxury-lg p-6">
-                  <h2 className="text-xl font-bold text-luxury-900 mb-4">Interactive Roof Plan</h2>
-                  <InteractiveRoofPlan
-                    pins={pins}
-                    onPinClick={handlePinClick}
-                    onAddPin={handleAddPin}
-                    highlightedPinId={highlightedPinId}
-                    className="h-96"
-                  />
-                </div>
-              </div>
-              
-              {/* Sidebar */}
-              <div className="space-y-6">
-                <FilterPanel onFilterChange={handleFilterChange} />
-                
-                <div className="bg-white rounded-2xl shadow-luxury-lg p-6">
-                  <h3 className="text-lg font-bold text-luxury-900 mb-4">Quick Stats</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-luxury-600">Total Pins</span>
-                      <span className="font-semibold text-luxury-900">{pins.length + 3}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-luxury-600">Open Issues</span>
-                      <span className="font-semibold text-red-600">3</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-luxury-600">Ready</span>
-                      <span className="font-semibold text-amber-600">1</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-luxury-600">Closed</span>
-                      <span className="font-semibold text-emerald-600">2</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          
+          {/* Roofs Grid - This will be replaced by the main content for a single project */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {roofs.map((roof) => (
+              <RoofCard
+                key={roof.id}
+                roof={roof}
+                onViewDetails={handleRoofSelect}
+              />
+            ))}
           </div>
-        )}
+        </div>
       </main>
 
       {/* Pin Details Modal */}
