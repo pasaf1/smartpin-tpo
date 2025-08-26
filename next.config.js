@@ -2,9 +2,7 @@
 const path = require('path')
 
 const nextConfig = {
-  // Explicitly set workspace root for output file tracing in monorepos
-  // This silences Next.js "inferred workspace root" warnings
-  outputFileTracingRoot: path.join(__dirname, '..', '..'),
+  // Note: Avoid setting outputFileTracingRoot here to prevent Vercel packaging issues
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', '@tanstack/react-query', 'date-fns'],
