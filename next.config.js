@@ -82,9 +82,8 @@ const nextConfig = {
   generateEtags: true,
 
   // Output optimization for production
-  output: 'standalone',
-  // Help Next.js resolve the correct workspace root in a monorepo
-  outputFileTracingRoot: path.join(__dirname, '../../'),
+  // Note: 'standalone' can cause symlink issues on Windows local builds.
+  // Vercel will handle output tracing automatically in CI.
   
   // Security headers
   async headers() {
