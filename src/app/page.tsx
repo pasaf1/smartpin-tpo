@@ -13,6 +13,7 @@ import { useProjects, useCreateProject } from '@/lib/hooks/useSupabaseQueries'
 
 function HomePage() {
   const { userProfile } = useAuth()
+  const canCreateProject = userProfile?.role === 'Admin' || userProfile?.role === 'QA_Manager'
   const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
   // Real projects from Supabase
@@ -118,6 +119,11 @@ function HomePage() {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!canCreateProject) {
+      alert('You do not have permission to create a project. Only Admin or QA_Manager can create projects.')
+      return
+    }
+
     // Validate required fields
     if (!newProjectForm.name.trim()) {
       alert('Project name is required')
@@ -131,7 +137,7 @@ function HomePage() {
 
     setIsCreatingProject(true)
 
-    try {
+  try {
       // Map priority to status
       const status = 'Open' as const
       // Create project in Supabase
@@ -149,9 +155,15 @@ function HomePage() {
       // Show success message
       alert(`Project "${newProjectForm.name}" created successfully!`)
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create project:', error)
-      alert('Failed to create project. Please try again.')
+      const code = error?.code || 'UNKNOWN'
+      const msg = error?.message || 'Unknown error'
+      if (code === '42501' || /insufficient privileges|RLS|policy/i.test(msg)) {
+        alert('Permission denied. Only Admin or QA_Manager can create projects.')
+      } else {
+        alert(`Failed to create project. ${msg} (code: ${code})`)
+      }
     } finally {
       setIsCreatingProject(false)
     }
@@ -391,8 +403,15 @@ function HomePage() {
         {/* Central New Project Button */}
         <div className="flex justify-center py-8">
           <button 
-            onClick={() => setShowNewProjectModal(true)}
+            onClick={() => {
+              if (!canCreateProject) {
+                alert('Only Admin or QA_Manager can create projects.')
+                return
+              }
+              setShowNewProjectModal(true)
+            }}
             className="group relative px-12 py-6 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 text-white text-lg font-bold rounded-2xl shadow-2xl shadow-emerald-500/50 hover:shadow-3xl hover:shadow-emerald-500/60 hover:scale-105 transition-all duration-500 transform"
+            disabled={!canCreateProject}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
             <div className="relative flex items-center gap-4">
@@ -601,6 +620,11 @@ function HomePage() {
                   <X className="w-5 h-5 text-slate-600" />
                 </button>
               </div>
+              {!canCreateProject && (
+                <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                  You don\'t have permission to create projects. Ask an Admin or QA Manager to grant access.
+                </div>
+              )}
             </div>
             
             <form onSubmit={handleCreateProject} className="p-6 space-y-6">
@@ -727,7 +751,7 @@ function HomePage() {
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isCreatingProject}
+                  disabled={isCreatingProject || !canCreateProject}
                   className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {isCreatingProject ? 'Creating Project...' : 'Create Project'}
