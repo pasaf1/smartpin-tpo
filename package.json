@@ -7,7 +7,8 @@
     "build": "next build",
   "start": "next start",
   "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=0",
-  "create:admin:asaf": "node scripts/create-admin-user.mjs --email=Asaf6peer@gmail.com --name=\"Asaf Peer\" --role=Admin"
+  "create:admin:asaf": "node scripts/create-admin-user.mjs --email=Asaf6peer@gmail.com --name=\"Asaf Peer\" --role=Admin",
+  "setpass:asaf": "node scripts/set-admin-password.mjs Asaf6peer@gmail.com \"$env:NEW_ADMIN_PASSWORD\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
