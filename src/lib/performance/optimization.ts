@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy } from 'react'
 
 export function useVirtualization<T>(
   items: T[],
@@ -126,7 +126,7 @@ export function createLazyComponent<T = any>(
   moduleName: string,
   loader: () => Promise<{ default: T }>
 ) {
-  return React.lazy(() => lazyLoader.loadComponent(moduleName, loader))
+  return lazy(() => lazyLoader.loadComponent(moduleName, loader))
 }
 
 export function useIntersectionObserver(

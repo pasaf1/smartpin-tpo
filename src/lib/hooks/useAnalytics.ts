@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { PinStatus, PinSeverity } from '@/lib/hooks/usePins'
+import type { PinStatus, Severity as PinSeverity } from '@/lib/database.types'
 
 export interface RiskQualityCell {
   severity: PinSeverity
@@ -56,7 +56,7 @@ export interface RiskQualityMatrix {
 // Demo data for Risk Quality Matrix
 const generateDemoRiskMatrix = (): RiskQualityMatrix => {
   const severities: PinSeverity[] = ['Critical', 'High', 'Medium', 'Low']
-  const statuses: PinStatus[] = ['Open', 'InProgress', 'ReadyForInspection', 'Closed']
+  const statuses: PinStatus[] = ['Open', 'ReadyForInspection', 'Closed']
   
   const cells: RiskQualityCell[][] = []
   let totalPins = 0
@@ -68,13 +68,13 @@ const generateDemoRiskMatrix = (): RiskQualityMatrix => {
       // Generate realistic distribution
       let count = 0
       if (severity === 'Critical') {
-        count = status === 'Open' ? 8 : status === 'InProgress' ? 5 : status === 'ReadyForInspection' ? 2 : 12
+        count = status === 'Open' ? 8 : status === 'ReadyForInspection' ? 2 : 12
       } else if (severity === 'High') {
-        count = status === 'Open' ? 15 : status === 'InProgress' ? 12 : status === 'ReadyForInspection' ? 6 : 28
+        count = status === 'Open' ? 15 : status === 'ReadyForInspection' ? 6 : 28
       } else if (severity === 'Medium') {
-        count = status === 'Open' ? 25 : status === 'InProgress' ? 18 : status === 'ReadyForInspection' ? 8 : 45
+        count = status === 'Open' ? 25 : status === 'ReadyForInspection' ? 8 : 45
       } else {
-        count = status === 'Open' ? 18 : status === 'InProgress' ? 10 : status === 'ReadyForInspection' ? 5 : 32
+        count = status === 'Open' ? 18 : status === 'ReadyForInspection' ? 5 : 32
       }
       
       totalPins += count
@@ -114,7 +114,7 @@ const generateDemoRiskMatrix = (): RiskQualityMatrix => {
   const totalOpen = cells.reduce((sum, row) => sum + row[0].count, 0)
   const riskScore = Math.max(0, 100 - Math.round((openCritical / totalOpen) * 100))
   
-  const closedItems = cells.reduce((sum, row) => sum + row[3].count, 0)
+  const closedItems = cells.reduce((sum, row) => sum + row[2].count, 0) // Closed is index 2 now
   const qualityScore = Math.round((closedItems / totalPins) * 100)
   
   return {

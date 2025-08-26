@@ -132,7 +132,8 @@ export function useOfflineSync() {
     if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
       try {
         const registration = await navigator.serviceWorker.ready
-        await registration.sync.register('manual-sync')
+        // Type assertion for background sync API
+        await (registration as any).sync?.register('manual-sync')
         
         toast.info('Sync started', {
           description: 'Synchronizing your offline changes...'

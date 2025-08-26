@@ -1,17 +1,22 @@
+'use client'
+
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { usePhotoAnalytics } from '@/lib/hooks/useSupabaseQueries'
-import { 
-  BarChart3, 
-  HardDrive, 
-  Camera, 
-  TrendingUp,
-  Users,
-  Calendar,
-  Zap
-} from 'lucide-react'
+import { BarChart3, HardDrive, Camera, TrendingUp, Users, Calendar, Zap } from 'lucide-react'
+
+type NumRecord = Record<string, number>
+
+interface AnalyticsData {
+  total_photos: number
+  total_size: number
+  avg_file_size: number
+  photos_by_type: NumRecord
+  top_uploaders?: NumRecord
+  photos_by_month?: NumRecord
+}
 
 interface PhotoAnalyticsProps {
   pinId?: string
@@ -19,35 +24,63 @@ interface PhotoAnalyticsProps {
   className?: string
 }
 
-export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsProps) {
+function asNumber(value: unknown): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+function toNumRecord(o: unknown): NumRecord {
+  if (!o || typeof o !== 'object') return {}
+  const rec: NumRecord = {}
+  for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+    rec[k] = asNumber(v)
+  }
+  return rec
+}
+
+function formatFileSize(bytes: number): string {
+  const b = asNumber(bytes)
+  if (b <= 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(b) / Math.log(k))
+  return `${parseFloat((b / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+}
+
+function formatPercentage(value: number, total: number): string {
+  const v = asNumber(value)
+  const t = asNumber(total)
+  if (t <= 0) return '0%'
+  return `${Math.round((v / t) * 100)}%`
+}
+
+/**
+ * Displays analytics for photos including total count, storage used, average size,
+ * distribution by type, top contributors, and monthly upload trends.
+ *
+ * @param {string} [pinId] - Optional pin identifier to filter analytics.
+ * @param {string} [projectId] - Optional project identifier to filter analytics.
+ * @param {string} [className] - Optional CSS class for custom styling.
+ */
+export default function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsProps) {
   const analyticsQuery = usePhotoAnalytics(pinId)
-  const analytics = analyticsQuery.data || {}
+  const a = (analyticsQuery.data as Partial<AnalyticsData> | undefined) ?? {}
 
-  const formatFileSize = (bytes: number): string => {
-    if (!bytes || bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-  }
-
-  const formatPercentage = (value: number, total: number): string => {
-    if (!total || total === 0) return '0%'
-    return `${Math.round((value / total) * 100)}%`
-  }
-
-  const photosByType = analytics.photos_by_type || {}
-  const totalPhotos = analytics.total_photos || 0
-  const totalSize = analytics.total_size || 0
-  const avgSize = analytics.avg_file_size || 0
+  const totalPhotos = asNumber(a.total_photos)
+  const totalSize = asNumber(a.total_size)
+  const avgSize = asNumber(a.avg_file_size)
+  const photosByType = toNumRecord(a.photos_by_type)
+  const topUploaders = toNumRecord(a.top_uploaders)
+  const photosByMonth = toNumRecord(a.photos_by_month)
 
   if (analyticsQuery.isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${className ?? ''}`}>
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-6">
-              <div className="h-20 bg-gray-200 rounded"></div>
+              <div className="h-20 bg-muted rounded" />
             </CardContent>
           </Card>
         ))}
@@ -56,7 +89,7 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${className ?? ''}`}>
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -110,7 +143,9 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
               <div>
                 <p className="text-sm text-muted-foreground">Compression</p>
                 <p className="text-2xl font-bold">
-                  {totalPhotos > 0 ? '~65%' : '0%'}
+                  {totalPhotos > 0 && avgSize > 0 && totalSize > 0
+                    ? `${Math.round((1 - avgSize / (totalSize / totalPhotos)) * 100)}%`
+                    : '0%'}
                 </p>
               </div>
             </div>
@@ -128,35 +163,31 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
         </CardHeader>
         <CardContent className="space-y-4">
           {Object.entries(photosByType).map(([type, count]) => {
-            const percentage = formatPercentage(count as number, totalPhotos)
-            const progressValue = totalPhotos > 0 ? ((count as number) / totalPhotos) * 100 : 0
+            const countNum = asNumber(count)
+            const percentage = formatPercentage(countNum, totalPhotos)
+            const progressValue = totalPhotos > 0 ? (countNum / totalPhotos) * 100 : 0
 
-            const typeConfig = {
-              defect: { color: 'text-red-600', bg: 'bg-red-500', label: 'Defect Photos' },
-              completion: { color: 'text-green-600', bg: 'bg-green-500', label: 'Completion Photos' },
-              general: { color: 'text-blue-600', bg: 'bg-blue-500', label: 'General Photos' }
-            }[type] || { color: 'text-gray-600', bg: 'bg-gray-500', label: type }
+            const { color, label } =
+              {
+                defect: { color: 'text-red-600', label: 'Defect Photos' },
+                completion: { color: 'text-green-600', label: 'Completion Photos' },
+                general: { color: 'text-blue-600', label: 'General Photos' },
+              }[type] || { color: 'text-gray-600', label: type }
 
             return (
               <div key={type} className="space-y-2">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={typeConfig.color}>
-                      {typeConfig.label}
+                    <Badge variant="outline" className={color}>
+                      {label}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
-                      {count} photos • {percentage}
+                      {countNum} photos • {percentage}
                     </span>
                   </div>
-                  <span className="font-medium">{count}</span>
+                  <span className="font-medium">{countNum}</span>
                 </div>
-                <Progress 
-                  value={progressValue} 
-                  className="h-2"
-                  style={{
-                    '--progress-background': typeConfig.bg
-                  } as React.CSSProperties}
-                />
+                <Progress value={progressValue} className="h-2" />
               </div>
             )
           })}
@@ -172,7 +203,7 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
       </Card>
 
       {/* Top Contributors */}
-      {analytics.top_uploaders && Object.keys(analytics.top_uploaders).length > 0 && (
+      {Object.keys(topUploaders).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -182,11 +213,14 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(analytics.top_uploaders)
-                .sort(([,a], [,b]) => (b as number) - (a as number))
+              {Object.entries(topUploaders)
+                .sort(([, a], [, b]) => asNumber(b) - asNumber(a))
                 .slice(0, 5)
                 .map(([name, count]) => (
-                  <div key={name} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <div
+                    key={name}
+                    className="flex justify-between items-center p-3 bg-muted/50 rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                         {name.charAt(0).toUpperCase()}
@@ -194,9 +228,9 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
                       <span className="font-medium">{name}</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold">{count}</div>
+                      <div className="font-bold">{asNumber(count)}</div>
                       <div className="text-xs text-muted-foreground">
-                        {formatPercentage(count as number, totalPhotos)}
+                        {formatPercentage(asNumber(count), totalPhotos)}
                       </div>
                     </div>
                   </div>
@@ -207,7 +241,7 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
       )}
 
       {/* Monthly Upload Trend */}
-      {analytics.photos_by_month && Object.keys(analytics.photos_by_month).length > 0 && (
+      {Object.keys(photosByMonth).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -217,19 +251,20 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(analytics.photos_by_month)
+              {Object.entries(photosByMonth)
                 .sort(([a], [b]) => b.localeCompare(a))
                 .slice(0, 6)
                 .map(([month, count]) => {
-                  const percentage = formatPercentage(count as number, totalPhotos)
-                  const progressValue = totalPhotos > 0 ? ((count as number) / totalPhotos) * 100 : 0
+                  const countNum = asNumber(count)
+                  const percentage = formatPercentage(countNum, totalPhotos)
+                  const progressValue = totalPhotos > 0 ? (countNum / totalPhotos) * 100 : 0
 
                   return (
                     <div key={month} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">{month}</span>
                         <span className="text-sm text-muted-foreground">
-                          {count} photos • {percentage}
+                          {countNum} photos • {percentage}
                         </span>
                       </div>
                       <Progress value={progressValue} className="h-2" />
@@ -243,5 +278,3 @@ export function PhotoAnalytics({ pinId, projectId, className }: PhotoAnalyticsPr
     </div>
   )
 }
-
-export default PhotoAnalytics

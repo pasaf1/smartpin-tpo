@@ -140,38 +140,11 @@ export default function RoofSettingsPage() {
   const router = useRouter()
   const roofId = params.id as string
   
-  const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-  // Removed edit capabilities - roof details can only be set during project creation
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    project_name: '',
-    project_number: '',
-    location: '',
-    base_map_url: '',
-    base_map_width: 0,
-    base_map_height: 0
-  })
-  
-  // Update form data when roof loads
-  useEffect(() => {
-    if (roof) {
-      setFormData({
-        name: roof.name || '',
-        description: roof.description || '',
-        project_name: roof.project_name || '',
-        project_number: roof.project_number || '',
-        location: roof.location || '',
-        base_map_url: roof.base_map_url || '',
-        base_map_width: roof.base_map_width || 0,
-        base_map_height: roof.base_map_height || 0
-      })
-    }
-  }, [roof])
-  
-  // Editing disabled - project details can only be set during creation
-  const handleRedirectToProjects = () => {
+const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
+// Removed edit capabilities - roof details can only be set during project creation
+
+// Editing disabled - project details can only be set during creation
+const handleRedirectToProjects = () => {
     router.push('/')
   }
   
@@ -225,7 +198,7 @@ export default function RoofSettingsPage() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Project Information</h1>
                 <p className="text-muted-foreground">
-                  {roof.name} • {roof.project_number} • Read-only view
+                  {roof.name} • {roof.code} • Read-only view
                 </p>
               </div>
             </div>
@@ -259,17 +232,17 @@ export default function RoofSettingsPage() {
                   </div>
                   
                   <div>
-                    <Label>Location</Label>
+                    <Label>Roof Code</Label>
                     <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
-                      {roof?.location || 'Not set'}
+                      {roof?.code || 'Not set'}
                     </div>
                   </div>
                 </div>
                 
                 <div>
-                  <Label>Description</Label>
+                  <Label>Building</Label>
                   <div className="text-sm font-medium p-2 bg-muted/30 rounded border min-h-[80px]">
-                    {roof?.description || 'No description provided'}
+                    {roof?.building || 'No building information provided'}
                   </div>
                 </div>
               </CardContent>
@@ -280,23 +253,14 @@ export default function RoofSettingsPage() {
               <CardHeader>
                 <CardTitle>Project Information</CardTitle>
                 <CardDescription>
-                  Project-related details and identifiers (set during creation)
+                  Project-related details and identifiers (linked to project)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Project Name</Label>
-                    <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
-                      {roof?.project_name || 'Not set'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label>Project Number</Label>
-                    <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
-                      {roof?.project_number || 'Not set'}
-                    </div>
+                <div>
+                  <Label>Project ID</Label>
+                  <div className="text-sm font-medium p-2 bg-muted/30 rounded border">
+                    {roof?.project_id || 'Not set'}
                   </div>
                 </div>
               </CardContent>
@@ -305,18 +269,18 @@ export default function RoofSettingsPage() {
             {/* Base Map - Read Only */}
             <Card>
               <CardHeader>
-                <CardTitle>Base Map Image</CardTitle>
+                <CardTitle>Plan Image</CardTitle>
                 <CardDescription>
                   Roof plan image (set during project creation - cannot be changed)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {roof?.base_map_url ? (
+                {roof?.plan_image_url ? (
                   <div>
                     <div className="relative border rounded-lg overflow-hidden">
                       <img
-                        src={roof.base_map_url}
-                        alt="Base map preview"
+                        src={roof.plan_image_url}
+                        alt="Plan image preview"
                         className="w-full h-48 object-cover"
                       />
                       <div className="absolute top-2 right-2">
@@ -324,21 +288,19 @@ export default function RoofSettingsPage() {
                       </div>
                     </div>
                     
-                    {roof.base_map_width > 0 && (
-                      <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                        <div className="text-sm font-medium mb-1">Image Details</div>
-                        <div className="text-sm text-muted-foreground">
-                          Dimensions: {roof.base_map_width} × {roof.base_map_height} pixels
-                        </div>
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <div className="text-sm font-medium mb-1">Image Details</div>
+                      <div className="text-sm text-muted-foreground">
+                        Plan image URL configured for this roof
                       </div>
-                    )}
+                    </div>
                   </div>
                 ) : (
                   <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
                     <svg className="w-12 h-12 mx-auto mb-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p className="text-muted-foreground">No base map was uploaded during project creation</p>
+                    <p className="text-muted-foreground">No plan image was uploaded during project creation</p>
                   </div>
                 )}
               </CardContent>
@@ -350,22 +312,17 @@ export default function RoofSettingsPage() {
             {/* Current Stats */}
             <Card>
               <CardHeader>
-                <CardTitle>Current Statistics</CardTitle>
+                <CardTitle>Roof Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Pins</span>
-                  <span className="text-sm font-medium">{roof.total_pins || 0}</span>
+                  <span className="text-sm text-muted-foreground">Roof ID</span>
+                  <span className="text-sm font-medium">{roof.id}</span>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Open Defects</span>
-                  <span className="text-sm font-medium text-red-600">{roof.open_defects || 0}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Completion</span>
-                  <span className="text-sm font-medium">{roof.completion_percentage || 0}%</span>
+                  <span className="text-sm text-muted-foreground">Active Status</span>
+                  <span className="text-sm font-medium">{roof.is_active ? 'Active' : 'Inactive'}</span>
                 </div>
                 
                 <div className="pt-2 border-t">
@@ -373,12 +330,6 @@ export default function RoofSettingsPage() {
                     <span className="text-muted-foreground">Created</span>
                     <span>{new Date(roof.created_at).toLocaleDateString()}</span>
                   </div>
-                  {roof.updated_at && (
-                    <div className="flex justify-between text-xs mt-1">
-                      <span className="text-muted-foreground">Last Updated</span>
-                      <span>{new Date(roof.updated_at).toLocaleDateString()}</span>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>

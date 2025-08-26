@@ -765,7 +765,10 @@ export default function SettingsPage() {
                         <p className="font-medium">Auto-Install Prompts</p>
                         <p className="text-sm text-muted-foreground">Show &quot;Install App&quot; prompts to users</p>
                       </div>
-                      <Switch defaultChecked={true} />
+                      <Switch 
+                        checked={true}
+                        onCheckedChange={() => {}}
+                      />
                     </div>
                   </div>
                 </div>

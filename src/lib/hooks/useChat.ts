@@ -153,25 +153,37 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
         })
       }
 
-      // Production query
+      // Production query - using the actual chats table from database schema
       let query = supabase
-        .from('chat_messages')
+        .from('chats')
         .select(`
-          *,
-          attachments:chat_attachments(*)
+          *
         `)
-        .eq('roof_id', roofId)
+        .eq('scope_id', roofId)
         .order('created_at', { ascending: true })
 
       if (pinItemId) {
-        query = query.eq('pin_item_id', pinItemId)
+        query = query.eq('scope', 'pin').eq('scope_id', pinItemId)
       } else if (pinId) {
-        query = query.eq('pin_id', pinId)
+        query = query.eq('scope', 'pin').eq('scope_id', pinId)
+      } else {
+        query = query.eq('scope', 'roof')
       }
 
       const { data, error } = await query
       if (error) throw error
-      return data as ChatMessage[]
+      
+      // Map database schema to ChatMessage interface
+      return (data || []).map(chat => ({
+        id: chat.message_id,
+        content: chat.text || '',
+        user_id: chat.created_by || 'unknown',
+        user_name: 'User', // Would need to join with users table for real name
+        roof_id: roofId,
+        message_type: 'text' as const,
+        mentions: Array.isArray(chat.mentions) ? chat.mentions : [],
+        created_at: chat.created_at
+      } as ChatMessage))
     },
     refetchOnWindowFocus: false
   })
@@ -210,25 +222,32 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
         return newMessage
       }
 
-      // Production implementation
+      // Production implementation - use chats table from database schema
       const { data, error } = await supabase
-        .from('chat_messages')
+        .from('chats')
         .insert([{
-          content: messageData.content,
-          roof_id: roofId,
-          pin_id: pinId,
-          pin_item_id: pinItemId,
-          message_type: messageData.message_type || 'text',
-          mentions: messageData.mentions,
-          reply_to: messageData.reply_to,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          user_name: (await supabase.auth.getUser()).data.user?.user_metadata?.name || 'Anonymous'
+          text: messageData.content,
+          scope: pinItemId ? 'pin' : pinId ? 'pin' : 'roof',
+          scope_id: pinItemId || pinId || roofId,
+          mentions: messageData.mentions || [],
+          created_by: (await supabase.auth.getUser()).data.user?.id
         }])
         .select()
         .single()
 
       if (error) throw error
-      return data as ChatMessage
+      
+      // Map database result to ChatMessage interface
+      return {
+        id: data.message_id,
+        content: data.text || '',
+        user_id: data.created_by || 'unknown',
+        user_name: 'User',
+        roof_id: roofId,
+        message_type: 'text' as const,
+        mentions: Array.isArray(data.mentions) ? data.mentions : [],
+        created_at: data.created_at
+      } as ChatMessage
     },
     onSuccess: (newMessage) => {
       // Update local cache

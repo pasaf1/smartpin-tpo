@@ -49,8 +49,8 @@ export class PerformanceMonitor {
       case 'navigation':
         const navEntry = entry as PerformanceNavigationTiming
         this.updateMetrics({
-          pageLoadTime: navEntry.loadEventEnd - navEntry.navigationStart,
-          timeToInteractive: navEntry.domInteractive - navEntry.navigationStart
+          pageLoadTime: navEntry.loadEventEnd - navEntry.startTime,
+          timeToInteractive: navEntry.domInteractive - navEntry.startTime
         })
         break
 
@@ -91,12 +91,12 @@ export class PerformanceMonitor {
       const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
       if (navigation) {
         this.metrics = {
-          pageLoadTime: navigation.loadEventEnd - navigation.navigationStart,
+          pageLoadTime: navigation.loadEventEnd - navigation.startTime,
           firstContentfulPaint: 0,
           largestContentfulPaint: 0,
           cumulativeLayoutShift: 0,
           firstInputDelay: 0,
-          timeToInteractive: navigation.domInteractive - navigation.navigationStart
+          timeToInteractive: navigation.domInteractive - navigation.startTime
         }
       }
 
@@ -237,7 +237,7 @@ export class PerformanceMonitor {
     const endTracking = this.trackUserAction('navigation', { from, to })
     
     setTimeout(() => {
-      endTracking(true)
+      endTracking()
     }, 100)
   }
 
@@ -248,7 +248,7 @@ export class PerformanceMonitor {
     })
     
     return (success: boolean, error?: string) => {
-      endTracking(success, error)
+      endTracking()
     }
   }
 
@@ -259,7 +259,7 @@ export class PerformanceMonitor {
     })
     
     return (success: boolean, error?: string) => {
-      endTracking(success, error)
+      endTracking()
     }
   }
 
@@ -270,7 +270,7 @@ export class PerformanceMonitor {
     })
     
     return (success: boolean, error?: string) => {
-      endTracking(success, error)
+      endTracking()
     }
   }
 

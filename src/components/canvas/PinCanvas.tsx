@@ -352,7 +352,7 @@ export function PinCanvas({
           {pins.map((pin) => (
             <PinMarker
               key={pin.id}
-              pin={pin}
+              pin={pin as any} // Cast to ExtendedPin for compatibility
               isSelected={pin.id === selectedPinId}
               onClick={() => handlePinClick(pin)}
               editable={editable}

@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { QualityTrend } from '@/lib/hooks/useAnalytics'
 
@@ -43,13 +42,12 @@ function SimpleLineChart({
   const valueRange = maxValue - minValue || 1
 
   const points = data.map((point, index) => ({
+    ...point,
     x: padding + (index / (data.length - 1)) * chartWidth,
-    y: padding + chartHeight - ((point.value - minValue) / valueRange) * chartHeight,
-    ...point
+    y: padding + chartHeight - ((point.value - minValue) / valueRange) * chartHeight
   }))
 
   const pathData = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
     .join(' ')
 
   const areaData = `${pathData} L ${points[points.length - 1].x} ${height - padding} L ${padding} ${height - padding} Z`

@@ -6,7 +6,7 @@ import html2canvas from 'html2canvas'
 import Papa from 'papaparse'
 import { format } from 'date-fns'
 import type { ChatMessage } from '@/lib/hooks/useChat'
-import type { User } from '@/lib/hooks/useAuth'
+import type { User } from '@supabase/supabase-js'
 
 // Export types
 export interface ExportOptions {
@@ -162,11 +162,11 @@ export class ChatExporter {
         }
         
         doc.setFontSize(10)
-        doc.setFont(undefined, 'bold')
+        doc.setFont('helvetica', 'bold')
         doc.text(`${msg.user_name} - ${format(new Date(msg.created_at), 'PPP p')}`, 15, yPosition)
         
         yPosition += 8
-        doc.setFont(undefined, 'normal')
+        doc.setFont('helvetica', 'normal')
         
         // Message content
         const splitContent = doc.splitTextToSize(msg.content, pageWidth - 30)
@@ -320,11 +320,11 @@ export class ProjectExporter {
       doc.text('Team Members', 15, 20)
 
       const usersTableData = data.users.map(user => [
-        user.name,
+        user.user_metadata?.full_name || user.email,
         user.email,
-        user.role,
-        user.status,
-        user.last_login ? format(new Date(user.last_login), 'MM/dd/yy') : 'Never'
+        user.user_metadata?.role || 'User',
+        user.confirmed_at ? 'Active' : 'Pending',
+        user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'MM/dd/yy') : 'Never'
       ])
 
       autoTable(doc, {

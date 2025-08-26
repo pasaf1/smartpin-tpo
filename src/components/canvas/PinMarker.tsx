@@ -3,16 +3,28 @@
 import { cn } from '@/lib/utils'
 import type { PinWithRelations } from '@/lib/hooks/usePins'
 
+type ExtendedPin = PinWithRelations & {
+  parent_pin_id?: string | null
+  children?: ExtendedPin[]
+  parent?: ExtendedPin
+  sequence?: number
+}
+
 interface PinMarkerProps {
-  pin: PinWithRelations
+  pin: ExtendedPin
   isSelected?: boolean
   onClick?: () => void
   editable?: boolean
 }
 
 export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMarkerProps) {
-  const isParent = !pin.parent_pin_id
-  const hasChildren = pin.children && pin.children.length > 0
+  // For now, treat all pins as standalone (not hierarchical) since we don't have hierarchy data
+  const isParent = true // All pins are standalone
+  const hasChildren = false // No children for now
+  
+  // Use seq_number from the database
+  const displaySequence = pin.seq_number
+  const displayTitle = pin.title || `Pin ${displaySequence}`
   
   // Pin configuration based on parent/child status
   const pinConfig = {
@@ -40,14 +52,14 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
     },
   }
 
-  const colors = statusColors[pin.status]
+  const colors = statusColors[pin.status as keyof typeof statusColors] || statusColors.Open
 
   // Severity indicator (small dot on the pin)
-  const severityColors = {
-    Low: '#65A30D', // Lime 600
-    Medium: '#D97706', // Amber 600
-    High: '#EA580C', // Orange 600
-    Critical: '#DC2626', // Red 600
+    const severityColors: Record<NonNullable<ExtendedPin['severity']>, string> = {
+    Low: '#10b981',
+    Medium: '#f59e0b', 
+    High: '#ef4444',
+    Critical: '#dc2626'
   }
 
   const handleClick = (event: React.MouseEvent) => {
@@ -64,7 +76,7 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
         isSelected && 'selected',
         !editable && 'cursor-default'
       )}
-      transform={`translate(${pin.x_position}, ${pin.y_position})`}
+      transform={`translate(${pin.x}, ${pin.y})`}
       onClick={handleClick}
     >
       {/* Selection halo */}
@@ -119,15 +131,17 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
       </text>
 
       {/* Severity indicator (small dot) */}
-      <circle
-        cx={pinConfig.size / 2 - 3}
-        cy={-pinConfig.size / 2 + 3}
-        r="3"
-        fill={severityColors[pin.severity]}
-        stroke="white"
-        strokeWidth="1"
-        className="pointer-events-none"
-      />
+      {pin.severity && (
+        <circle
+          cx={pinConfig.size / 2 - 3}
+          cy={-pinConfig.size / 2 + 3}
+          r="3"
+          fill={severityColors[pin.severity]}
+          stroke="white"
+          strokeWidth="1"
+          className="pointer-events-none"
+        />
+      )}
 
       {/* Child count indicator for parent pins */}
       {isParent && hasChildren && (
@@ -150,25 +164,12 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
             fill="white"
             className="pointer-events-none select-none"
           >
-            {pin.children?.length}
+            {0} {/* No children count for now */}
           </text>
         </g>
       )}
 
-      {/* Connection line to parent (for child pins) */}
-      {!isParent && pin.parent && (
-        <line
-          x1="0"
-          y1="0"
-          x2={pin.parent.x_position - pin.x_position}
-          y2={pin.parent.y_position - pin.y_position}
-          stroke="#7C3AED"
-          strokeWidth="1"
-          strokeDasharray="2 2"
-          opacity="0.5"
-          className="pointer-events-none"
-        />
-      )}
+      {/* Connection line to parent not supported yet */}
 
       {/* Status indicator ring */}
       <circle

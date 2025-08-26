@@ -1,5 +1,8 @@
-export { default as ChatSystem } from './ChatSystem'
-export { default as ChatInterface } from './ChatInterface'
+// Public chat exports
+export { ChatPanel } from './ChatPanel'
+export { DockedChat } from './DockedChat'
 export { default as ChatNotifications } from './ChatNotifications'
 export { default as MentionInput } from './MentionInput'
-export { default as useChatSystem } from '@/lib/hooks/useChatSystem'
+
+// Hooks
+export { useChatSystem } from '@/lib/hooks/useChatSystem'

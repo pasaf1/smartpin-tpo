@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabaseService, db } from '../supabase-production'
+import { supabase } from '../supabase'
 import type { 
   Project, 
   Roof, 
@@ -135,7 +136,7 @@ export function useCreatePinChild() {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(data.pin_id) })
       queryClient.invalidateQueries({ 
-        queryKey: queryKeys.pinsByRoof, 
+        queryKey: ['pins', 'roof'], 
         predicate: (query) => query.queryKey.includes(data.pin_id)
       })
     },
@@ -155,7 +156,7 @@ export function useUpdatePinChildStatus() {
       // Invalidate related queries to trigger re-aggregation
       queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(data.pin_id) })
       queryClient.invalidateQueries({ 
-        queryKey: queryKeys.pinsByRoof,
+        queryKey: ['pins', 'roof'],
         predicate: (query) => query.queryKey.includes('roof')
       })
     },
@@ -165,11 +166,18 @@ export function useUpdatePinChildStatus() {
   })
 }
 
-// Photo hooks
+// Photo hooks  
 export function usePhotosByChild(childId: string) {
   return useQuery({
     queryKey: queryKeys.photosByChild(childId),
-    queryFn: () => db.photos.listByChild(childId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('child_id', childId)
+      if (error) throw error
+      return data
+    },
     enabled: !!childId,
     staleTime: 5 * 60 * 1000,
   })
@@ -179,7 +187,15 @@ export function useUploadPhoto() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (photo: PhotoInsert) => db.photos.upload(photo),
+    mutationFn: async (photo: PhotoInsert) => {
+      const { data, error } = await supabase
+        .from('photos')
+        .insert([photo])
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
     onSuccess: (data) => {
       // Invalidate photos query for this child
       if (data.child_id) {
@@ -190,7 +206,7 @@ export function useUploadPhoto() {
         // If it's a closure photo, might affect pin status
         if (data.type === 'ClosurePIC') {
           queryClient.invalidateQueries({ 
-            queryKey: queryKeys.pinWithChildren,
+            queryKey: ['pins', 'children'],
             predicate: (query) => query.queryKey.includes(data.pin_id)
           })
         }
@@ -405,7 +421,7 @@ export function usePresence(channel: string, userInfo: { id: string; name: strin
   useEffect(() => {
     if (!channel || !userInfo.id) return
 
-    const presenceChannel = supabaseService.client
+    const presenceChannel = supabase
       .channel(`presence:${channel}`)
       .on('presence', { event: 'sync' }, () => {
         const presenceState = presenceChannel.presenceState()

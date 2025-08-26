@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabase'
-import type { Database, PinStatus, Severity } from '../database.types'
+import type { Database, Severity } from '../database.types'
+import type { PinStatus } from '../database.types'
 
 type Pin = Database['public']['Tables']['pins']['Row']
 type PinInsert = Database['public']['Tables']['pins']['Insert']

@@ -7,12 +7,13 @@ import type { UserRole } from '../database.types'
 
 interface UserProfile {
   id: string
+  auth_user_id: string | null
   email: string
   role: UserRole
   full_name: string
-  avatar_url: string | null
-  phone: string | null
-  is_active: boolean
+  address: string | null
+  birth_date: string | null
+  created_at: string
 }
 
 interface AuthContextType {

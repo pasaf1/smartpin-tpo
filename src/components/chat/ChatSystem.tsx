@@ -296,3 +296,5 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
     </Card>
   );
 }
+
+export default ChatSystem

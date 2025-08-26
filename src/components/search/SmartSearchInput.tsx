@@ -251,7 +251,7 @@ export function SmartSearchInput({
             {['membrane repair', 'critical issues', 'seam inspection', 'flashing damage'].map((example, index) => (
               <Button
                 key={index}
-                variant="link"
+                variant="ghost"
                 size="sm"
                 className="h-auto p-0 text-xs underline hover:no-underline"
                 onClick={() => {

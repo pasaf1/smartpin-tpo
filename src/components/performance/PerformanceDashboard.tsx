@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, ComponentType } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,8 @@ import {
   BarChart3,
   RefreshCw,
   Eye,
-  XCircle
+  XCircle,
+  LucideProps
 } from 'lucide-react'
 
 interface PerformanceStats {
@@ -61,10 +62,67 @@ export function PerformanceDashboard({ className }: PerformanceDashboardProps) {
   const fetchPerformanceData = async () => {
     setIsLoading(true)
     try {
-      const [coreWebVitals, runtimeStats, errorStats, memoryUsage] = await Promise.all([
-        performanceMonitor.getCoreWebVitals(),
-        performanceMonitor.getRuntimeStats(),
-        errorTracker.getErrorStats(),
+      // Build data from available monitors, guarding for null and missing APIs
+      const coreWebVitals = (() => {
+        // Defaults
+        let fcp: number | null = null
+        let lcp: number | null = null
+        let fid: number | null = null
+        let cls: number | null = null
+        let ttfb: number | null = null
+
+        // Pull from our PerformanceMonitor if present
+        const metrics = performanceMonitor?.getMetrics?.()
+        if (metrics) {
+          fcp = Number.isFinite(metrics.firstContentfulPaint) ? metrics.firstContentfulPaint : null
+          lcp = Number.isFinite(metrics.largestContentfulPaint) ? metrics.largestContentfulPaint : null
+          fid = Number.isFinite(metrics.firstInputDelay) ? metrics.firstInputDelay : null
+          cls = Number.isFinite(metrics.cumulativeLayoutShift) ? metrics.cumulativeLayoutShift : null
+        }
+
+        // Compute TTFB from Navigation Timing if available
+        try {
+          if (typeof window !== 'undefined' && window.performance) {
+            const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+            if (nav) {
+              // TTFB ~= responseStart - startTime (startTime is 0 for nav entries)
+              ttfb = Number.isFinite(nav.responseStart) ? nav.responseStart : null
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        return { fcp, lcp, fid, cls, ttfb }
+      })()
+
+      const runtimeStats = (() => {
+        const nowMs = typeof performance !== 'undefined' && performance.now ? performance.now() : 0
+        const actionsCount = Array.isArray(performanceMonitor?.getUserActionMetrics?.())
+          ? (performanceMonitor!.getUserActionMetrics!() as unknown as any[]).length
+          : 0
+        // Very basic page views heuristic using sessionStorage
+        let pageViews = 1
+        try {
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            const key = 'sp_tpo_page_views'
+            const current = Number(window.sessionStorage.getItem(key) || '0') + 1
+            window.sessionStorage.setItem(key, String(current))
+            pageViews = current
+          }
+        } catch {
+          // sessionStorage might be unavailable; keep default
+        }
+
+        return {
+          pageViews,
+          sessionTime: nowMs,
+          userActions: actionsCount,
+        }
+      })()
+
+      const [errorStats, memoryUsage] = await Promise.all([
+        Promise.resolve(errorTracker.getErrorStats()),
         resourceManager.checkMemoryUsage()
       ])
 
@@ -435,7 +493,7 @@ export function PerformanceDashboard({ className }: PerformanceDashboardProps) {
                   className="mt-2" 
                 />
                 {stats?.resources.shouldCleanup && (
-                  <Badge variant="destructive" className="mt-2 text-xs">
+                  <Badge variant="default" className="mt-2 text-xs">
                     Cleanup Recommended
                   </Badge>
                 )}
@@ -467,7 +525,7 @@ export function PerformanceDashboard({ className }: PerformanceDashboardProps) {
                   onClick={handleCleanup}
                   disabled={isLoading}
                   className="w-full"
-                  variant={stats?.resources.shouldCleanup ? "destructive" : "outline"}
+                  variant={stats?.resources.shouldCleanup ? "default" : "outline"}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   {stats?.resources.shouldCleanup ? 'Perform Cleanup' : 'Force Cleanup'}

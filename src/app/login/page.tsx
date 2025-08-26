@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -70,16 +69,16 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             {error && (
-              <Alert className="mb-4 border-red-200 bg-red-50">
-                <AlertDescription className="text-red-700">
+              <div className="mb-4 border border-red-200 bg-red-50 p-4 rounded-md">
+                <div className="text-red-700 text-sm">
                   {error}
-                </AlertDescription>
-              </Alert>
+                </div>
+              </div>
             )}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <Label htmlFor="email">Email</Label>
-                <Input
+                <input
                   id="email"
                   type="email"
                   value={email}
@@ -87,12 +86,13 @@ export default function LoginPage() {
                   placeholder="user@smartpin.com"
                   required
                   disabled={isSigningIn}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
               
               <div>
                 <Label htmlFor="password">Password</Label>
-                <Input
+                <input
                   id="password"
                   type="password"
                   value={password}
@@ -100,6 +100,7 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   required
                   disabled={isSigningIn}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
               

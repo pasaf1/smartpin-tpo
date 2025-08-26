@@ -194,11 +194,12 @@ export default function UserManagementPage() {
                 <CardDescription>Basic info: full name, role, email</CardDescription>
               </div>
                 <div className="flex items-center gap-3">
-                <Input
+                <input
+                  type="text"
                   placeholder="Search users…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-72"
+                  className="w-72 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {/* Use a simple styled Link instead of Button to avoid type issues */}
                 <Link
