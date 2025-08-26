@@ -1,146 +1,116 @@
-import React, { useCallback, useState, useRef } from 'react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
-import { usePhotoUpload } from '@/lib/hooks/usePhotoUpload'
-import { useAuth } from '@/lib/hooks/useAuth'
-import { 
-  Camera, 
-  Upload, 
-  X, 
-  CheckCircle, 
-  AlertCircle,
-  FileImage,
-  Smartphone,
-  WifiOff,
-  Wifi
-} from 'lucide-react'
-import { toast } from 'sonner'
+// PhotoUploadZone.tsx
+'use client';
+
+import React, { useState, useCallback, useRef } from 'react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { usePhotoUpload } from '@/lib/hooks/usePhotoUpload';
+import { useAuth } from '@/lib/hooks/useAuth';
+import {
+  Camera, Upload, X, CheckCircle, AlertCircle,
+  FileImage, Smartphone, WifiOff, Wifi
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PhotoUploadZoneProps {
-  pinId: string
-  defaultType?: 'defect' | 'completion' | 'general'
-  onUploadComplete?: () => void
-  className?: string
-  compact?: boolean
+  pinId: string;
+  defaultType?: 'defect' | 'completion' | 'general';
+  onUploadComplete?: () => void;
+  className?: string;
+  compact?: boolean;
 }
 
-export function PhotoUploadZone({ 
-  pinId, 
-  defaultType = 'defect', 
+export function PhotoUploadZone({
+  pinId,
+  defaultType = 'defect',
   onUploadComplete,
   className,
   compact = false
 }: PhotoUploadZoneProps) {
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [uploadType, setUploadType] = useState<'defect' | 'completion' | 'general'>(defaultType)
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const { uploads, uploadMultiplePhotos, clearUpload, isOffline } = usePhotoUpload()
-  const { canPerformAction } = useAuth()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadType, setUploadType] = useState<'defect'|'completion'|'general'>(defaultType);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const { uploads, uploadMultiplePhotos, clearUpload, isOffline } = usePhotoUpload();
+  const { canPerformAction } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const canUpload = canPerformAction('Foreman')
+  const canUpload = canPerformAction('Foreman');
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }, [])
-
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }, [])
-
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-
+    e.preventDefault();
+    setIsDragOver(false);
     if (!canUpload) {
-      toast.error('Permission denied', {
-        description: 'You do not have permission to upload photos'
-      })
-      return
+      toast.error('Permission denied', { description: 'You do not have permission to upload photos' });
+      return;
     }
-
-    const files = Array.from(e.dataTransfer.files).filter(file => 
-      file.type.startsWith('image/')
-    )
-
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
     if (files.length === 0) {
-      toast.error('Invalid files', {
-        description: 'Please select image files only'
-      })
-      return
+      toast.error('Invalid files', { description: 'Please select image files only' });
+      return;
     }
-
-    setSelectedFiles(files)
-  }, [canUpload])
+    setSelectedFiles(files);
+  }, [canUpload]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    setSelectedFiles(files)
-  }, [])
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
+  }, []);
 
   const handleUpload = useCallback(async () => {
-    if (selectedFiles.length === 0) return
-
+    if (selectedFiles.length === 0) return;
     try {
       const results = await uploadMultiplePhotos(selectedFiles, pinId, uploadType, {
         compress: true,
         generateThumbnail: true,
         onProgress: (completed, total) => {
           if (completed === total) {
-            setSelectedFiles([])
-            onUploadComplete?.()
+            setSelectedFiles([]);
+            onUploadComplete?.();
           }
         }
-      })
-
-      const successCount = results.filter(r => r.success).length
-      const failCount = results.length - successCount
-
+      });
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.length - successCount;
       if (successCount > 0) {
-        toast.success(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded successfully`)
+        toast.success(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded successfully`);
       }
-
       if (failCount > 0) {
-        toast.error(`${failCount} upload${failCount > 1 ? 's' : ''} failed`)
+        toast.error(`${failCount} upload${failCount > 1 ? 's' : ''} failed`);
       }
-
     } catch (error) {
-      console.error('Upload failed:', error)
-      toast.error('Upload failed', {
-        description: 'Please try again'
-      })
+      console.error('Upload failed:', error);
+      toast.error('Upload failed', { description: 'Please try again' });
     }
-  }, [selectedFiles, pinId, uploadType, uploadMultiplePhotos, onUploadComplete])
+  }, [selectedFiles, pinId, uploadType, uploadMultiplePhotos, onUploadComplete]);
 
   const clearSelection = useCallback(() => {
-    setSelectedFiles([])
-    if (fileInputRef.current) fileInputRef.current.value = ''
-    if (cameraInputRef.current) cameraInputRef.current.value = ''
-  }, [])
+    setSelectedFiles([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  }, []);
 
   if (!canUpload) {
     return (
-      <Card className={cn("p-4 border-dashed border-2", className)}>
-        <div className="text-center text-muted-foreground">
-          <Camera className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">You do not have permission to upload photos</p>
-        </div>
+      <Card className={cn("p-4 border-dashed border-2 text-center text-muted-foreground", className)}>
+        <Camera className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p className="text-sm">You do not have permission to upload photos</p>
       </Card>
-    )
+    );
   }
 
   if (compact) {
@@ -163,7 +133,7 @@ export function PhotoUploadZone({
           className="hidden"
           multiple
         />
-        
+
         <Button
           variant="outline"
           size="sm"
@@ -173,7 +143,6 @@ export function PhotoUploadZone({
           <Camera className="h-4 w-4 mr-2" />
           Camera
         </Button>
-        
         <Button
           variant="outline"
           size="sm"
@@ -183,7 +152,6 @@ export function PhotoUploadZone({
           <Upload className="h-4 w-4 mr-2" />
           Gallery
         </Button>
-
         {isOffline && (
           <Badge variant="secondary" className="ml-2">
             <WifiOff className="h-3 w-3 mr-1" />
@@ -191,7 +159,7 @@ export function PhotoUploadZone({
           </Badge>
         )}
       </div>
-    )
+    );
   }
 
   return (
@@ -201,13 +169,11 @@ export function PhotoUploadZone({
         <div className="flex items-center gap-2">
           {isOffline ? (
             <Badge variant="secondary">
-              <WifiOff className="h-3 w-3 mr-1" />
-              Offline Mode
+              <WifiOff className="h-3 w-3 mr-1" /> Offline Mode
             </Badge>
           ) : (
             <Badge variant="default">
-              <Wifi className="h-3 w-3 mr-1" />
-              Online
+              <Wifi className="h-3 w-3 mr-1" /> Online
             </Badge>
           )}
         </div>
@@ -231,14 +197,12 @@ export function PhotoUploadZone({
                 isDragOver ? "text-primary" : "text-muted-foreground"
               )} />
             </div>
-
             <div>
               <p className="text-lg font-medium">Drop photos here</p>
               <p className="text-sm text-muted-foreground">
                 or click to browse from your device
               </p>
             </div>
-
             <div className="flex gap-3 justify-center">
               <input
                 ref={cameraInputRef}
@@ -257,29 +221,24 @@ export function PhotoUploadZone({
                 className="hidden"
                 multiple
               />
-
               <Button
                 variant="outline"
                 onClick={() => cameraInputRef.current?.click()}
                 className="flex-1 max-w-[140px]"
               >
-                <Smartphone className="h-4 w-4 mr-2" />
-                Take Photo
+                <Smartphone className="h-4 w-4 mr-2" /> Take Photo
               </Button>
-
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 className="flex-1 max-w-[140px]"
               >
-                <FileImage className="h-4 w-4 mr-2" />
-                Choose Files
+                <FileImage className="h-4 w-4 mr-2" /> Choose Files
               </Button>
             </div>
-
             <div className="flex items-center gap-2 justify-center">
               <span className="text-sm text-muted-foreground">Type:</span>
-              <Select value={uploadType} onValueChange={(value: any) => setUploadType(value)}>
+              <Select value={uploadType} onValueChange={(val: any) => setUploadType(val)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -303,10 +262,9 @@ export function PhotoUploadZone({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="flex items-center gap-3 p-2 bg-muted/50 rounded">
+              {selectedFiles.map((file, idx) => (
+                <div key={idx} className="flex items-center gap-3 p-2 bg-muted/50 rounded">
                   <FileImage className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm flex-1 truncate">{file.name}</span>
                   <span className="text-xs text-muted-foreground">
@@ -315,9 +273,7 @@ export function PhotoUploadZone({
                 </div>
               ))}
             </div>
-
             <Separator />
-
             <div className="flex gap-2">
               <Button onClick={handleUpload} className="flex-1">
                 <Upload className="h-4 w-4 mr-2" />
@@ -335,18 +291,13 @@ export function PhotoUploadZone({
         <Card>
           <CardContent className="p-4 space-y-3">
             <h4 className="font-medium">Upload Progress</h4>
-            
             {uploads.map((upload) => (
               <div key={upload.id} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="truncate flex-1">{upload.file.name}</span>
                   <div className="flex items-center gap-2">
-                    {upload.status === 'completed' && (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
-                    {upload.status === 'error' && (
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    )}
+                    {upload.status === 'completed' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                    {upload.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -357,16 +308,12 @@ export function PhotoUploadZone({
                     </Button>
                   </div>
                 </div>
-                
-                <Progress 
-                  value={upload.progress} 
-                  className={cn(
-                    "h-2",
-                    upload.status === 'error' && "bg-red-100",
-                    upload.status === 'completed' && "bg-green-100"
-                  )}
-                />
-                
+                <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                  <div
+                    className={cn("h-full", upload.status === 'error' ? "bg-red-500" : "bg-primary")}
+                    style={{ width: `${upload.progress}%` }}
+                  />
+                </div>
                 {upload.error && (
                   <p className="text-xs text-red-500">{upload.error}</p>
                 )}
@@ -378,19 +325,17 @@ export function PhotoUploadZone({
 
       {isOffline && (
         <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-orange-700">
-              <WifiOff className="h-4 w-4" />
-              <span className="text-sm font-medium">Working Offline</span>
+          <CardContent className="p-4 flex items-center gap-2 text-orange-700">
+            <WifiOff className="h-4 w-4" />
+            <div>
+              <p className="font-medium">Working Offline</p>
+              <p className="text-xs">
+                Photos will be uploaded when connection is restored.
+              </p>
             </div>
-            <p className="text-xs text-orange-600 mt-1">
-              Photos will be uploaded automatically when connection is restored
-            </p>
           </CardContent>
         </Card>
       )}
     </div>
-  )
+  );
 }
-
-export default PhotoUploadZone
