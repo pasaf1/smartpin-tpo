@@ -181,10 +181,11 @@ export default function DashboardPage() {
                 <Building2 className="w-4 h-4" />
                 Roofs
               </Link>
-              <Link href="/demo/analytics" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
+              {/* Demo link removed */}
+              {/* <Link href="/demo/analytics" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Analytics
-              </Link>
+              </Link> */}
               <Link href="/admin/users" className="text-slate-700 hover:text-indigo-600 font-medium transition-colors duration-200 flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Users
