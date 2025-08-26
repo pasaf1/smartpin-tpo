@@ -133,17 +133,12 @@ function RoofDashboardPage() {
               <div>
                 <h1 className="text-xl font-bold text-white">{roof.name}</h1>
                 <p className="text-sm text-white/80">
-                  {roof.project_name} • {roof.completion_percentage || 0}% Complete
+                  {roof.code} • Building: {roof.building || 'N/A'}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              {roof.critical_defects > 0 && (
-                <Badge className="bg-red-500/20 text-red-200 border-red-400/30 text-sm px-3 py-1">
-                  {roof.critical_defects} Critical
-                </Badge>
-              )}
               <Badge className="bg-blue-500/20 text-blue-200 border-blue-400/30 text-sm px-3 py-1">
                 {pins.length} Pins
               </Badge>
@@ -355,10 +350,10 @@ function RoofDashboardPage() {
                 <PinCanvas
                   roofId={roofId}
                   onPinCreate={handlePinCreate}
-                  onPinSelect={(pin) => handlePinClick(pin)}
+                  onPinSelect={(pin) => pin && handlePinClick(pin)}
                   selectedPinId={selectedPin?.id}
                   className="w-full h-full"
-                  backgroundImageUrl={roof.base_map_url}
+                  backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
                 />
                 
                 {/* Interactive Pin Legend */}
@@ -479,7 +474,7 @@ function RoofDashboardPage() {
                       <p className="text-lg text-gray-600 mt-1 font-medium">{selectedPin.title}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <StatusBadge status={selectedPin.status} />
-                        <SeverityBadge severity={selectedPin.severity} />
+                        {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                       </div>
                     </div>
                   </div>
@@ -501,7 +496,7 @@ function RoofDashboardPage() {
                 <PinDetailsCard
                   pin={selectedPin}
                   roofId={roofId}
-                  backgroundImageUrl={roof.base_map_url}
+                  backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
                   onClosurePhoto={(pinId) => {
                     setShowPinPopup(true)
                     setClosurePhotoItemId(null)
@@ -557,7 +552,7 @@ function RoofDashboardPage() {
                   <div className="text-gray-600 mt-2">{selectedPin.description}</div>
                   <div className="flex items-center gap-3 mt-4">
                     <StatusBadge status={selectedPin.status} />
-                    <SeverityBadge severity={selectedPin.severity} />
+                    {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                   </div>
                 </div>
 
@@ -622,5 +617,5 @@ function RoofDashboardPage() {
   )
 }
 
-// Protect this route - require at least Viewer role (all authenticated users can view)
-export default withAuth(RoofDashboardPage, 'Viewer')
+// Protect this route - require authentication
+export default withAuth(RoofDashboardPage)

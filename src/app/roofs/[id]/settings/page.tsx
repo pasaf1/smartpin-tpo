@@ -96,7 +96,7 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
               className="w-full h-48 object-cover rounded-lg"
             />
             <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-              <Button variant="secondary" size="sm" onClick={() => document.getElementById('file-upload')?.click()}>
+              <Button variant="outline" size="sm" onClick={() => document.getElementById('file-upload')?.click()}>
                 Change Image
               </Button>
             </div>

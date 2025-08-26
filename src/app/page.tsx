@@ -8,10 +8,14 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
 import { ConnectionStatus } from '@/components/realtime/ConnectionStatus'
+import { useRoofs } from '@/lib/hooks/useRoofs'
 
 function HomePage() {
   const { userProfile } = useAuth()
   const { connectionStatus } = useRealTimeProjectDashboard()
+  
+  // טען דאטה אמיתית מ-Supabase
+  const { data: roofData = [], isLoading: roofsLoading } = useRoofs()
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -42,81 +46,16 @@ function HomePage() {
     { id: '3', name: 'Sarah Miller', email: 'sarah@qa.com', role: 'Supervisor', status: 'active' as const },
     { id: '4', name: 'Mike Smith', email: 'mike@contractor.com', role: 'Contractor', status: 'active' as const }
   ]
-  const roofData = [
-    {
-      id: "roof-e1-demo",
-      name: "Demo Roof",
-      description: "Main demonstration roof with sample defects and pins",
-      status: "Critical",
-      statusColor: "danger",
-      completion: "72%",
-      pins: 35,
-      defects: 8,
-      site: "SPT2024-001•Demo Site_Construction City"
-    },
-    {
-      id: "roof-building-a",
-      name: "Office Complex A",
-      description: "Commercial building roof inspection",
-      status: "Review",
-      statusColor: "warning", 
-      completion: "85%",
-      pins: 42,
-      defects: 3,
-      site: "SPT2024-002•Downtown Complex"
-    },
-    {
-      id: "roof-warehouse-12",
-      name: "Residential Block B",
-      description: "Multi-family housing roof assessment",
-      status: "Active",
-      statusColor: "success",
-      completion: "94%",
-      pins: 28,
-      defects: 1,
-      site: "SPT2024-003•Suburban Development"
-    }
-  ]
 
-  // Filtered and sorted data
+  // Filtered and sorted data - התאם לסכמה האמיתית של Roof
   const filteredRoofData = useMemo(() => {
     let filtered = [...roofData]
 
-    // Filter by status
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(roof => 
-        roof.status.toLowerCase() === filters.status.toLowerCase()
-      )
-    }
-
-    // Filter by completion
-    if (filters.completion !== 'all') {
-      filtered = filtered.filter(roof => {
-        const completion = parseInt(roof.completion)
-        switch (filters.completion) {
-          case '0-25': return completion >= 0 && completion <= 25
-          case '26-50': return completion >= 26 && completion <= 50
-          case '51-75': return completion >= 51 && completion <= 75
-          case '76-100': return completion >= 76 && completion <= 100
-          default: return true
-        }
-      })
-    }
-
-    // Sort data
-    filtered.sort((a, b) => {
-      switch (filters.sort) {
-        case 'completion':
-          return parseInt(b.completion) - parseInt(a.completion)
-        case 'status':
-          return a.status.localeCompare(b.status)
-        case 'updated':
-          return new Date(b.created_at || Date.now()).getTime() - new Date(a.created_at || Date.now()).getTime()
-        case 'name':
-        default:
-          return a.name.localeCompare(b.name)
-      }
-    })
+    // TODO: התאם את הסינון לשדות האמיתיים במסד הנתונים
+    // כרגע מציג את כל הנתונים ללא סינון
+    
+    // מיון פשוט לפי שם
+    filtered.sort((a, b) => a.name.localeCompare(b.name))
 
     return filtered
   }, [roofData, filters])
@@ -264,6 +203,18 @@ function HomePage() {
     console.log('Sending global message:', message)
     // In a real implementation, this would send the message to your chat system
     // with the mentioned users extracted for notifications
+  }
+
+  // הצג טעינה אם הדאטה עדיין נטענת
+  if (roofsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">טוען פרויקטים...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -584,13 +535,13 @@ function HomePage() {
                         <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
                           {roof.name}
                         </h3>
-                        <p className="text-slate-600 text-sm">{roof.description}</p>
-                        <p className="text-xs text-slate-500 font-mono mt-1">{roof.site}</p>
+                        <p className="text-slate-600 text-sm">{roof.building || 'No building specified'}</p>
+                        <p className="text-xs text-slate-500 font-mono mt-1">{roof.code}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusStyles(roof.statusColor)}`}>
-                        {roof.status}
+                      <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25">
+                        Active
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -598,21 +549,21 @@ function HomePage() {
                         <div className="w-24 bg-slate-200 rounded-full h-2">
                           <div 
                             className="bg-gradient-to-r from-emerald-500 to-green-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: roof.completion }}
+                            style={{ width: '0%' }}
                           ></div>
                         </div>
-                        <span className="text-sm font-medium text-emerald-600">{roof.completion}</span>
+                        <span className="text-sm font-medium text-emerald-600">0%</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1 text-xs text-slate-600">
                           <Eye className="w-3 h-3" />
-                          {roof.pins} pins
+                          0 pins
                         </div>
                         <div className="flex items-center gap-1 text-xs text-red-600">
                           <AlertTriangle className="w-3 h-3" />
-                          {roof.defects} issues
+                          0 issues
                         </div>
                       </div>
                     </td>
@@ -855,5 +806,5 @@ function HomePage() {
   )
 }
 
-// Protect the homepage - require at least Viewer role (all authenticated users can access)
-export default withAuth(HomePage, 'Viewer')
+// Protect the homepage - require authentication
+export default withAuth(HomePage)
