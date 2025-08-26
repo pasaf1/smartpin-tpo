@@ -49,19 +49,25 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
     role: user.user_metadata?.role || 'Viewer'
   } : undefined;
 
+  // תמיד נקרא להוק, ותמיד נעביר פרמטרים חוקיים
+  const scopeType = ['global', 'roof', 'pin'].includes(activeScope?.type) 
+    ? (activeScope.type as 'global' | 'roof' | 'pin') 
+    : 'global';
+  
   const {
     messages,
     onlineUsers,
     onlineCount,
     isLoading
-  } = ['global', 'roof', 'pin'].includes(activeScope?.type)
-    ? useRealTimeChat(activeScope.type as 'global' | 'roof' | 'pin', activeScope?.id, userInfo)
-    : { messages: [], onlineUsers: [], onlineCount: 0, isLoading: false };
+  } = useRealTimeChat(scopeType, activeScope?.id, userInfo);
+
+  // סנן הודעות אם הסקופ לא תקין
+  const filteredMessages = ['global', 'roof', 'pin'].includes(activeScope?.type) ? messages : [];
 
   // גלילה לתחתית כשהודעות משתנות
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [filteredMessages]);
 
   const detectMentions = useCallback((text: string): string[] => {
     const mentionRegex = /@(\w+)/g;
@@ -167,7 +173,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
       <CardContent className="flex-1 flex flex-col p-0">
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.map(msg => (
+            {filteredMessages.map(msg => (
               <div key={msg.message_id} className="flex gap-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                   {(msg.created_by?.charAt(0).toUpperCase() || '?')}
@@ -217,7 +223,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
                 </div>
               </div>
             ))}
-            {messages.length === 0 && !isLoading && (
+            {filteredMessages.length === 0 && !isLoading && (
               <div className="text-center py-8 text-muted-foreground">
                 <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">No messages yet</p>
