@@ -1,5 +1,5 @@
 // Production Supabase integration utilities
-import { supabase, isDemoMode } from './supabase'
+import { supabase } from './supabase'
 import type { 
   Database, 
   Project, 
@@ -24,9 +24,6 @@ export class SupabaseService {
 
   // Project operations
   async getProjects(): Promise<Project[]> {
-    if (isDemoMode) {
-      return this.getDemoProjects()
-    }
 
     const { data, error } = await this.client
       .from('projects')
@@ -42,9 +39,6 @@ export class SupabaseService {
   }
 
   async getProjectById(projectId: string): Promise<Project | null> {
-    if (isDemoMode) {
-      return this.getDemoProjects().find(p => p.project_id === projectId) || null
-    }
 
     const { data, error } = await this.client
       .from('projects')
@@ -62,9 +56,6 @@ export class SupabaseService {
   }
 
   async createProject(project: ProjectInsert): Promise<Project> {
-    if (isDemoMode) {
-      throw new Error('Cannot create projects in demo mode')
-    }
 
     const { data, error } = await this.client
       .from('projects')
@@ -82,9 +73,6 @@ export class SupabaseService {
 
   // Roof operations
   async getRoofsByProject(projectId: string): Promise<Roof[]> {
-    if (isDemoMode) {
-      return this.getDemoRoofs().filter(r => r.project_id === projectId)
-    }
 
     const { data, error } = await this.client
       .from('roofs')
@@ -102,9 +90,6 @@ export class SupabaseService {
   }
 
   async getRoofById(roofId: string): Promise<Roof | null> {
-    if (isDemoMode) {
-      return this.getDemoRoofs().find(r => r.id === roofId) || null
-    }
 
     const { data, error } = await this.client
       .from('roofs')
@@ -123,9 +108,6 @@ export class SupabaseService {
 
   // Pin operations with advanced aggregation
   async getPinsByRoof(roofId: string): Promise<Pin[]> {
-    if (isDemoMode) {
-      return this.getDemoPins().filter(p => p.roof_id === roofId)
-    }
 
     const { data, error } = await this.client
       .from('pins')
@@ -142,11 +124,6 @@ export class SupabaseService {
   }
 
   async getPinWithChildren(pinId: string): Promise<Pin & { children: PinChild[] } | null> {
-    if (isDemoMode) {
-      const pin = this.getDemoPins().find(p => p.id === pinId)
-      if (!pin) return null
-      return { ...pin, children: this.getDemoPinChildren().filter(c => c.pin_id === pinId) }
-    }
 
     const { data: pin, error: pinError } = await this.client
       .from('pins')
@@ -175,9 +152,6 @@ export class SupabaseService {
   }
 
   async createPin(pin: PinInsert): Promise<Pin> {
-    if (isDemoMode) {
-      throw new Error('Cannot create pins in demo mode')
-    }
 
     const { data, error } = await this.client
       .from('pins')
@@ -195,9 +169,6 @@ export class SupabaseService {
 
   // Pin children operations
   async createPinChild(pinChild: PinChildInsert): Promise<PinChild> {
-    if (isDemoMode) {
-      throw new Error('Cannot create pin children in demo mode')
-    }
 
     const { data, error } = await this.client
       .from('pin_children')
@@ -217,9 +188,6 @@ export class SupabaseService {
   }
 
   async updatePinChildStatus(childId: string, status: PinChild['status_child']): Promise<PinChild> {
-    if (isDemoMode) {
-      throw new Error('Cannot update pin children in demo mode')
-    }
 
     const { data, error } = await this.client
       .from('pin_children')
@@ -244,9 +212,6 @@ export class SupabaseService {
 
   // Photo operations
   async uploadPhoto(photo: PhotoInsert): Promise<Photo> {
-    if (isDemoMode) {
-      throw new Error('Cannot upload photos in demo mode')
-    }
 
     const { data, error } = await this.client
       .from('photos')
@@ -263,16 +228,10 @@ export class SupabaseService {
   }
 
   async getPhotosByPin(pinId: string): Promise<Photo[]> {
-    if (isDemoMode) {
-      return []
-    }
     
     const { data, error } = await this.client
-      .from('pin_photos')
-      .select(`
-        *,
-        uploader:uploaded_by(name, avatar_url)
-      `)
+      .from('photos')
+      .select('*')
       .eq('pin_id', pinId)
       .order('uploaded_at', { ascending: false })
 
@@ -284,25 +243,36 @@ export class SupabaseService {
   }
 
   async getPhotoAnalytics(pinId?: string): Promise<any> {
-    if (isDemoMode) {
-      return {
-        totalPhotos: 0,
-        totalSize: 0,
-        avgFileSize: 0,
-        photosByType: {},
-        photosByMonth: {},
-        topUploaders: {}
-      }
+    // Simple aggregate analytics derived from photos table
+    const query = this.client
+      .from('photos')
+      .select('type', { count: 'exact', head: true })
+
+    if (pinId) {
+      query.eq('pin_id', pinId)
     }
 
-    const { data, error } = await this.client
-      .rpc('get_storage_stats', pinId ? { project_uuid: null } : {})
-
-    if (error) {
-      console.error('Error fetching photo analytics:', error)
-      throw error
+    // Total count
+    const { count: totalCount, error: countError } = await query
+    if (countError) {
+      console.error('Error fetching photo analytics:', countError)
+      throw countError
     }
-    return data?.[0] || {}
+
+    // Counts by type
+    const { data: byTypeData, error: byTypeError } = await this.client
+      .from('photos')
+      .select('type')
+      .maybeSingle()
+
+    // Fallback simple structure; detailed breakdown can be added with a proper RPC later
+    if (byTypeError && byTypeError.code !== 'PGRST116') {
+      console.error('Error fetching photo types:', byTypeError)
+    }
+
+    return {
+      total: totalCount || 0,
+    }
   }
 
   async getGlobalAnalytics(): Promise<any> {
@@ -310,14 +280,11 @@ export class SupabaseService {
   }
 
   async deletePhoto(photoId: string): Promise<boolean> {
-    if (isDemoMode) {
-      return true
-    }
 
     const { data: photo, error: fetchError } = await this.client
-      .from('pin_photos')
-      .select('file_path, thumbnail_url')
-      .eq('id', photoId)
+      .from('photos')
+      .select('file_url_public, thumbnail_url')
+      .eq('photo_id', photoId)
       .single()
 
     if (fetchError) {
@@ -325,29 +292,36 @@ export class SupabaseService {
       throw fetchError
     }
 
-    if (photo.file_path) {
+    const fromPublicUrlToPath = (url?: string | null) => {
+      if (!url) return null
+      const marker = '/object/public/pin-photos/'
+      const idx = url.indexOf(marker)
+      if (idx === -1) return null
+      return url.substring(idx + marker.length)
+    }
+
+    const filePath = fromPublicUrlToPath(photo.file_url_public)
+    if (filePath) {
       const { error: storageError } = await this.client.storage
         .from('pin-photos')
-        .remove([photo.file_path])
+        .remove([filePath])
 
       if (storageError) {
         console.error('Error deleting file from storage:', storageError)
       }
     }
 
-    if (photo.thumbnail_url) {
-      const thumbPath = photo.thumbnail_url.split('/pin-photos/')[1]
-      if (thumbPath) {
-        await this.client.storage
-          .from('pin-photos')
-          .remove([thumbPath])
-      }
+    const thumbPath = fromPublicUrlToPath(photo.thumbnail_url as unknown as string)
+    if (thumbPath) {
+      await this.client.storage
+        .from('pin-photos')
+        .remove([thumbPath])
     }
 
     const { error: deleteError } = await this.client
-      .from('pin_photos')
+      .from('photos')
       .delete()
-      .eq('id', photoId)
+      .eq('photo_id', photoId)
 
     if (deleteError) {
       console.error('Error deleting photo record:', deleteError)
@@ -358,9 +332,6 @@ export class SupabaseService {
   }
 
   async getPhotosByChild(childId: string): Promise<Photo[]> {
-    if (isDemoMode) {
-      return []
-    }
 
     const { data, error } = await this.client
       .from('photos')
@@ -378,9 +349,6 @@ export class SupabaseService {
 
   // Chat operations (multi-scope)
   async getChatMessages(scope: Chat['scope'], scopeId?: string): Promise<Chat[]> {
-    if (isDemoMode) {
-      return this.getDemoChats().filter(c => c.scope === scope && c.scope_id === scopeId)
-    }
 
     const query = this.client
       .from('chats')
@@ -408,9 +376,6 @@ export class SupabaseService {
   }
 
   async sendChatMessage(chat: ChatInsert): Promise<Chat> {
-    if (isDemoMode) {
-      throw new Error('Cannot send messages in demo mode')
-    }
 
     const { data, error } = await this.client
       .from('chats')
@@ -428,7 +393,6 @@ export class SupabaseService {
 
   // Advanced database functions
   async recomputeParentAggregates(pinId: string): Promise<void> {
-    if (isDemoMode) return
 
     const { error } = await this.client.rpc('recompute_parent_aggregates', { p_pin: pinId })
 
@@ -439,23 +403,21 @@ export class SupabaseService {
   }
 
   async validatePinClosure(pinId: string): Promise<{ canClose: boolean; reason?: string }> {
-    if (isDemoMode) {
-      return { canClose: false, reason: 'Demo mode - closure validation not available' }
-    }
 
-    const { data, error } = await this.client.rpc('validate_pin_closure', { pin_uuid: pinId })
+  const { data, error } = await this.client.rpc('validate_pin_closure', { pin_uuid: pinId })
 
     if (error) {
       console.error('Error validating pin closure:', error)
       throw error
     }
 
-    return data
+  const canClose = (data as any)?.canClose ?? false
+  const reason = (data as any)?.reason
+  return { canClose, reason }
   }
 
   // Real-time subscriptions
   subscribeToProjectUpdates(projectId: string, callback: (payload: any) => void) {
-    if (isDemoMode) return null
 
     return this.client
       .channel(`project:${projectId}`)
@@ -483,7 +445,6 @@ export class SupabaseService {
   }
 
   subscribeToRoofUpdates(roofId: string, callback: (payload: any) => void) {
-    if (isDemoMode) return null
 
     return this.client
       .channel(`roof:${roofId}`)
@@ -510,7 +471,6 @@ export class SupabaseService {
   }
 
   subscribeToChatUpdates(scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) {
-    if (isDemoMode) return null
 
     const filter = scopeId 
       ? `scope=eq.${scope}.and.scope_id=eq.${scopeId}`

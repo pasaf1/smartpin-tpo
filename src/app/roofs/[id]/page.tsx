@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { PinCanvas } from '@/components/canvas/PinCanvas'
 import { PinDetailsCard } from '@/components/pins/PinDetailsCard'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
-import { ExportDialog } from '@/components/export/ExportDialog'
+import ExportDialog from '@/components/export/ExportDialog'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -52,14 +52,10 @@ function RoofDashboardPage() {
     try {
       await createPinMutation.mutateAsync({
         roof_id: roofId,
-        x_position: x,
-        y_position: y,
-        title: `Pin ${Date.now()}`,
-        description: 'New defect pin',
-        severity: 'Medium' as const,
+        x: x,
+        y: y,
         status: 'Open' as const,
-        created_by: 'current-user'
-      } as any) // Temporary type assertion to fix compilation
+      } as any)
     } catch (error) {
       console.error('Failed to create pin:', error)
     }
@@ -75,14 +71,9 @@ function RoofDashboardPage() {
     try {
       await createPinMutation.mutateAsync({
         roof_id: roofId,
-        parent_pin_id: parentPinId,
-        x_position: x,
-        y_position: y,
-        title: `Child Pin ${Date.now()}`,
-        description: 'Child defect pin',
-        severity: 'Medium' as const,
+        x: x,
+        y: y,
         status: 'Open' as const,
-        created_by: 'current-user'
       } as any)
     } catch (error) {
       console.error('Failed to create child pin:', error)

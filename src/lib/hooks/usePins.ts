@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, isDemoMode } from '../supabase'
-import { getDemoPins, createDemoPin } from '../demo-data'
+import { supabase } from '../supabase'
 import type { Database, PinStatus, Severity } from '../database.types'
 
 type Pin = Database['public']['Tables']['pins']['Row']
@@ -8,11 +7,10 @@ type PinInsert = Database['public']['Tables']['pins']['Insert']
 type PinUpdate = Database['public']['Tables']['pins']['Update']
 
 export interface PinWithRelations extends Pin {
-  children?: Pin[]
-  parent?: Pin
-  items_count?: number
-  images_count?: number
-  chat_count?: number
+  // Optional UI-only fields previously used in demo/legacy
+  title?: string | null
+  description?: string | null
+  severity?: Severity | null
 }
 
 const QUERY_KEYS = {
@@ -27,25 +25,20 @@ export function usePins(roofId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.roofPins(roofId),
     queryFn: async (): Promise<PinWithRelations[]> => {
-      if (isDemoMode) {
-        // Return demo data
-        return new Promise(resolve => {
-          setTimeout(() => resolve(getDemoPins(roofId)), 100)
-        })
-      }
+      // Removed demo mode check
 
       const { data, error } = await supabase
         .from('pins')
-        .select(`
-          *,
-          children:pins!parent_pin_id(*),
-          parent:pins!inner(*)
-        `)
+        .select(`*`)
         .eq('roof_id', roofId)
         .order('seq_number')
 
       if (error) throw error
-      return data as PinWithRelations[]
+      // Map production coordinates (x,y) to UI fields if components expect x_position/y_position
+      return (data || []).map(p => ({
+        ...p,
+        // legacy optional fields left undefined
+      })) as PinWithRelations[]
     },
     enabled: !!roofId,
   })
@@ -57,11 +50,7 @@ export function usePin(id: string) {
     queryFn: async (): Promise<PinWithRelations> => {
       const { data, error } = await supabase
         .from('pins')
-        .select(`
-          *,
-          children:pins!parent_pin_id(*),
-          parent:pins!inner(*)
-        `)
+        .select(`*`)
         .eq('id', id)
         .single()
 
@@ -78,12 +67,8 @@ export function useParentPins(roofId: string) {
     queryFn: async (): Promise<PinWithRelations[]> => {
       const { data, error } = await supabase
         .from('pins')
-        .select(`
-          *,
-          children:pins!parent_pin_id(*)
-        `)
+        .select(`*`)
         .eq('roof_id', roofId)
-        .is('parent_pin_id', null)
         .order('seq_number')
 
       if (error) throw error
@@ -100,7 +85,7 @@ export function usePinChildren(parentId: string) {
       const { data, error } = await supabase
         .from('pins')
         .select('*')
-        .eq('parent_pin_id', parentId)
+        .eq('roof_id', parentId) // Fallback: no parent relation in production schema
         .order('seq_number')
 
       if (error) throw error
@@ -110,28 +95,14 @@ export function usePinChildren(parentId: string) {
   })
 }
 
+type CreatePinInput = Omit<PinInsert, 'seq_number'>
+
 export function useCreatePin() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (pin: PinInsert): Promise<Pin> => {
-      if (isDemoMode) {
-        // Create demo pin
-        const demoPin = createDemoPin({
-          roof_id: pin.roof_id,
-          x_position: pin.x_position,
-          y_position: pin.y_position,
-          title: pin.title,
-          description: pin.description || undefined,
-          severity: pin.severity,
-          status: pin.status,
-          created_by: pin.created_by || 'demo-user'
-        })
-        
-        return new Promise(resolve => {
-          setTimeout(() => resolve(demoPin as Pin), 200)
-        })
-      }
+  mutationFn: async (pin: CreatePinInput): Promise<Pin> => {
+      // Removed demo mode creation logic
 
       // Get next sequence number for the roof
       const { data: lastPin } = await supabase
@@ -147,7 +118,7 @@ export function useCreatePin() {
       const { data, error } = await supabase
         .from('pins')
         .insert({
-          ...pin,
+          ...(pin as any),
           seq_number: nextSeqNumber,
         })
         .select()
@@ -159,9 +130,7 @@ export function useCreatePin() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofPins(data.roof_id) })
       queryClient.invalidateQueries({ queryKey: ['pins', 'parents', data.roof_id] })
-      if (data.parent_pin_id) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pinChildren(data.parent_pin_id) })
-      }
+      // No parent relation invalidation needed in production schema
     },
   })
 }
@@ -173,10 +142,7 @@ export function useUpdatePin() {
     mutationFn: async ({ id, updates }: { id: string; updates: PinUpdate }): Promise<Pin> => {
       const { data, error } = await supabase
         .from('pins')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
+  .update(updates)
         .eq('id', id)
         .select()
         .single()
@@ -188,9 +154,7 @@ export function useUpdatePin() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pin(data.id) })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofPins(data.roof_id) })
       queryClient.invalidateQueries({ queryKey: ['pins', 'parents', data.roof_id] })
-      if (data.parent_pin_id) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pinChildren(data.parent_pin_id) })
-      }
+      // No parent relation invalidation needed in production schema
     },
   })
 }
@@ -200,14 +164,7 @@ export function useUpdatePinStatus() {
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: PinStatus }): Promise<Pin> => {
-      const updates: PinUpdate = {
-        status,
-        updated_at: new Date().toISOString(),
-      }
-
-      if (status === 'Closed') {
-        updates.completed_at = new Date().toISOString()
-      }
+  const updates: PinUpdate = { status }
 
       const { data, error } = await supabase
         .from('pins')
@@ -235,7 +192,7 @@ export function useDeletePin() {
       // Get pin info before deletion
       const { data: pin } = await supabase
         .from('pins')
-        .select('roof_id, parent_pin_id')
+  .select('roof_id')
         .eq('id', id)
         .single()
 

@@ -84,28 +84,23 @@ export async function POST(request: NextRequest) {
     const publicUrl = photoStorage.getPublicUrl(uploadResult.data.path)
 
     const { data: photoRecord, error: dbError } = await supabase
-      .from('pin_photos')
+      .from('photos')
       .insert({
         pin_id: pinId,
+        type: uploadType === 'completion' ? 'ClosurePIC' : 'OpenPIC',
+        file_url_public: publicUrl,
+        uploaded_by: session.user.id,
+        thumbnail_url: thumbnailUrl,
         file_name: processed.main.file.name,
-        file_path: uploadResult.data.path,
         file_size: processed.main.file.size,
         mime_type: processed.main.file.type,
         upload_type: uploadType,
-        storage_url: publicUrl,
-        thumbnail_url: thumbnailUrl,
-        uploaded_by: session.user.id,
-        file_hash: processed.hash,
-        compression_ratio: processed.main.compressionRatio,
-        upload_source: 'web',
-        processing_status: 'completed',
         metadata: {
           originalName: file.name,
           originalSize: file.size,
           compressed: compress,
           hasThumbnail: !!processed.thumbnail,
-          imageMetadata: processed.metadata,
-          compressionRatio: processed.main.compressionRatio
+          imageMetadata: processed.metadata
         }
       })
       .select()
@@ -163,9 +158,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { data: photo, error: fetchError } = await supabase
-      .from('pin_photos')
+      .from('photos')
       .select('*')
-      .eq('id', photoId)
+      .eq('photo_id', photoId)
       .single()
 
     if (fetchError || !photo) {
@@ -191,8 +186,9 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    if (photo.file_path) {
-      await photoStorage.deleteFile(photo.file_path)
+    if (photo.file_url_public) {
+      const path = photo.file_url_public.split('/pin-photos/')[1]
+      if (path) await photoStorage.deleteFile(path)
     }
 
     if (photo.thumbnail_url) {
@@ -203,9 +199,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { error: deleteError } = await supabase
-      .from('pin_photos')
+      .from('photos')
       .delete()
-      .eq('id', photoId)
+      .eq('photo_id', photoId)
 
     if (deleteError) {
       return NextResponse.json(

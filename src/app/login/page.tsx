@@ -8,27 +8,25 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useAuth, useUsers } from '@/lib/hooks/useAuth'
+import { useAuth } from '@/lib/auth/AuthContext'
 import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { data: demoUsers = [] } = useUsers()
-  const { signIn, isAuthenticated, isLoading } = useAuth()
+  const { signIn, session, loading } = useAuth()
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
-  const [showDemoMode, setShowDemoMode] = useState(false)
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!loading && session) {
       router.push('/')
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [session, loading, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +34,7 @@ export default function LoginPage() {
     setIsSigningIn(true)
     
     try {
-      await signIn({ email, password })
+  await signIn(email, password)
       // Navigation will be handled by the useEffect above
     } catch (error: any) {
       console.error('Login failed:', error)
@@ -46,24 +44,9 @@ export default function LoginPage() {
     }
   }
 
-  const handleDemoLogin = async (userEmail: string) => {
-    setError(null)
-    setIsSigningIn(true)
-    
-    try {
-      await signIn({ email: userEmail, password: 'demo-password' })
-      // Navigation will be handled by the useEffect above
-    } catch (error: any) {
-      console.error('Demo login failed:', error)
-      setError(error.message || 'Demo login failed.')
-    } finally {
-      setIsSigningIn(false)
-    }
-  }
+  const handleDemoLogin = async (_userEmail: string) => {}
 
-  const adminUsers = demoUsers.filter(u => u.role === 'Admin')
-  const regularUsers = demoUsers.filter(u => u.role !== 'Admin' && u.status === 'active')
-  const inactiveUsers = demoUsers.filter(u => u.status === 'inactive')
+  // Demo users removed
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -87,9 +70,7 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             {error && (
-              /* @ts-expect-error - React 19 type compatibility */
               <Alert className="mb-4 border-red-200 bg-red-50">
-                {/* @ts-expect-error - React 19 type compatibility */}
                 <AlertDescription className="text-red-700">
                   {error}
                 </AlertDescription>
@@ -125,7 +106,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 shadow-lg shadow-indigo-500/30"
-                disabled={isSigningIn || isLoading}
+                disabled={isSigningIn || loading}
               >
                 {isSigningIn ? 'Signing in...' : 'Sign In'}
               </Button>
@@ -139,129 +120,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-slate-300 text-slate-600 hover:bg-slate-50"
-                onClick={() => setShowDemoMode(!showDemoMode)}
-                disabled={isSigningIn}
-              >
-                {showDemoMode ? '🔒 Hide Demo Mode' : '🚀 Demo Mode'}
-              </Button>
+              {/* Demo mode removed */}
             </form>
           </CardContent>
         </Card>
 
-        {/* Demo Users - Only show when demo mode is enabled */}
-        {showDemoMode && (
-          <Card className="bg-white/80 backdrop-blur-sm border border-white/40 shadow-xl shadow-slate-500/10">
-            <CardHeader>
-              <CardTitle className="text-xl text-slate-800">🚀 Demo Users</CardTitle>
-              <CardDescription>
-                Click any user to instantly log in (Development & Testing Mode)
-              </CardDescription>
-            </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Admin Users */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="destructive">Admin</Badge>
-                <span className="text-sm text-muted-foreground">({adminUsers.length})</span>
-              </div>
-              <div className="space-y-2">
-                {adminUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg border transition-colors',
-                      isSigningIn 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'cursor-pointer hover:bg-muted/50',
-                      selectedUser === user.id ? 'border-primary bg-primary/5' : ''
-                    )}
-                    onClick={() => {
-                      if (!isSigningIn) {
-                        setSelectedUser(user.id)
-                        handleDemoLogin(user.email)
-                      }
-                    }}
-                  >
-                    <div className="text-2xl">{user.avatar}</div>
-                    <div className="flex-1">
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {user.role}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Regular Users */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="secondary">Active Users</Badge>
-                <span className="text-sm text-muted-foreground">({regularUsers.length})</span>
-              </div>
-              <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto">
-                {regularUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className={cn(
-                      'flex items-center gap-3 p-2 rounded-md border transition-colors',
-                      isSigningIn 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'cursor-pointer hover:bg-muted/50',
-                      selectedUser === user.id ? 'border-primary bg-primary/5' : ''
-                    )}
-                    onClick={() => {
-                      if (!isSigningIn) {
-                        setSelectedUser(user.id)
-                        handleDemoLogin(user.email)
-                      }
-                    }}
-                  >
-                    <div className="text-lg">{user.avatar}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{user.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Inactive Users */}
-            {inactiveUsers.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge variant="outline">Inactive</Badge>
-                  <span className="text-sm text-muted-foreground">({inactiveUsers.length})</span>
-                </div>
-                <div className="space-y-1">
-                  {inactiveUsers.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center gap-3 p-2 rounded-md border opacity-50"
-                    >
-                      <div className="text-lg">{user.avatar}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{user.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        inactive
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        )}
+  {/* Demo user list removed */}
       </div>
       
       {/* Company Footer */}

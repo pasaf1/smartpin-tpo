@@ -69,7 +69,7 @@ export function PinItemsTable({
   onEditClick,
 }: PinItemsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
-    { id: 'created_at', desc: true }
+  { id: 'opened_at', desc: true }
   ])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -98,8 +98,8 @@ export function PinItemsTable({
   const enhancedPinItems = useMemo(() => {
     return pinItems.map(item => {
       const pin = pins.find(p => p.id === item.pin_id)
-      const zone = pin ? getZoneFromCoordinates(pin.x_position, pin.y_position) : 'Unknown'
-      return { ...item, zone }
+      const zone = pin ? getZoneFromCoordinates(pin.x, pin.y) : 'Unknown'
+      return { ...item, zone } as PinItem & { zone: string }
     })
   }, [pinItems, pins])
 
@@ -113,7 +113,7 @@ export function PinItemsTable({
     
     if (onlyOpenItems) {
       filteredItems = filteredItems.filter(item => 
-        item.status === 'Open' || item.status === 'InProgress' || item.status === 'ReadyForInspection'
+        item.status === 'Open' || item.status === 'ReadyForInspection'
       )
     }
     
@@ -121,19 +121,19 @@ export function PinItemsTable({
   }, [enhancedPinItems, pinId, onlyOpenItems])
 
   // Semantic search field mapping
+  // Map required keys for semantic search; unused fields map to existing ones
   const searchFieldMap = {
-    title: 'title' as keyof PinItem,
+    title: 'description' as keyof PinItem,
     description: 'description' as keyof PinItem,
     status: 'status' as keyof PinItem,
     severity: 'severity' as keyof PinItem,
-    created_by: 'created_by' as keyof PinItem,
+    created_by: 'opened_by' as keyof PinItem,
   }
 
   // Available search terms for suggestions
   const availableTerms = useMemo(() => {
     const terms = new Set<string>()
     baseFilteredData.forEach(item => {
-      terms.add(item.title)
       if (item.description) terms.add(item.description)
       terms.add(item.status)
       terms.add(item.severity)
@@ -162,8 +162,8 @@ export function PinItemsTable({
       query,
       searchFieldMap,
       {
-        title: 3.0,
-        description: 2.0,
+        title: 2.5,
+        description: 3.0,
         status: 1.5,
         severity: 1.5,
         created_by: 0.5,
@@ -176,41 +176,36 @@ export function PinItemsTable({
   }
 
   const handleStatusChange = async (itemId: string, newStatus: 'Open' | 'ReadyForInspection' | 'Closed') => {
-    try {
-      await updateStatusMutation.mutateAsync({ id: itemId, status: newStatus })
-    } catch (error) {
-      console.error('Failed to update status:', error)
-    }
+    await updateStatusMutation.mutateAsync({ id: itemId, status: newStatus as any })
   }
 
-  const columns = useMemo<ColumnDef<PinItem>[]>(
+  type RowType = PinItem & { zone: string }
+
+  const columns = useMemo<ColumnDef<RowType>[]>(
     () => [
       {
-        accessorKey: 'seq_number',
+        accessorKey: 'seq_suffix',
         header: '#',
         cell: ({ row }) => (
           <div className="w-12 text-center font-mono text-sm">
-            {row.original.seq_number}
+            {row.original.seq_suffix}
           </div>
         ),
         size: 60,
       },
       {
-        accessorKey: 'title',
-        header: 'Title',
+        accessorKey: 'description',
+        header: 'Description',
         cell: ({ row }) => (
           <div className="min-w-0">
-            <div className="font-medium text-sm truncate" title={row.original.title}>
-              {row.original.title}
-            </div>
             {row.original.description && (
               <div className="text-xs text-muted-foreground line-clamp-2 mt-1">
                 {row.original.description}
               </div>
             )}
-            {useSemanticSearch && 'relevanceScore' in row.original && (
+            {useSemanticSearch && 'relevanceScore' in (row.original as any) && (
               <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                Relevance: {(row.original.relevanceScore as number).toFixed(2)}
+                Relevance: {((row.original as any).relevanceScore as number).toFixed(2)}
               </div>
             )}
           </div>
@@ -225,7 +220,7 @@ export function PinItemsTable({
             <StatusBadge status={row.original.status} />
             <Select
               value={row.original.status}
-              onValueChange={(value) => 
+              onValueChange={(value) =>
                 handleStatusChange(row.original.id, value as 'Open' | 'ReadyForInspection' | 'Closed')
               }
               disabled={updateStatusMutation.isPending}
@@ -278,68 +273,23 @@ export function PinItemsTable({
         filterFn: 'equals',
       },
       {
-        accessorKey: 'created_at',
-        header: 'Created',
+        accessorKey: 'opened_at',
+        header: 'Opened',
         cell: ({ row }) => (
           <div className="text-xs text-muted-foreground font-mono">
-            {new Date(row.original.created_at).toLocaleDateString()}
+            {new Date(row.original.opened_at).toLocaleDateString()}
             <br />
-            {new Date(row.original.created_at).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
+            {new Date(row.original.opened_at).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
             })}
           </div>
         ),
-        size: 100,
+        size: 110,
       },
-      {
-        accessorKey: 'created_by',
-        header: 'Creator',
-        cell: ({ row }) => (
-          <Badge variant="outline" className="text-xs">
-            {row.original.created_by}
-          </Badge>
-        ),
-        size: 100,
-      },
-      {
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-1">
-            {showClosureButtons && (row.original.status === 'Open' || row.original.status === 'ReadyForInspection') && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 px-2 text-xs"
-                onClick={() => onClosurePhotoClick?.(row.original.id)}
-                title="Upload closure photo"
-              >
-                📸 Close
-              </Button>
-            )}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 w-8 p-0" 
-              title="Edit item"
-              onClick={() => onEditClick?.(row.original.id)}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Delete item">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </Button>
-          </div>
-        ),
-        size: 150,
-      },
+      // Actions column can be re-added when wired
     ],
-    [updateStatusMutation.isPending, showClosureButtons, onClosurePhotoClick, onEditClick]
+    [updateStatusMutation.isPending, useSemanticSearch]
   )
 
   const table = useReactTable({

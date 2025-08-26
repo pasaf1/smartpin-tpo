@@ -32,7 +32,12 @@ export const PHOTO_STORAGE_CONFIG: StorageConfig = {
 }
 
 export class PhotoStorageService {
-  private supabase = createClient()
+  private supabase = createClient
+    ? createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+      )
+    : (null as any)
 
   async ensureBucketExists(): Promise<boolean> {
     try {
@@ -43,7 +48,7 @@ export class PhotoStorageService {
         return false
       }
 
-      const bucketExists = buckets.some(bucket => bucket.name === PHOTO_STORAGE_CONFIG.bucket)
+  const bucketExists = (buckets as Array<{ name: string }>).some((bucket) => bucket.name === PHOTO_STORAGE_CONFIG.bucket)
       
       if (!bucketExists) {
         const { error: createError } = await this.supabase.storage.createBucket(
@@ -196,24 +201,30 @@ export class PhotoStorageService {
       }
 
       const { data: dbPhotos, error: dbError } = await this.supabase
-        .from('pin_photos')
-        .select('file_path')
+        .from('photos')
+        .select('file_url_public')
 
       if (dbError) {
         console.error('Failed to get database photos:', dbError)
         return 0
       }
 
-      const dbPaths = new Set(dbPhotos.map(p => p.file_path))
-      const orphanedFiles = files.filter(file => 
-        !dbPaths.has(file.name) && 
-        new Date(file.created_at) < cutoffDate
+      const dbFileNames = new Set(
+        (dbPhotos || [])
+          .map((p: any) => (p.file_url_public || '').split('/pin-photos/')[1])
+          .filter(Boolean)
+          .map((path: string) => path.split('/').pop() as string)
+      )
+
+  const orphanedFiles = (files || []).filter((file: { name: string; created_at?: string }) => 
+        !dbFileNames.has(file.name) &&
+        file.created_at && new Date(file.created_at) < cutoffDate
       )
 
       if (orphanedFiles.length > 0) {
         const { error: deleteError } = await this.supabase.storage
           .from(PHOTO_STORAGE_CONFIG.bucket)
-          .remove(orphanedFiles.map(f => f.name))
+          .remove(orphanedFiles.map((f: { name: string }) => f.name))
 
         if (deleteError) {
           console.error('Failed to delete orphaned files:', deleteError)

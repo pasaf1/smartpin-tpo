@@ -1,14 +1,18 @@
 /** @type {import('next').NextConfig} */
+const path = require('path')
+
 const nextConfig = {
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', '@tanstack/react-query', 'date-fns'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  },
+
+  // Turbopack configuration (experimental.turbo is deprecated)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
@@ -79,6 +83,8 @@ const nextConfig = {
 
   // Output optimization for production
   output: 'standalone',
+  // Help Next.js resolve the correct workspace root in a monorepo
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   
   // Security headers
   async headers() {
