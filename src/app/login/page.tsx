@@ -50,7 +50,13 @@ export default function LoginPage() {
       await signInWithGoogle()
     } catch (error: any) {
       console.error('Google sign-in failed:', error)
-      setError(error.message || 'Google sign-in failed.')
+      
+      // Handle specific Google OAuth error
+      if (error.message?.includes('provider is not enabled') || error.message?.includes('Unsupported provider')) {
+        setError('Google sign-in is not configured. Please contact your administrator to enable Google OAuth in the system settings.')
+      } else {
+        setError(error.message || 'Google sign-in failed. Please try again or use email/password.')
+      }
       setIsSigningIn(false)
     }
   }
