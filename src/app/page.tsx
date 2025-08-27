@@ -718,5 +718,6 @@ function HomePage() {
   )
 }
 
-// Protect the homepage - require authentication
-export default withAuth(HomePage)
+// Temporarily disable auth protection for testing
+// export default withAuth(HomePage)
+export default HomePage

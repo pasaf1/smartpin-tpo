@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useAuth } from '@/lib/auth/AuthContext'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [googleEnabled, setGoogleEnabled] = useState<boolean | null>(null)
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -25,6 +27,26 @@ export default function LoginPage() {
       router.push('/')
     }
   }, [session, loading, router])
+
+  // Check if Google provider is enabled in Supabase
+  useEffect(() => {
+    let mounted = true
+    fetch('/api/oauth-check')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted) return
+        setGoogleEnabled(Boolean(data.enabled))
+        if (data.enabled === false && data.detail) {
+          // make the error helpful but non-blocking until user clicks Google sign in
+          console.debug('OAuth check:', data.detail)
+        }
+      })
+      .catch((err) => {
+        console.debug('OAuth check error:', err)
+        if (mounted) setGoogleEnabled(false)
+      })
+    return () => { mounted = false }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -141,6 +163,7 @@ export default function LoginPage() {
               </div>
 
               {/* Google Sign In */}
+              <div className="flex flex-col gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -156,6 +179,12 @@ export default function LoginPage() {
                 </svg>
                 Continue with Google
               </Button>
+              {googleEnabled === false && (
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  Google sign-in appears to be disabled for this Supabase project. Follow the <Link href="/GOOGLE-OAUTH-SETUP.md" className="underline">setup guide</Link> to enable it.
+                </div>
+              )}
+              </div>
             </form>
           </CardContent>
         </Card>
