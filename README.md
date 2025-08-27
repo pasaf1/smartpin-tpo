@@ -1,4 +1,13 @@
-# SmartPin TPO – Project Guide (EN/HE)
+# SmartP## What's new (highlights)
+- **Dark/Light Theme System** - Complete theme support with CSS custom properties, theme toggle, and system preference detection
+- **Uniform Page Layout** - PageLayout template component for consistent design across all pages with navigation, breadcrumbs, and theme controls
+- **Enhanced Authentication** - Improved login page with proper input components and Google OAuth integration
+- **Parent/Child pins** with status timeline (Open → ReadyForInspection → Closed) and parent aggregates. New UI: PinDetailsModalV2.
+- **Photos** stored in a dedicated public bucket `pin-photos`; child closure requires a Closure photo.
+- **Project creation** is RLS-gated: only roles Admin or QA_Manager can create projects. UI is gated accordingly with clear messages.
+- **Chat improvements**: edit/delete actions, with a DELETE RLS policy migration included.
+- **SSR-safe Supabase client** with diagnostics and `/api/env-check` + `/api/health` endpoints.
+- **Simplified ESLint** (flat config) and hardened `next.config.js`. Legacy demo pages were removed.– Project Guide (EN/HE)
 
 A Next.js application for managing Pins/INCR, photos, statuses, severities, and scoped chat. This document is designed for both humans and AI agents to understand the stack, rules, pages, data model, and conventions.
 
@@ -20,8 +29,10 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - Framework: Next.js 15 (App Router), React 18
 - Language: TypeScript
 - UI: Tailwind CSS + shadcn/ui (Card, Button, Select, Badge, Textarea, Input, ScrollArea, etc.)
+- Theme: next-themes for dark/light mode switching with CSS custom properties
 - Dates: date-fns (format, getISOWeek)
 - Realtime/DB: Supabase (no Prisma)
+- Authentication: Supabase Auth with Google OAuth support
 - State/Logic: Custom hooks (e.g., usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem)
 - Build: next build
 - Package manager: PNPM preferred
@@ -30,8 +41,10 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - פריימוורק: Next.js 15 (App Router), React 18
 - שפה: TypeScript
 - UI: Tailwind CSS + shadcn/ui (Card, Button, Select, Badge, Textarea, Input, ScrollArea ועוד)
+- עיצוב: next-themes למעבר בין מצב חשוך/בהיר עם CSS custom properties
 - תאריכים: date-fns (format, getISOWeek)
 - Realtime/DB: Supabase (ללא Prisma)
+- התחברות: Supabase Auth עם תמיכה ב-Google OAuth
 - State/Logic: הוקים מותאמים אישית (למשל usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem)
 - בנייה: next build
 - מנהל חבילות: PNPM מועדף
@@ -100,7 +113,8 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 
 ## Pages Map and Relationships (English)
 1) /login
-    - Purpose: User authentication.
+    - Purpose: User authentication with email/password and Google OAuth.
+    - Features: Proper Input components, Google sign-in button, theme support.
     - On success: redirect to / (or to preserved callback URL).
     - Permissions: Guests only (if logged in → redirect to /).
     - Chat scope: none.
@@ -108,6 +122,7 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 2) /
     - File: src/app/page.tsx
     - Purpose: Home dashboard/overview; lists real projects from Supabase.
+    - Features: Uses PageLayout template for consistent design.
     - Data: Projects via Supabase; create project modal (Admin/QA_Manager only).
     - Navigation: to /roofs/[id], /roofs/[id]/settings, /admin/users.
     - Chat scope: global.
@@ -115,6 +130,7 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 3) /roofs
     - File: src/app/roofs/page.tsx (if present)
     - Purpose: List/index of roofs with filters.
+    - Features: Can use PageLayout template for consistent design.
     - Navigation: to /roofs/[id], settings at /roofs/[id]/settings.
     - Chat scope: global or roof when drilling down.
 
@@ -148,7 +164,8 @@ Navigation graph (text):
 
 ## מפת עמודים וקשרים (עברית)
 1) /login
-    - מטרה: התחברות משתמשים.
+    - מטרה: התחברות משתמשים עם אימייל/סיסמה ו-Google OAuth.
+    - תכונות: רכיבי Input תקינים, כפתור התחברות לגוגל, תמיכה בערכות נושא.
     - בהצלחה: ניתוב ל-/ (או לכתובת חזרה שמורה).
     - הרשאות: אורחים בלבד (מחובר → ניתוב ל-/).
     - היקף צ׳אט: אין.
@@ -156,6 +173,7 @@ Navigation graph (text):
 2) /
     - קובץ: src/app/page.tsx
     - מטרה: דשבורד ביתי/סקירה; מציג פרויקטים אמיתיים מסביבת Supabase.
+    - תכונות: משתמש בתבנית PageLayout לעיצוב אחיד.
     - דאטה: פרויקטים מסופבאייס; יצירת פרויקט אפשרית רק ל-Admin/QA_Manager.
     - ניווט: ל-/roofs/[id], הגדרות /roofs/[id]/settings, /admin/users.
     - היקף צ׳אט: global.
@@ -163,6 +181,7 @@ Navigation graph (text):
 3) /roofs
     - קובץ: src/app/roofs/page.tsx (אם קיים)
     - מטרה: אינדקס גגות עם סינון.
+    - תכונות: יכול להשתמש בתבנית PageLayout לעיצוב אחיד.
     - ניווט: ל-/roofs/[id], להגדרות /roofs/[id]/settings.
     - היקף צ׳אט: global או roof בהעמקה.
 
@@ -193,6 +212,73 @@ Navigation graph (text):
 - /roofs → /roofs/[id]
 - /roofs/[id] ↔ /roofs/[id]/settings
 - /admin/users → /
+
+## 🎨 Recent Design System Improvements
+
+### Dark/Light Theme System
+The application now includes a complete theme system supporting light, dark, and system preference modes:
+
+- **CSS Custom Properties**: Defined in `src/app/globals.css` for consistent theming
+- **Theme Provider**: Integrated next-themes for seamless switching
+- **Theme Toggle**: Available as `ThemeToggle` and `SimpleThemeToggle` components
+- **System Detection**: Automatically detects user's system preference
+
+**Usage Example:**
+```tsx
+import { ThemeToggle } from '@/components/ui/theme-toggle'
+
+function Header() {
+  return (
+    <header>
+      <ThemeToggle />
+    </header>
+  )
+}
+```
+
+### PageLayout Template
+A uniform layout component for consistent page design across the application:
+
+**Features:**
+- Navigation header with logo and search
+- Breadcrumbs for navigation context
+- Theme toggle integration
+- Responsive design
+- Connection status indicator
+
+**Usage Example:**
+```tsx
+import { PageLayout } from '@/components/layout/PageLayout'
+
+export default function MyPage() {
+  return (
+    <PageLayout
+      title="Page Title"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Current Page' }
+      ]}
+      actions={<CustomActions />}
+    >
+      <div>Your page content here</div>
+    </PageLayout>
+  )
+}
+```
+
+### Enhanced Authentication
+The login page has been completely redesigned with:
+
+- **Proper Input Components**: Using shadcn/ui Input for better UX
+- **Google OAuth**: Integrated Google sign-in option
+- **Theme Support**: Works seamlessly with dark/light modes
+- **Improved Validation**: Better error handling and user feedback
+
+**Google OAuth Setup:**
+1. Configure in Supabase Dashboard → Authentication → Providers
+2. Enable Google provider
+3. Add Google Cloud Console credentials
+4. Users can then sign in with the Google button on the login page
 
 ---
 
@@ -339,29 +425,73 @@ User (משתמש)
 ---
 
 ## Key Components and Contracts (English)
-- PinDetailsModalV2
+- **PageLayout**
+   - Purpose: Uniform template for consistent page design across the application
+   - Features: Navigation header with logo, search, theme toggle, breadcrumbs, content area
+   - Usage: Import and wrap page content for consistent layout and navigation
+   - Dependencies: ThemeToggle, ConnectionStatus, ChatDock components
+
+- **ThemeToggle / SimpleThemeToggle**
+   - Purpose: User interface for switching between light/dark/system themes
+   - Features: Dropdown with Sun/Moon icons, respects system preferences
+   - Integration: Uses next-themes provider for seamless theme switching
+   - Dependencies: next-themes, Button, DropdownMenu from shadcn/ui
+
+- **Enhanced Login Page**
+   - Purpose: User authentication with improved UI and multiple sign-in options
+   - Features: Proper Input components, Google OAuth button, theme support
+   - Authentication: Email/password and Google OAuth via Supabase Auth
+   - Dependencies: AuthContext, shadcn/ui Input and Button components
+
+- **PinDetailsModalV2**
    - Purpose: Parent/child pin UI, timeline (Open → Ready → Closed), per-child Open/Closure images, prevents closing a child without a closure photo. Aggregates Closed/Total on parent.
    - Hooks: usePinWithChildren, useCreatePinChild, useUpdatePinChildStatus, useAttachChildPhoto.
-- PinCanvas
+
+- **PinCanvas**
    - Displays pins on a plan using normalized x_position/y_position (0..1).
-- PhotoDashboard
+
+- **PhotoDashboard**
    - Props: { pinId: string }; upload, manage, and analyze photos per pin/child.
-- ChatPanel
+
+- **ChatPanel**
    - Scope-aware chat: 'global' | 'roof' | 'pin'. Use useChatSystem without conditional hook calls.
-- usePinStatusManager
+
+- **usePinStatusManager**
    - Child pin close flow, validation, parent status updates, and summary functions.
 
 ## רכיבים מרכזיים וחוזים (עברית)
-- PinDetailsModalV2
+- **PageLayout**
+   - מטרה: תבנית אחידה לעיצוב עמודים עקבי ברחבי האפליקציה
+   - תכונות: כותרת ניווט עם לוגו, חיפוש, החלפת ערכת נושא, breadcrumbs, אזור תוכן
+   - שימוש: ייבוא ועיטוף תוכן העמוד לפריסה ונווטציה עקביים
+   - תלויות: רכיבי ThemeToggle, ConnectionStatus, ChatDock
+
+- **ThemeToggle / SimpleThemeToggle**
+   - מטרה: ממשק משתמש למעבר בין ערכות נושא בהיר/חשוך/מערכת
+   - תכונות: תפריט נפתח עם אייקוני שמש/ירח, מכבד העדפות מערכת
+   - אינטגרציה: משתמש ב-next-themes provider למעבר חלק בין ערכות נושא
+   - תלויות: next-themes, Button, DropdownMenu מ-shadcn/ui
+
+- **עמוד התחברות משופר**
+   - מטרה: אימות משתמשים עם ממשק משופר ואפשרויות התחברות מרובות
+   - תכונות: רכיבי Input תקינים, כפתור Google OAuth, תמיכה בערכות נושא
+   - אימות: אימייל/סיסמה ו-Google OAuth דרך Supabase Auth
+   - תלויות: AuthContext, רכיבי Input ו-Button של shadcn/ui
+
+- **PinDetailsModalV2**
    - מטרה: ממשק הורה/תתי־פינים, ציר סטטוס (Open → Ready → Closed), תמונות פתיחה/סגירה לכל תת־פין, ומניעת סגירה ללא תמונת Closure. מציג סיכום Closed/Total ברמת ההורה.
    - הוקים: usePinWithChildren, useCreatePinChild, useUpdatePinChildStatus, useAttachChildPhoto.
-- PinCanvas
+
+- **PinCanvas**
    - מציג פינים על גבי תכנית עם x_position/y_position מנורמלים (0..1).
-- PhotoDashboard
+
+- **PhotoDashboard**
    - Props: { pinId: string }; העלאה, ניהול ואנליזה של תמונות לפי פין/תת־פין.
-- ChatPanel
+
+- **ChatPanel**
    - צ׳אט לפי היקף: 'global' | 'roof' | 'pin'. להשתמש ב-useChatSystem ללא קריאה מותנית להוקים.
-- usePinStatusManager
+
+- **usePinStatusManager**
    - תהליך סגירת תתי־פינים, ולידציה, עדכון סטטוס הורה ופונקציות סיכום.
 
 ---
@@ -385,6 +515,9 @@ A professional roof inspection and project management application built with Nex
 ## 🚀 Features
 
 - **Pin-based Inspection System** - Parent/child pins, status timeline, and aggregates
+- **Dark/Light Theme Support** - Complete theme system with user preference detection and CSS custom properties
+- **Uniform Page Layout** - Consistent design template across all pages with navigation and theme controls
+- **Enhanced Authentication** - Email/password and Google OAuth integration with improved UI
 - **Real-time Collaboration** - Live updates and scoped chat (global/roof/pin), edit/delete
 - **Photo Management** - Upload to `pin-photos`, per-child Open/Closure pairs  
 - **Project Analytics** - Quality trends and performance metrics
@@ -429,6 +562,11 @@ NODE_ENV=production
    - 20240829_chats_delete_policy.sql
 3. Ensure RLS is enabled and policies are active. Project INSERT is allowed only for roles `Admin` or `QA_Manager`.
 4. Create a public storage bucket named `pin-photos` and grant read access for public URLs.
+5. **Optional: Configure Google OAuth**
+   - Go to Supabase Dashboard → Authentication → Providers
+   - Enable Google provider
+   - Add your Google Cloud Console Client ID and Client Secret
+   - Configure redirect URLs: `https://your-project-id.supabase.co/auth/v1/callback`
 
 ### 3. Install Dependencies
 
@@ -487,9 +625,17 @@ This script includes:
 ```
 src/
 ├── app/                 # Next.js App Router pages
+│   ├── globals.css     # Global styles with dark/light theme CSS variables
+│   ├── layout.tsx      # Root layout with theme providers
+│   └── login/          # Enhanced authentication page
 ├── components/          # Reusable UI components
+│   ├── layout/         # PageLayout template for consistent design
+│   ├── ui/             # shadcn/ui components with theme support
+│   │   └── theme-toggle.tsx  # Dark/light theme switcher
+│   └── ...             # Other feature components
 ├── lib/                 # Utilities and configurations
 │   ├── supabase/       # Database client setup
+│   ├── auth/           # Authentication context with Google OAuth
 │   ├── hooks/          # Custom React hooks
 │   └── utils/          # Helper functions
 ├── styles/             # Global styles
@@ -568,16 +714,40 @@ For support and questions:
 
 ## 🔎 Troubleshooting
 
-- Failed to create project (permission denied / RLS):
-  - Ensure your `users.role` is `Admin` or `QA_Manager`.
-  - Verify `20240828_rls_policies.sql` was applied.
-  - Sign out/in to refresh the JWT after role changes.
+### Authentication Issues
+- **Login page shows invisible input fields**:
+  - Ensure you're using the updated login page with proper shadcn/ui Input components
+  - Check that theme CSS variables are properly loaded in globals.css
 
-- Next.js "inferred workspace root" warning (multiple lockfiles):
-  - Remove extra lockfiles or set `outputFileTracingRoot` in `next.config.js` to your monorepo root.
+- **Google OAuth not working**:
+  - Configure Google OAuth in Supabase Dashboard → Authentication → Providers
+  - Ensure Google Cloud Console credentials are properly set
+  - Verify redirect URLs match your Supabase project settings
 
-- ESLint warning about Next plugin not detected:
-  - Expected with flat config; informational only in this project.
+### Theme Issues
+- **Theme not switching properly**:
+  - Ensure next-themes provider is wrapping the app in layout.tsx
+  - Check that Tailwind CSS dark mode is configured with `darkMode: "class"`
+  - Verify CSS custom properties are defined in globals.css
 
-- Photo upload 401/403 or missing images:
-  - Confirm `pin-photos` bucket exists and is public-read; check upload path and returned public URL.
+### Database Issues
+- **Failed to create project (permission denied / RLS)**:
+  - Ensure your `users.role` is `Admin` or `QA_Manager`
+  - Verify `20240828_rls_policies.sql` was applied
+  - Sign out/in to refresh the JWT after role changes
+
+### Build Issues
+- **Next.js "inferred workspace root" warning (multiple lockfiles)**:
+  - Remove extra lockfiles or set `outputFileTracingRoot` in `next.config.js` to your monorepo root
+
+- **ESLint warning about Next plugin not detected**:
+  - Expected with flat config; informational only in this project
+
+- **TypeScript errors about missing properties**:
+  - Check for consistent property naming (e.g., `profile` vs `userProfile`)
+  - Ensure all imports and exports are properly typed
+
+### Photo Upload Issues
+- **Photo upload 401/403 or missing images**:
+  - Confirm `pin-photos` bucket exists and is public-read
+  - Check upload path and returned public URL
