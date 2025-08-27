@@ -41,7 +41,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { user, userProfile } = useAuth();
+  const { user, profile } = useAuth();
   const sendMessageMutation = useSendChatMessage();
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -148,8 +148,8 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
 
   // Action handlers for edit/delete
   const canManageMessage = (createdBy?: string | null) => {
-    const isOwn = createdBy && userProfile?.id && createdBy === userProfile.id;
-    const isAdmin = userProfile?.role === 'Admin';
+    const isOwn = createdBy && profile?.id && createdBy === profile.id;
+    const isAdmin = profile?.role === 'Admin';
     return Boolean(isOwn || isAdmin);
   };
 

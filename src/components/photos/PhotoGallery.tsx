@@ -58,7 +58,11 @@ export function PhotoGallery({ pinId, photos, onRefresh, className }: PhotoGalle
   const [selectedPhoto, setSelectedPhoto] = useState<PinPhoto | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<PinPhoto | null>(null);
   const { deletePhoto, isOffline } = usePhotoUpload();
-  const { user, canPerformAction } = useAuth();
+  const { user, profile } = useAuth();
+  
+  const canPerformAction = (requiredRole: string) => {
+    return profile?.role === requiredRole || profile?.role === 'Admin';
+  };
 
   const handleDelete = useCallback(async (photo: PinPhoto) => {
     const success = await deletePhoto(photo.id);

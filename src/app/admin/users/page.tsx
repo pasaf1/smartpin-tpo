@@ -60,7 +60,8 @@ const toUiUser = (u: DbUser): UiUser => ({
 
 /** ===== Page ===== */
 export default function UserManagementPage() {
-  const { isLoading, canManageUsers } = useAuth();
+  const { loading, profile } = useAuth();
+  const canManageUsers = profile?.role === 'Admin' || profile?.role === 'QA_Manager';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<UiUser[]>([]);
@@ -109,7 +110,7 @@ export default function UserManagementPage() {
   const adminUsers = users.filter((u) => u.role === 'Admin').length;
 
   // Guards
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

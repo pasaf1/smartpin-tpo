@@ -37,7 +37,11 @@ export function PhotoUploadZone({
   const [uploadType, setUploadType] = useState<'defect'|'completion'|'general'>(defaultType);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { uploads, uploadMultiplePhotos, clearUpload, isOffline } = usePhotoUpload();
-  const { canPerformAction } = useAuth();
+  const { profile } = useAuth();
+  
+  const canPerformAction = (requiredRole: string) => {
+    return profile?.role === requiredRole || profile?.role === 'Admin';
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 

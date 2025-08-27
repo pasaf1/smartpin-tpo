@@ -11,8 +11,8 @@ import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
 import { useProjects, useCreateProject } from '@/lib/hooks/useSupabaseQueries'
 
 function HomePage() {
-  const { userProfile } = useAuth()
-  const canCreateProject = userProfile?.role === 'Admin' || userProfile?.role === 'QA_Manager'
+  const { profile } = useAuth()
+  const canCreateProject = profile?.role === 'Admin' || profile?.role === 'QA_Manager'
   const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
   // Real projects from Supabase
@@ -142,7 +142,7 @@ function HomePage() {
         name: newProjectForm.name.trim(),
         status,
         contractor: null,
-        created_by: userProfile?.id || null,
+        created_by: profile?.id || null,
       })
 
       // Close modal and reset form
