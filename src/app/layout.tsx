@@ -51,6 +51,41 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                function getInitialColorMode() {
+                  const persistedColorPreference = window.localStorage.getItem('theme');
+                  const hasPersistedPreference = typeof persistedColorPreference === 'string';
+                  
+                  if (hasPersistedPreference) {
+                    return persistedColorPreference;
+                  }
+                  
+                  const mql = window.matchMedia('(prefers-color-scheme: dark)');
+                  const hasMediaQueryPreference = typeof mql.matches === 'boolean';
+                  
+                  if (hasMediaQueryPreference) {
+                    return mql.matches ? 'dark' : 'light';
+                  }
+                  
+                  return 'light';
+                }
+                
+                const colorMode = getInitialColorMode();
+                const root = document.documentElement;
+                root.style.setProperty('--initial-color-mode', colorMode);
+                
+                if (colorMode === 'dark') {
+                  root.classList.add('dark');
+                } else {
+                  root.classList.remove('dark');
+                }
+              })();
+            `,
+          }}
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#d97706" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -59,11 +94,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >

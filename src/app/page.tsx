@@ -3,12 +3,11 @@
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, Settings, User, Bell, Eye, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react'
-import { ChatDock } from '@/components/chat/ChatDock'
+import { Search, Eye, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react'
 import { MentionInput } from '@/components/ui/mention-input'
+import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { ConnectionStatus } from '@/components/realtime/ConnectionStatus'
 import { useProjects, useCreateProject } from '@/lib/hooks/useSupabaseQueries'
 
 function HomePage() {
@@ -57,8 +56,6 @@ function HomePage() {
     filtered.sort((a, b) => a.name.localeCompare(b.name))
     return filtered
   }, [projects])
-
-  // Remove unused function getStatusStyles - it's not used anymore with real data
   
   const handleFilterChange = (filterType: string, value: string) => {
     setFilters(prev => ({
@@ -137,7 +134,7 @@ function HomePage() {
 
     setIsCreatingProject(true)
 
-  try {
+    try {
       // Map priority to status
       const status = 'Open' as const
       // Create project in Supabase
@@ -178,73 +175,23 @@ function HomePage() {
   // הצג טעינה אם הדאטה עדיין נטענת
   if (projectsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Loading projects...</p>
+          <p className="text-slate-600 dark:text-slate-300 font-medium">Loading projects...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Premium 3D Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-white/20 shadow-xl shadow-indigo-500/5">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo & Title */}
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-                <div className="w-6 h-6 bg-white rounded-md opacity-90"></div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                  SmartPin TPO
-                </h1>
-                <p className="text-sm text-slate-500 font-medium">Quality Management Platform</p>
-              </div>
-            </div>
-
-            {/* Navigation Menu - Removed Roofs and Users as per requirements */}
-            <div className="hidden md:flex items-center space-x-6">
-             
-            </div>
-
-            {/* Navigation Actions */}
-            <div className="flex items-center space-x-3">
-              {/* Search */}
-              <div className="relative hidden sm:block">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search roofs..."
-                  className="pl-10 pr-4 py-2 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none shadow-lg shadow-slate-500/5 transition-all duration-300"
-                />
-              </div>
-              
-              {/* Connection Status */}
-              <ConnectionStatus variant="inline" />
-              
-              {/* Action Buttons */}
-              <button className="p-2 bg-white/50 hover:bg-white/70 backdrop-blur-sm border border-white/30 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                <Bell className="w-5 h-5 text-slate-600" />
-              </button>
-              <Link href="/settings">
-                <button className="p-2 bg-white/50 hover:bg-white/70 backdrop-blur-sm border border-white/30 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                  <Settings className="w-5 h-5 text-slate-600" />
-                </button>
-              </Link>
-              <button className="p-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-lg shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                <User className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <PageLayout
+      title="Dashboard"
+      subtitle="Quality Management Overview"
+      showSearch={true}
+      searchPlaceholder="Search projects..."
+    >
+      <div className="space-y-8">
         
         {/* Project Overview Filters - Now positioned above KPI cards */}
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -759,10 +706,7 @@ function HomePage() {
           </div>
         </div>
       )}
-      
-      {/* Chat Dock */}
-      <ChatDock />
-    </div>
+    </PageLayout>
   )
 }
 
