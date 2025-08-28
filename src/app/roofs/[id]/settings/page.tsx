@@ -140,11 +140,11 @@ export default function RoofSettingsPage() {
   const router = useRouter()
   const roofId = params.id as string
   
-const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-// Removed edit capabilities - roof details can only be set during project creation
-
-// Editing disabled - project details can only be set during creation
-const handleRedirectToProjects = () => {
+  const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
+  const updateRoof = useUpdateRoof()
+  
+  // Editing disabled - project details can only be set during creation
+  const handleRedirectToProjects = () => {
     router.push('/')
   }
   
@@ -266,41 +266,41 @@ const handleRedirectToProjects = () => {
               </CardContent>
             </Card>
 
-            {/* Base Map - Read Only */}
+            {/* Base Map - Editable */}
             <Card>
               <CardHeader>
                 <CardTitle>Plan Image</CardTitle>
                 <CardDescription>
-                  Roof plan image (set during project creation - cannot be changed)
+                  Upload or update the roof plan image for better pin placement
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {roof?.plan_image_url ? (
-                  <div>
-                    <div className="relative border rounded-lg overflow-hidden">
-                      <img
-                        src={roof.plan_image_url}
-                        alt="Plan image preview"
-                        className="w-full h-48 object-cover"
-                      />
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-black/50 text-white">Read Only</Badge>
-                      </div>
+                <BaseMapUpload
+                  currentImageUrl={roof?.plan_image_url || undefined}
+                  onImageUpdate={(url, width, height) => {
+                    // Update the roof with new image URL
+                    updateRoof.mutate({
+                      id: roofId,
+                      updates: { plan_image_url: url }
+                    }, {
+                      onSuccess: () => {
+                        alert('Image updated successfully! The new image will appear in the dashboard.')
+                      },
+                      onError: (error) => {
+                        console.error('Failed to update image:', error)
+                        alert('Failed to update image. Please try again.')
+                      }
+                    })
+                  }}
+                  isUploading={updateRoof.isPending}
+                />
+                
+                {roof?.plan_image_url && (
+                  <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                    <div className="text-sm font-medium mb-1">Current Image</div>
+                    <div className="text-sm text-muted-foreground">
+                      Image successfully configured and visible in dashboard
                     </div>
-                    
-                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                      <div className="text-sm font-medium mb-1">Image Details</div>
-                      <div className="text-sm text-muted-foreground">
-                        Plan image URL configured for this roof
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                    <svg className="w-12 h-12 mx-auto mb-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="text-muted-foreground">No plan image was uploaded during project creation</p>
                   </div>
                 )}
               </CardContent>

@@ -60,9 +60,6 @@ function HomePage() {
   // Demo users for mentions
   const demoUsers = [
     { id: '1', name: 'Asaf Peer', email: 'asaf6peer@gmail.com', role: 'Inspector', status: 'active' as const },
-    { id: '2', name: 'John Doe', email: 'john@contractor.com', role: 'Foreman', status: 'active' as const },
-    { id: '3', name: 'Sarah Miller', email: 'sarah@qa.com', role: 'Supervisor', status: 'active' as const },
-    { id: '4', name: 'Mike Smith', email: 'mike@contractor.com', role: 'Contractor', status: 'active' as const }
   ]
 
   // Project Link Component - gets first roof for project

@@ -231,6 +231,9 @@ export function EnhancedPinCanvas({
       
       setStageSize({ width: newWidth, height: newHeight })
     }
+    imageObj.onerror = (error) => {
+      console.error('EnhancedPinCanvas: Failed to load background image:', error, 'URL:', backgroundImageUrl)
+    }
     imageObj.crossOrigin = 'anonymous'
     imageObj.src = backgroundImageUrl
   }, [backgroundImageUrl])
