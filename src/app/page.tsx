@@ -9,7 +9,7 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { useProjects, useCreateProject, useRoofsByProject, useSendChatMessage, usePinsByRoof } from '@/lib/hooks/useSupabaseQueries'
+import { useProjects, useCreateProject, useUpdateProject, useRoofsByProject, useSendChatMessage, usePinsByRoof } from '@/lib/hooks/useSupabaseQueries'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
 import { extractMentionedUserIds } from '@/lib/mentions'
 import { useOpenIssuesCount } from '@/lib/hooks/useIssuesCount'
@@ -26,6 +26,7 @@ function HomePage() {
   // Real projects from Supabase
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
   const createProject = useCreateProject()
+  const updateProject = useUpdateProject()
   const createRoof = useCreateRoof()
   const sendGlobalMessage = useSendChatMessage()
 
@@ -43,6 +44,7 @@ function HomePage() {
   // New Project Modal state
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [editingProject, setEditingProject] = useState<any>(null)
   const [newProjectForm, setNewProjectForm] = useState({
     name: '',
     description: '',
@@ -172,6 +174,19 @@ function HomePage() {
     }))
   }
 
+  const handleEditProject = (project: any) => {
+    setEditingProject(project)
+    setNewProjectForm({
+      name: project.name,
+      description: '',
+      location: '',
+      priority: 'normal',
+      roofPlanFile: null,
+      roofPlanPreview: ''
+    })
+    setShowNewProjectModal(true)
+  }
+
   const resetNewProjectForm = () => {
     // Clean up preview URL
     if (newProjectForm.roofPlanPreview) {
@@ -186,6 +201,7 @@ function HomePage() {
       roofPlanFile: null,
       roofPlanPreview: ''
     })
+    setEditingProject(null)
   }
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -202,7 +218,8 @@ function HomePage() {
       return
     }
 
-    if (!newProjectForm.location.trim()) {
+    // Only validate location for new projects (not for editing)
+    if (!editingProject && !newProjectForm.location.trim()) {
       alert('Site location is required')
       return
     }
@@ -210,59 +227,79 @@ function HomePage() {
     setIsCreatingProject(true)
 
     try {
-      // Map priority to status
-      const status = 'Open' as const
-      // Create project in Supabase
-      const newProject = await createProject.mutateAsync({
-        name: newProjectForm.name.trim(),
-        status,
-        contractor: null,
-        created_by: profile?.id || null,
-      })
+      if (editingProject) {
+        // Update existing project
+        await updateProject.mutateAsync({
+          projectId: editingProject.project_id,
+          updates: {
+            name: newProjectForm.name.trim(),
+          }
+        })
 
-      console.log('Project created:', newProject)
-
-      // Create a default roof for the project
-      const roofCode = newProjectForm.name.trim()
-        .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase())
-        .join('')
-        .substring(0, 5) // Max 5 characters
+        console.log('Project updated:', editingProject.project_id)
         
-      const newRoof = await createRoof.mutateAsync({
-        project_id: newProject.project_id,
-        code: roofCode,
-        name: `${newProjectForm.name} - Main Roof`,
-        building: newProjectForm.location.trim(),
-        plan_image_url: newProjectForm.roofPlanPreview || null,
-        roof_plan_url: null,
-        zones: {},
-        stakeholders: {},
-        origin_lat: null,
-        origin_lng: null,
-        is_active: true,
-      })
+        // Close modal and reset form
+        setShowNewProjectModal(false)
+        resetNewProjectForm()
 
-      console.log('Roof created:', newRoof)
+        alert(`Project "${newProjectForm.name}" updated successfully!`)
+      } else {
+        // Create new project (existing logic)
+        // Map priority to status
+        const status = 'Open' as const
+        
+        // Create project in Supabase
+        const newProject = await createProject.mutateAsync({
+          name: newProjectForm.name.trim(),
+          status,
+          contractor: null,
+          created_by: profile?.id || null,
+        })
 
-      // Close modal and reset form
-      setShowNewProjectModal(false)
-      resetNewProjectForm()
+        console.log('Project created:', newProject)
 
-      // Show success message with navigation info
-      const confirmed = confirm(
-        `Project "${newProjectForm.name}" created successfully!\n\n` +
-        `A roof plan has been created and you'll be redirected to the roof dashboard where you can:\n` +
-        `• Add pins to mark issues\n` +
-        `• Upload photos\n` +
-        `• Track progress\n\n` +
-        `Click OK to continue to the roof dashboard.`
-      )
-      
-      if (confirmed) {
-        // Navigate to the roof dashboard
-        router.push(`/roofs/${newRoof.id}`)
+        // Create a default roof for the project
+        const roofCode = newProjectForm.name.trim()
+          .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase())
+          .join('')
+          .substring(0, 5) // Max 5 characters
+          
+        const newRoof = await createRoof.mutateAsync({
+          project_id: newProject.project_id,
+          code: roofCode,
+          name: `${newProjectForm.name} - Main Roof`,
+          building: newProjectForm.location.trim(),
+          plan_image_url: newProjectForm.roofPlanPreview || null,
+          roof_plan_url: null,
+          zones: {},
+          stakeholders: {},
+          origin_lat: null,
+          origin_lng: null,
+          is_active: true,
+        })
+
+        console.log('Roof created:', newRoof)
+
+        // Close modal and reset form
+        setShowNewProjectModal(false)
+        resetNewProjectForm()
+
+        // Show success message with navigation info
+        const confirmed = confirm(
+          `Project "${newProjectForm.name}" created successfully!\n\n` +
+          `A roof plan has been created and you'll be redirected to the roof dashboard where you can:\n` +
+          `• Add pins to mark issues\n` +
+          `• Upload photos\n` +
+          `• Track progress\n\n` +
+          `Click OK to continue to the roof dashboard.`
+        )
+        
+        if (confirmed) {
+          // Navigate to the roof dashboard
+          router.push(`/roofs/${newRoof.id}`)
+        }
       }
       
     } catch (error: any) {
@@ -641,7 +678,10 @@ function HomePage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <ProjectOpenButton project={p} />
-                        <button className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200">
+                        <button 
+                          className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200"
+                          onClick={() => handleEditProject(p)}
+                        >
                           Edit
                         </button>
                       </div>
@@ -716,7 +756,9 @@ function HomePage() {
             <div className="p-6 border-b border-white/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Create New Project</h2>
+                  <h2 className="text-2xl font-bold text-slate-800">
+                    {editingProject ? 'Edit Project' : 'Create New Project'}
+                  </h2>
                   {profile && (
                     <p className="text-sm text-slate-600 mt-1">
                       Logged in as: <strong>{profile.full_name}</strong> ({profile.role || 'Unknown role'})
@@ -876,9 +918,9 @@ function HomePage() {
                   {isCreatingProject ? (
                     <span className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Creating Project & Roof...
+                      {editingProject ? 'Updating Project...' : 'Creating Project & Roof...'}
                     </span>
-                  ) : 'Create Project'}
+                  ) : (editingProject ? 'Update Project' : 'Create Project')}
                 </button>
               </div>
             </form>

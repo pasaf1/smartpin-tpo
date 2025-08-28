@@ -71,6 +71,22 @@ export class SupabaseService {
     return data
   }
 
+  async updateProject(projectId: string, updates: Partial<Project>): Promise<Project> {
+    const { data, error } = await this.client
+      .from('projects')
+      .update(updates)
+      .eq('project_id', projectId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating project:', error)
+      throw error
+    }
+
+    return data
+  }
+
   // Roof operations
   async getRoofsByProject(projectId: string): Promise<Roof[]> {
 
@@ -525,7 +541,8 @@ export const db = {
   projects: {
     list: () => supabaseService.getProjects(),
     getById: (id: string) => supabaseService.getProjectById(id),
-    create: (project: ProjectInsert) => supabaseService.createProject(project)
+    create: (project: ProjectInsert) => supabaseService.createProject(project),
+    update: (projectId: string, updates: Partial<Project>) => supabaseService.updateProject(projectId, updates)
   },
   
   roofs: {

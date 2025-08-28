@@ -74,6 +74,21 @@ export function useCreateProject() {
   })
 }
 
+export function useUpdateProject() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ projectId, updates }: { projectId: string; updates: Partial<Project> }) => 
+      db.projects.update(projectId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+    },
+    onError: (error) => {
+      console.error('Failed to update project:', error)
+    }
+  })
+}
+
 // Roof hooks
 export function useRoofsByProject(projectId: string) {
   return useQuery({
