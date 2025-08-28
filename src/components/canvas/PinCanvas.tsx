@@ -57,6 +57,9 @@ export function PinCanvas({
     dragStart: { x: 0, y: 0 },
     hasMoved: false
   })
+  
+  // State to control if panning is enabled (only when zoomed in)
+  const [panningEnabled, setPanningEnabled] = useState(false)
 
   // Calculate and cache scale factors for performance
   const calculateScaleFactors = useCallback((): ScaleCache | null => {
@@ -143,9 +146,12 @@ export function PinCanvas({
     }
   }, [editable, onPinCreate, screenToSvgCoords, canvasState.hasMoved])
 
-  // Handle mouse down for panning
+  // Handle mouse down for panning (only when zoomed in)
   const handleMouseDown = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     if (event.button !== 0) return // Only left mouse button
+    
+    // Only allow panning when zoomed in significantly
+    if (canvasState.zoom <= 1.2) return
     
     setCanvasState(prev => ({
       ...prev,
@@ -155,11 +161,11 @@ export function PinCanvas({
     }))
     
     event.preventDefault()
-  }, [])
+  }, [canvasState.zoom])
 
-  // Handle mouse move for panning
+  // Handle mouse move for panning (only when zoomed and dragging enabled)
   const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
-    if (!canvasState.isDragging) return
+    if (!canvasState.isDragging || canvasState.zoom <= 1.2) return
 
     const deltaX = event.clientX - canvasState.dragStart.x
     const deltaY = event.clientY - canvasState.dragStart.y
@@ -185,7 +191,7 @@ export function PinCanvas({
       dragStart: { x: event.clientX, y: event.clientY },
       hasMoved: hasMoved || prev.hasMoved
     }))
-  }, [canvasState.isDragging, canvasState.dragStart, calculateScaleFactors])
+  }, [canvasState.isDragging, canvasState.dragStart, canvasState.zoom, calculateScaleFactors])
 
   // Handle mouse up to stop panning
   const handleMouseUp = useCallback(() => {
@@ -266,7 +272,8 @@ export function PinCanvas({
       ref={containerRef}
       className={cn(
         'canvas-container relative overflow-hidden bg-muted/30',
-        canvasState.isDragging && 'cursor-move',
+        canvasState.isDragging && canvasState.zoom > 1.2 && 'cursor-move',
+        canvasState.zoom <= 1.2 && 'cursor-crosshair',
         className
       )}
       style={{ height: '600px' }}
@@ -372,45 +379,67 @@ export function PinCanvas({
         </g>
       </svg>
 
-      {/* Canvas controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2">
+      {/* Canvas controls - Map Controls */}
+      <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-3 space-y-2">
+        <h4 className="text-white text-sm font-semibold mb-2">Map Controls</h4>
         <button
           onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.min(prev.zoom * 1.2, 5) }))}
-          className="p-2 bg-background border border-border rounded-md shadow-sm hover:bg-muted transition-colors"
+          className="w-full p-2 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-sm"
           title="Zoom In"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
+          🔍+ Zoom In
         </button>
         
         <button
           onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.max(prev.zoom / 1.2, 0.1) }))}
-          className="p-2 bg-background border border-border rounded-md shadow-sm hover:bg-muted transition-colors"
+          className="w-full p-2 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-sm"
           title="Zoom Out"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
-          </svg>
+          🔍- Zoom Out
         </button>
         
         <button
           onClick={() => setCanvasState({ zoom: 1, panX: 0, panY: 0, isDragging: false, dragStart: { x: 0, y: 0 }, hasMoved: false })}
-          className="p-2 bg-background border border-border rounded-md shadow-sm hover:bg-muted transition-colors"
+          className="w-full p-2 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-sm"
           title="Reset View"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          🏠 Reset View
         </button>
+        
+        {editable && (
+          <button
+            className="w-full p-2 bg-emerald-500/80 border border-emerald-400 rounded-md shadow-sm hover:bg-emerald-600/80 transition-colors text-white text-sm font-medium"
+            title="Click to Add Pin"
+          >
+            📍 Click to Add Pin
+          </button>
+        )}
+        
+        <div className="text-xs text-white/70 mt-2 pt-2 border-t border-white/20">
+          Scroll: Zoom • Drag: Pan (when zoomed)
+        </div>
       </div>
 
-      {/* Status indicator */}
-      {editable && (
-        <div className="absolute bottom-4 left-4 text-xs text-muted-foreground bg-background/90 px-2 py-1 rounded border">
-          Click to add pin • Drag to pan • Scroll to zoom
+      {/* Pin Status Legend - separate container */}
+      <div className="absolute bottom-4 left-4">
+        <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
+          <h4 className="text-sm font-semibold mb-3">Pin Status Legend</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <span>Open Issues</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+              <span>Ready for Inspection</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+              <span>Closed</span>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -62,6 +62,7 @@ function RoofDashboardPage() {
   }
 
   const handlePinClick = (pin: PinWithRelations) => {
+    console.log('Pin clicked:', pin) // Debug log
     setSelectedPin(pin)
     setClosurePhotoItemId(null)
     setShowPinPopup(false) // Don't show popup anymore, use pin card directly
@@ -350,29 +351,14 @@ function RoofDashboardPage() {
                 <PinCanvas
                   roofId={roofId}
                   onPinCreate={handlePinCreate}
-                  onPinSelect={(pin) => pin && handlePinClick(pin)}
+                  onPinSelect={(pin) => {
+                    console.log('PinCanvas onPinSelect called with:', pin) // Debug log
+                    if (pin) handlePinClick(pin)
+                  }}
                   selectedPinId={selectedPin?.id}
                   className="w-full h-full"
                   backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
                 />
-                
-                {/* Interactive Pin Legend */}
-                <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span>Open Issues</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                      <span>Ready for Inspection</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                      <span>Closed</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -380,8 +366,8 @@ function RoofDashboardPage() {
         
         {/* Bottom Panel - Defects Table */}
         <div className="mt-8">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-900/50 to-gray-800/50 p-6 border-b border-white/20">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-50 to-gray-50 p-6 border-b border-gray-200">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-gradient-to-br from-slate-600 to-gray-700 rounded-xl shadow-lg">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,12 +375,12 @@ function RoofDashboardPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Quality Control Center</h3>
-                  <p className="text-white/80 mt-1">Defects, inspections & resolution tracking</p>
+                  <h3 className="text-xl font-bold text-gray-800">Quality Control Center</h3>
+                  <p className="text-gray-600 mt-1">Defects, inspections & resolution tracking</p>
                 </div>
               </div>
             </div>
-            <div className="h-96">
+            <div className="h-96 bg-white">
               <PinItemsTable
                 roofId={roofId}
                 maxHeight="100%"
@@ -415,7 +401,7 @@ function RoofDashboardPage() {
                     }
                   }
                 }}
-                className="border-0 rounded-none h-full bg-transparent"
+                className="border-0 rounded-none h-full bg-white"
               />
             </div>
           </div>
