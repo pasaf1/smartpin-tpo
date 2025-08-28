@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useRoof, useUpdateRoof } from '@/lib/hooks/useRoofs'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
 interface BaseMapUploadProps {
@@ -48,7 +49,7 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
     }
   }
   
-  const handleFiles = (files: FileList) => {
+  const handleFiles = async (files: FileList) => {
     const file = files[0]
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (JPG, PNG, WebP)')
@@ -60,19 +61,46 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
       return
     }
     
-    // Create preview URL and get image dimensions
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        // For demo purposes, use the file URL directly
-        // In production, this would upload to Supabase Storage
-        const imageUrl = e.target?.result as string
-        onImageUpdate(imageUrl, img.width, img.height)
+    try {
+      // Upload to Supabase Storage
+      const fileName = `roof-${Date.now()}-${file.name}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('roof-plans')
+        .upload(fileName, file)
+      
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        // Fallback to base64 for development
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => {
+            const imageUrl = e.target?.result as string
+            onImageUpdate(imageUrl, img.width, img.height)
+          }
+          img.src = e.target?.result as string
+        }
+        reader.readAsDataURL(file)
+        return
       }
-      img.src = e.target?.result as string
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('roof-plans')
+        .getPublicUrl(fileName)
+      
+      if (urlData?.publicUrl) {
+        // Get image dimensions
+        const img = new Image()
+        img.onload = () => {
+          onImageUpdate(urlData.publicUrl, img.width, img.height)
+        }
+        img.src = urlData.publicUrl
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      alert('Error uploading file. Please try again.')
     }
-    reader.readAsDataURL(file)
   }
   
   return (

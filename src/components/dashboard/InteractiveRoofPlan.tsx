@@ -132,7 +132,7 @@ export function InteractiveRoofPlan({
         <line x1="240" y1="40" x2="240" y2="360" stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,4" opacity="0.6"/>
         <line x1="400" y1="40" x2="400" y2="360" stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,4" opacity="0.6"/>
         
-        {/* Sample pins for demo */}
+        {/* Sample pins */}
         <g 
           className={cn(
             "cursor-pointer pin-element transition-all duration-200",

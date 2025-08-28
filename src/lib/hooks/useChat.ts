@@ -46,92 +46,11 @@ export interface UserPresence {
   last_seen: string
 }
 
-// Demo data for development
-const DEMO_MESSAGES: ChatMessage[] = [
-  {
-    id: 'demo-msg-1',
-    content: 'Started inspection of the membrane area around drain #3. Found some concerning separation.',
-    user_id: 'demo-user-1',
-    user_name: 'Mike Rodriguez',
-    user_avatar: '👷‍♂️',
-    roof_id: 'e1-demo-roof',
-    pin_id: 'demo-pin-1',
-    message_type: 'text',
-    created_at: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-  },
-  {
-    id: 'demo-msg-2',
-    content: '@sarah.chen Can you review the photos I uploaded for Pin #001? The membrane separation looks more severe than initially assessed.',
-    user_id: 'demo-user-1',
-    user_name: 'Mike Rodriguez',
-    user_avatar: '👷‍♂️',
-    roof_id: 'e1-demo-roof',
-    pin_id: 'demo-pin-1',
-    message_type: 'mention',
-    mentions: ['demo-user-2'],
-    created_at: new Date(Date.now() - 1800000).toISOString() // 30 min ago
-  },
-  {
-    id: 'demo-msg-3',
-    content: 'I\'ve reviewed the photos. This definitely needs to be escalated to Critical severity. The separation extends beyond the visible area.',
-    user_id: 'demo-user-2',
-    user_name: 'Sarah Chen',
-    user_avatar: '👩‍🔬',
-    roof_id: 'e1-demo-roof',
-    pin_id: 'demo-pin-1',
-    message_type: 'text',
-    reply_to: 'demo-msg-2',
-    created_at: new Date(Date.now() - 900000).toISOString() // 15 min ago
-  },
-  {
-    id: 'demo-msg-4',
-    content: 'Updated Pin #001 severity to Critical and assigned to repair crew.',
-    user_id: 'demo-user-2',
-    user_name: 'Sarah Chen',
-    user_avatar: '👩‍🔬',
-    roof_id: 'e1-demo-roof',
-    pin_id: 'demo-pin-1',
-    message_type: 'system',
-    created_at: new Date(Date.now() - 600000).toISOString() // 10 min ago
-  }
-]
-
-const DEMO_USERS: UserPresence[] = [
-  {
-    user_id: 'demo-user-1',
-    user_name: 'Mike Rodriguez',
-    user_avatar: '👷‍♂️',
-    status: 'online',
-    last_seen: new Date().toISOString()
-  },
-  {
-    user_id: 'demo-user-2',
-    user_name: 'Sarah Chen',
-    user_avatar: '👩‍🔬',
-    status: 'online',
-    last_seen: new Date().toISOString()
-  },
-  {
-    user_id: 'demo-user-3',
-    user_name: 'David Kim',
-    user_avatar: '🔧',
-    status: 'away',
-    last_seen: new Date(Date.now() - 300000).toISOString() // 5 min ago
-  },
-  {
-    user_id: 'demo-user-4',
-    user_name: 'Lisa Thompson',
-    user_avatar: '📊',
-    status: 'offline',
-    last_seen: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
-  }
-]
-
 export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
   const queryClient = useQueryClient()
   const [isTyping, setIsTyping] = useState(false)
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
-  const [userPresence, setUserPresence] = useState<UserPresence[]>(DEMO_USERS)
+  const [userPresence, setUserPresence] = useState<UserPresence[]>([])
   const channelRef = useRef<RealtimeChannel | null>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout>()
 
@@ -143,16 +62,6 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
   } = useQuery({
     queryKey: ['chat-messages', roofId, pinId, pinItemId],
     queryFn: async () => {
-      // In demo mode, return demo messages
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Demo: Loading chat messages', { roofId, pinId, pinItemId })
-        return DEMO_MESSAGES.filter(msg => {
-          if (pinItemId && msg.pin_item_id !== pinItemId) return false
-          if (pinId && !pinItemId && msg.pin_id !== pinId) return false
-          return msg.roof_id === roofId
-        })
-      }
-
       // Production query - using the actual chats table from database schema
       let query = supabase
         .from('chats')
@@ -197,31 +106,6 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
       reply_to?: string
       attachments?: Omit<ChatAttachment, 'id'>[]
     }) => {
-      // In demo mode, add to local state
-      if (process.env.NODE_ENV === 'development') {
-        const newMessage: ChatMessage = {
-          id: `demo-msg-${Date.now()}`,
-          content: messageData.content,
-          user_id: 'demo-user-current',
-          user_name: 'You',
-          user_avatar: '👤',
-          roof_id: roofId,
-          pin_id: pinId,
-          pin_item_id: pinItemId,
-          message_type: messageData.message_type || 'text',
-          mentions: messageData.mentions,
-          reply_to: messageData.reply_to,
-          attachments: messageData.attachments?.map((att, index) => ({
-            ...att,
-            id: `demo-att-${Date.now()}-${index}`
-          })),
-          created_at: new Date().toISOString()
-        }
-
-        console.log('Demo: Sending message', newMessage)
-        return newMessage
-      }
-
       // Production implementation - use chats table from database schema
       const { data, error } = await supabase
         .from('chats')
@@ -270,7 +154,7 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
     }
 
     // In production, send typing status via Supabase Realtime
-    if (channelRef.current && process.env.NODE_ENV !== 'development') {
+    if (channelRef.current) {
       channelRef.current.send({
         type: 'broadcast',
         event: 'typing',
@@ -298,7 +182,7 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
     }
 
     // In production, send stop typing status
-    if (channelRef.current && process.env.NODE_ENV !== 'development') {
+    if (channelRef.current) {
       channelRef.current.send({
         type: 'broadcast',
         event: 'typing',
@@ -313,30 +197,6 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
 
   // Set up realtime subscriptions
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      // Demo mode - simulate typing users occasionally
-      const interval = setInterval(() => {
-        if (Math.random() > 0.8) { // 20% chance every 5 seconds
-          const demoUser = DEMO_USERS[Math.floor(Math.random() * DEMO_USERS.length)]
-          setTypingUsers(prev => {
-            const filtered = prev.filter(u => u.user_id !== demoUser.user_id)
-            return [...filtered, {
-              user_id: demoUser.user_id,
-              user_name: demoUser.user_name,
-              timestamp: Date.now()
-            }]
-          })
-
-          // Remove after 2 seconds
-          setTimeout(() => {
-            setTypingUsers(prev => prev.filter(u => u.user_id !== demoUser.user_id))
-          }, 2000)
-        }
-      }, 5000)
-
-      return () => clearInterval(interval)
-    }
-
     // Production realtime setup
     const channelName = pinItemId 
       ? `chat:${roofId}:${pinId}:${pinItemId}`

@@ -203,7 +203,7 @@ export function LayerPanel({ roofId, onPinCreate, onLayerToggle }: LayerPanelPro
             disabled={createPin.isPending}
             onClick={() => {
               // This would typically be triggered by canvas click
-              // For demo, create at random position
+              // For testing, create at random position
               handleCreatePin(Math.random(), Math.random())
             }}
           >

@@ -57,9 +57,9 @@ function HomePage() {
   // Global Chat state
   const [globalChatMessage, setGlobalChatMessage] = useState('')
 
-  // Demo users for mentions
-  const demoUsers = [
-    { id: '1', name: 'Asaf Peer', email: 'asaf6peer@gmail.com', role: 'Inspector', status: 'active' as const },
+  // Users for mentions
+  const users = [
+    { id: '1', name: 'Current User', email: 'user@system.com', role: 'Inspector', status: 'active' as const },
   ]
 
   // Project Link Component - gets first roof for project
@@ -737,7 +737,7 @@ function HomePage() {
                 onChange={setGlobalChatMessage}
                 onSubmit={handleSendGlobalMessage}
                 placeholder="Type a message... use @username to mention team members"
-                users={demoUsers}
+                users={users}
                 className="bg-white/60 backdrop-blur-sm border-white/40 focus:ring-indigo-500"
               />
             </div>
