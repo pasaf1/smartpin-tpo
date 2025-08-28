@@ -48,6 +48,15 @@ function RoofDashboardPage() {
     { id: 'current-user', name: 'Current User', role: 'Inspector' } // Replace with actual user data
   )
 
+  // Calculate real issues count: parent pins + all children
+  const totalIssues = pins.length + pins.reduce((total, pin) => total + (pin.children_total || 0), 0)
+  const openIssues = pins.filter(pin => pin.status === 'Open').length + 
+                     pins.filter(pin => pin.status === 'Open').reduce((total, pin) => total + (pin.children_open || 0), 0)
+  const readyIssues = pins.filter(pin => pin.status === 'ReadyForInspection').length + 
+                      pins.filter(pin => pin.status === 'ReadyForInspection').reduce((total, pin) => total + (pin.children_ready || 0), 0)
+  const closedIssues = pins.filter(pin => pin.status === 'Closed').length + 
+                       pins.filter(pin => pin.status === 'Closed').reduce((total, pin) => total + (pin.children_closed || 0), 0)
+
   const handlePinCreate = async (x: number, y: number) => {
     try {
       await createPinMutation.mutateAsync({
@@ -189,7 +198,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-red-700 mb-1">
-                  {pinItems.filter(item => item.status === 'Open').length}
+                  {openIssues}
                 </div>
                 <div className="text-sm font-semibold text-red-600">Open Issues</div>
                 {statusFilter === 'Open' && <div className="text-xs text-red-500 mt-1 font-medium">● Active Filter</div>}
@@ -212,7 +221,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-amber-700 mb-1">
-                  {pinItems.filter(item => item.status === 'ReadyForInspection').length}
+                  {readyIssues}
                 </div>
                 <div className="text-sm font-semibold text-amber-600">Ready for Inspection</div>
                 {statusFilter === 'ReadyForInspection' && <div className="text-xs text-amber-500 mt-1 font-medium">● Active Filter</div>}
@@ -235,7 +244,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-emerald-700 mb-1">
-                  {pinItems.filter(item => item.status === 'Closed').length}
+                  {closedIssues}
                 </div>
                 <div className="text-sm font-semibold text-emerald-600">Closed</div>
                 {statusFilter === 'Closed' && <div className="text-xs text-emerald-500 mt-1 font-medium">● Active Filter</div>}
@@ -258,7 +267,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-blue-700 mb-1">
-                  {pinItems.length}
+                  {totalIssues}
                 </div>
                 <div className="text-sm font-semibold text-blue-600">All Issues</div>
                 {statusFilter === 'all' && <div className="text-xs text-blue-500 mt-1 font-medium">● Active Filter</div>}
