@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { ConnectionStatus } from '@/components/realtime/ConnectionStatus'
 import { ChatDock } from '@/components/chat/ChatDock'
+import { useAuth } from '@/lib/hooks/useAuth'
 
 interface PageLayoutProps {
   children: ReactNode
@@ -36,6 +37,8 @@ export function PageLayout({
   searchPlaceholder = 'Search...',
   onSearchChange,
 }: PageLayoutProps) {
+  const { profile } = useAuth()
+  
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 ${className}`}>
       {/* Premium 3D Navigation */}
@@ -85,9 +88,22 @@ export function PageLayout({
                   <Settings className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                 </button>
               </Link>
-              <button className="p-2 bg-gradient-to-r from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 text-white rounded-lg shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                <User className="w-5 h-5" />
-              </button>
+              <div className="relative group">
+                <button className="p-2 bg-gradient-to-r from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 text-white rounded-lg shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  <User className="w-5 h-5" />
+                </button>
+                {profile && (
+                  <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl p-3 min-w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="text-sm">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">{profile.full_name}</div>
+                      <div className="text-slate-600 dark:text-slate-400">{profile.email}</div>
+                      <div className="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                        {profile.role || 'User'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

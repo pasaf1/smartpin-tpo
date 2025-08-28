@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, Eye, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react'
@@ -8,16 +9,22 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { useProjects, useCreateProject } from '@/lib/hooks/useSupabaseQueries'
+import { useProjects, useCreateProject, useRoofsByProject } from '@/lib/hooks/useSupabaseQueries'
+import { useCreateRoof } from '@/lib/hooks/useRoofs'
 
 function HomePage() {
   const { profile } = useAuth()
-  const canCreateProject = profile?.role === 'Admin' || profile?.role === 'QA_Manager'
+  const router = useRouter()
+  // Allow all authenticated users to create projects (temporary fix)
+  // Proper role-based access control should be implemented at the database level
+  const canCreateProject = !!profile // Any authenticated user can create projects
+  const isHighPrivilegeUser = profile?.role === 'Admin' || profile?.role === 'QA_Manager' || profile?.role === 'Supervisor'
   const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
   // Real projects from Supabase
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
   const createProject = useCreateProject()
+  const createRoof = useCreateRoof()
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -48,6 +55,31 @@ function HomePage() {
     { id: '3', name: 'Sarah Miller', email: 'sarah@qa.com', role: 'Supervisor', status: 'active' as const },
     { id: '4', name: 'Mike Smith', email: 'mike@contractor.com', role: 'Contractor', status: 'active' as const }
   ]
+
+  // Project Link Component - gets first roof for project
+  const ProjectOpenButton = ({ project }: { project: any }) => {
+    const { data: roofs = [] } = useRoofsByProject(project.project_id)
+    const firstRoof = roofs[0]
+    
+    if (!firstRoof) {
+      return (
+        <button 
+          disabled 
+          className="px-3 py-2 bg-gray-300 text-gray-500 text-xs font-semibold rounded-lg cursor-not-allowed"
+        >
+          No Roof
+        </button>
+      )
+    }
+    
+    return (
+      <Link href={`/roofs/${firstRoof.id}`}>
+        <button className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300">
+          Open
+        </button>
+      </Link>
+    )
+  }
 
   // Filtered and sorted projects
   const filteredProjects = useMemo(() => {
@@ -117,7 +149,7 @@ function HomePage() {
     e.preventDefault()
     
     if (!canCreateProject) {
-      alert('You do not have permission to create a project. Only Admin or QA_Manager can create projects.')
+      alert('Please log in to create a project.')
       return
     }
 
@@ -138,26 +170,64 @@ function HomePage() {
       // Map priority to status
       const status = 'Open' as const
       // Create project in Supabase
-      await createProject.mutateAsync({
+      const newProject = await createProject.mutateAsync({
         name: newProjectForm.name.trim(),
         status,
         contractor: null,
         created_by: profile?.id || null,
       })
 
+      console.log('Project created:', newProject)
+
+      // Create a default roof for the project
+      const roofCode = newProjectForm.name.trim()
+        .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .join('')
+        .substring(0, 5) // Max 5 characters
+        
+      const newRoof = await createRoof.mutateAsync({
+        project_id: newProject.project_id,
+        code: roofCode,
+        name: `${newProjectForm.name} - Main Roof`,
+        building: newProjectForm.location.trim(),
+        plan_image_url: newProjectForm.roofPlanPreview || null,
+        roof_plan_url: null,
+        zones: {},
+        stakeholders: {},
+        origin_lat: null,
+        origin_lng: null,
+        is_active: true,
+      })
+
+      console.log('Roof created:', newRoof)
+
       // Close modal and reset form
       setShowNewProjectModal(false)
       resetNewProjectForm()
 
-      // Show success message
-      alert(`Project "${newProjectForm.name}" created successfully!`)
+      // Show success message with navigation info
+      const confirmed = confirm(
+        `Project "${newProjectForm.name}" created successfully!\n\n` +
+        `A roof plan has been created and you'll be redirected to the roof dashboard where you can:\n` +
+        `• Add pins to mark issues\n` +
+        `• Upload photos\n` +
+        `• Track progress\n\n` +
+        `Click OK to continue to the roof dashboard.`
+      )
+      
+      if (confirmed) {
+        // Navigate to the roof dashboard
+        router.push(`/roofs/${newRoof.id}`)
+      }
       
     } catch (error: any) {
       console.error('Failed to create project:', error)
       const code = error?.code || 'UNKNOWN'
       const msg = error?.message || 'Unknown error'
       if (code === '42501' || /insufficient privileges|RLS|policy/i.test(msg)) {
-        alert('Permission denied. Only Admin or QA_Manager can create projects.')
+        alert('Permission denied by database. Please contact your administrator to enable project creation for your role.')
       } else {
         alert(`Failed to create project. ${msg} (code: ${code})`)
       }
@@ -350,8 +420,16 @@ function HomePage() {
           <button 
             onClick={() => {
               if (!canCreateProject) {
-                alert('Only Admin or QA_Manager can create projects.')
+                alert('Please log in to create projects.')
                 return
+              }
+              if (!isHighPrivilegeUser) {
+                const confirmed = confirm(
+                  `You are logged in as a ${profile?.role || 'user'}. ` +
+                  'Typically only Admin, QA_Manager, or Supervisor roles create projects. ' +
+                  'Do you want to continue?'
+                )
+                if (!confirmed) return
               }
               setShowNewProjectModal(true)
             }}
@@ -367,7 +445,12 @@ function HomePage() {
             }`}></div>
             <div className="relative flex items-center gap-4">
               <Plus className="w-8 h-8" />
-              <span>{canCreateProject ? 'New Project' : 'New Project (Access Denied)'}</span>
+              <span>{canCreateProject ? 'New Project' : 'Login Required'}</span>
+              {!isHighPrivilegeUser && canCreateProject && (
+                <span className="text-xs bg-orange-500 px-2 py-1 rounded-full">
+                  {profile?.role || 'Limited'}
+                </span>
+              )}
             </div>
             {canCreateProject && (
               <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse opacity-75"></div>
@@ -483,11 +566,7 @@ function HomePage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                          <Link href={`/roofs/${p.project_id}`}>
-                          <button className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300">
-                            Open
-                          </button>
-                        </Link>
+                        <ProjectOpenButton project={p} />
                         <button className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200">
                           Edit
                         </button>
@@ -562,7 +641,14 @@ function HomePage() {
           <div className="bg-white/90 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-white/30">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-800">Create New Project</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">Create New Project</h2>
+                  {profile && (
+                    <p className="text-sm text-slate-600 mt-1">
+                      Logged in as: <strong>{profile.full_name}</strong> ({profile.role || 'Unknown role'})
+                    </p>
+                  )}
+                </div>
                 <button 
                   onClick={() => {
                     setShowNewProjectModal(false)
@@ -573,9 +659,9 @@ function HomePage() {
                   <X className="w-5 h-5 text-slate-600" />
                 </button>
               </div>
-              {!canCreateProject && (
-                <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-                  You don\'t have permission to create projects. Ask an Admin or QA Manager to grant access.
+              {!isHighPrivilegeUser && canCreateProject && (
+                <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+                  <strong>Note:</strong> You are logged in as a {profile?.role || 'user'}. Typically only Admin, QA Manager, or Supervisor roles create projects. If you encounter database permission errors, please contact your administrator.
                 </div>
               )}
             </div>
@@ -596,12 +682,15 @@ function HomePage() {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
                 <textarea 
-                  placeholder="Project description..."
+                  placeholder="Brief description of the project..."
                   rows={3}
                   value={newProjectForm.description}
                   onChange={(e) => handleNewProjectFormChange('description', e.target.value)}
                   className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none"
                 ></textarea>
+                <p className="text-xs text-slate-500 mt-1">
+                  A roof plan will be automatically created for this project.
+                </p>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -683,6 +772,9 @@ function HomePage() {
                     </div>
                   )}
                 </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  This image will be used as the background for the interactive roof plan where you can add pins to mark issues.
+                </p>
                 {newProjectForm.roofPlanFile && (
                   <div className="mt-2 text-sm text-slate-600">
                     File: {newProjectForm.roofPlanFile.name} ({(newProjectForm.roofPlanFile.size / 1024 / 1024).toFixed(2)} MB)
@@ -707,7 +799,12 @@ function HomePage() {
                   disabled={isCreatingProject || !canCreateProject}
                   className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  {isCreatingProject ? 'Creating Project...' : 'Create Project'}
+                  {isCreatingProject ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Creating Project & Roof...
+                    </span>
+                  ) : 'Create Project'}
                 </button>
               </div>
             </form>
@@ -718,6 +815,5 @@ function HomePage() {
   )
 }
 
-// Temporarily disable auth protection for testing
-// export default withAuth(HomePage)
-export default HomePage
+// Protect the homepage - require authentication
+export default withAuth(HomePage)

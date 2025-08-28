@@ -142,6 +142,28 @@ export function useRoofs() {
   })
 }
 
+export function useRoofsByProject(projectId: string) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.roofs, 'project', projectId],
+    queryFn: async (): Promise<Roof[]> => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Demo: Loading roofs for project:', projectId)
+        return DEMO_ROOFS.filter(r => r.project_id === projectId)
+      }
+
+      const { data, error } = await supabase
+        .from('roofs')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at')
+
+      if (error) throw error
+      return data
+    },
+    enabled: !!projectId,
+  })
+}
+
 export function useRoof(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.roof(id),
