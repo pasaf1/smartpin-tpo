@@ -78,7 +78,6 @@ interface CanvasStore extends CanvasState {
 // Default states
 const defaultViewport: ViewportState = {
   zoom: 1,
-  scale: 1, // same as zoom
   pan: { x: 0, y: 0 },
   center: { x: 0.5, y: 0.5 },
   bounds: { minX: 0, maxX: 1, minY: 0, maxY: 1 }
@@ -123,7 +122,6 @@ export const useCanvasStore = create<CanvasStore>()(
         Math.min(state.zoomLimits.max, zoom)
       )
       state.viewport.zoom = clampedZoom
-      state.viewport.scale = clampedZoom
     }),
 
     setPan: (pan: { x: number; y: number }) => set((state) => {
@@ -133,13 +131,11 @@ export const useCanvasStore = create<CanvasStore>()(
     zoomIn: () => set((state) => {
       const newZoom = Math.min(state.zoomLimits.max, state.viewport.zoom * 1.2)
       state.viewport.zoom = newZoom
-      state.viewport.scale = newZoom
     }),
 
     zoomOut: () => set((state) => {
       const newZoom = Math.max(state.zoomLimits.min, state.viewport.zoom / 1.2)
       state.viewport.zoom = newZoom
-      state.viewport.scale = newZoom
     }),
 
     resetViewport: () => set((state) => {
@@ -175,7 +171,6 @@ export const useCanvasStore = create<CanvasStore>()(
       const centerY = (minY + maxY) / 2
       
       state.viewport.zoom = newZoom
-      state.viewport.scale = newZoom
       state.viewport.center = { x: centerX, y: centerY }
       state.viewport.bounds = { minX, maxX, minY, maxY }
     }),

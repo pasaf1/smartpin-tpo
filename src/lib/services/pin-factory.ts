@@ -1,29 +1,28 @@
 /**
  * PinMapper Enhanced System - Pin Factory Service
  * Factory for creating layer-specific pins with validation and defaults
+ * Normalized coordinates (0..1), UUID, no external config dependency
  */
 
-import { 
-  EnhancedPin, 
-  LayerKind, 
-  PinMetadata, 
+import {
+  EnhancedPin,
+  LayerKind,
   PinRenderingProps,
-  PinAnimationState,
-  LayerSpecificPin,
   IssuePinData,
   RFIPinData,
   DetailPinData,
   NotePinData,
-  CanvasCoordinates
 } from '../layer-types'
 import { Pin } from '../database.types'
-import { LAYER_KIND_CONFIG } from '../layer-constants'
 
-// Pin creation options
+// --- Types ---
+export interface NormalizedCoordinates { x: number; y: number }
+
 export interface PinCreationOptions {
+  roofId: string
   layerId: string
   layerKind: LayerKind
-  position: CanvasCoordinates
+  position: NormalizedCoordinates
   title?: string
   description?: string
   severity?: 'Critical' | 'High' | 'Medium' | 'Low'
@@ -31,10 +30,9 @@ export interface PinCreationOptions {
   dueDate?: Date
   tags?: string[]
   attachments?: string[]
-  layerSpecificData?: any
+  layerSpecificData?: Record<string, any>
 }
 
-// Pin factory result
 export interface PinFactoryResult {
   success: boolean
   pin?: EnhancedPin
@@ -42,68 +40,61 @@ export interface PinFactoryResult {
   warnings?: string[]
 }
 
-// Default pin metadata
-const createDefaultPinMetadata = (): PinMetadata => ({
-  tags: [],
-  priority: 'medium',
-  estimatedTime: 60, // 1 hour default
-  dependencies: [],
-  attachments: []
+// --- Helpers ---
+const genId = () =>
+  (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function')
+    ? (crypto as any).randomUUID()
+    : `pin_${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
+
+const DEFAULT_NOTE_COLOR = '#10b981' // no external config
+
+const createDefaultRenderingProps = (_: LayerKind): PinRenderingProps => ({
+  size: 16,
+  scale: 1,
+  rotation: 0,
+  isVisible: true,
+  isSelected: false,
+  isHovered: false,
+  isDragging: false,
+  animationState: { isAnimating: false, animationType: 'none', duration: 0, startTime: 0 },
 })
 
-// Default pin rendering props
-const createDefaultRenderingProps = (layerKind: LayerKind): PinRenderingProps => {
-  const config = LAYER_KIND_CONFIG[layerKind]
-  return {
-    size: 16,
-    scale: 1,
-    rotation: 0,
-    isVisible: true,
-    isSelected: false,
-    isHovered: false,
-    isDragging: false,
-    animationState: {
-      isAnimating: false,
-      animationType: 'none',
-      duration: 0,
-      startTime: 0
-    }
-  }
+// Layer-specific options types
+type SafetyPinOptions = Omit<PinCreationOptions, 'layerId' | 'layerKind' | 'roofId' | 'position'>
+type QualityPinOptions = Omit<PinCreationOptions, 'layerId' | 'layerKind' | 'roofId' | 'position'>
+type ProgressPinOptions = Omit<PinCreationOptions, 'layerId' | 'layerKind' | 'roofId' | 'position'>
+type MaintenancePinOptions = Omit<PinCreationOptions, 'layerId' | 'layerKind' | 'roofId' | 'position'>
+type InspectionPinOptions = Omit<PinCreationOptions, 'layerId' | 'layerKind' | 'roofId' | 'position'>
+type GenericPinOptions = Partial<Omit<PinCreationOptions, 'layerId' | 'roofId' | 'position'>> & {
+  layerKind?: LayerKind; // Make layerKind optional for generic pins
 }
 
-// Pin Factory class
+// --- Factory ---
 export class PinFactory {
-  // Create a basic enhanced pin
   static createEnhancedPin(options: PinCreationOptions): PinFactoryResult {
     try {
       const warnings: string[] = []
 
-      // Validate required fields
-      if (!options.layerId) {
-        return { success: false, error: 'Layer ID is required' }
-      }
+      if (!options.layerId) return { success: false, error: 'Layer ID is required' }
+      if (!options.roofId) return { success: false, error: 'Roof ID is required' }
+      if (!options.position) return { success: false, error: 'Position is required' }
 
-      if (!options.position) {
-        return { success: false, error: 'Position is required' }
-      }
+      const { x, y } = options.position
+      if (Number.isNaN(x) || Number.isNaN(y)) return { success: false, error: 'Position must be numeric' }
+      if (x < 0 || x > 1 || y < 0 || y > 1) return { success: false, error: 'Position must be normalized (0..1)' }
 
-      // Validate position coordinates
-      if (options.position.x < 0 || options.position.x > 1 || 
-          options.position.y < 0 || options.position.y > 1) {
-        return { success: false, error: 'Position coordinates must be between 0 and 1' }
-      }
+      const id = genId()
 
-      // Generate unique ID
-      const pinId = `pin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-      // Create base pin (matching database schema)
+      // Base DB record (align with your schema)
       const basePin: Pin = {
-        id: pinId,
-        roof_id: '', // Will be set by the application
-        seq_number: 1, // Default sequence number
+        id,
+        roof_id: options.roofId,
+        seq_number: 1,           // recommended: set server-side
         zone: null,
-        x: options.position.x,
-        y: options.position.y,
+        x,
+        y,
         status: 'Open',
         status_parent_manual: 'Open',
         group_count: 1,
@@ -112,50 +103,125 @@ export class PinFactory {
         children_ready: 0,
         children_closed: 0,
         parent_mix_state: null,
-        opened_by: null, // Will be set by the application
+        opened_by: null,         // set by app/server
         opened_at: new Date().toISOString(),
-        last_activity_at: new Date().toISOString()
+        last_activity_at: new Date().toISOString(),
       }
 
-      // Create enhanced pin
+      // Merge layerSpecificData + title/description/severity fallback
+      const layerSpecificData = {
+        ...(options.layerSpecificData ?? {}),
+        ...(options.title ? { title: options.title } : {}),
+        ...(options.description ? { description: options.description } : {}),
+        ...(options.severity ? { severity: options.severity } : {}),
+      }
+
       const enhancedPin: EnhancedPin = {
         ...basePin,
         layerId: options.layerId,
         layerKind: options.layerKind,
-        metadata: {
-          ...createDefaultPinMetadata(),
-          tags: options.tags || [],
-          assignee: options.assignee,
-          dueDate: options.dueDate
-        },
-        renderingProps: createDefaultRenderingProps(options.layerKind)
-      }
+        tags: options.tags ?? [],
+        assignee: options.assignee,
+        dueDate: options.dueDate,
+        priority: 'medium',
+        renderingProps: createDefaultRenderingProps(options.layerKind),
+        // attach layerSpecificData in a consistent key
+        ...(Object.keys(layerSpecificData).length ? { layerSpecificData } : {}),
+      } as EnhancedPin
 
-      // Add layer-specific data if provided
-      if (options.layerSpecificData) {
-        (enhancedPin as any).layerSpecificData = options.layerSpecificData
-      }
+      if (!options.title) warnings.push('Title is recommended')
+      if (!options.description) warnings.push('Description is recommended')
 
-      // Add warnings for missing recommended fields
-      if (!options.title) {
-        warnings.push('Title is recommended for better pin identification')
-      }
-
-      if (!options.description) {
-        warnings.push('Description helps provide context for the pin')
-      }
-
-      return {
-        success: true,
-        pin: enhancedPin,
-        warnings: warnings.length > 0 ? warnings : undefined
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error creating pin'
-      }
+      return { success: true, pin: enhancedPin, warnings: warnings.length ? warnings : undefined }
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Unknown error creating pin' }
     }
+  }
+
+  // Layer-specific factory methods with roofId preservation
+  static createSafetyPin(roofId: string, position: NormalizedCoordinates, options: SafetyPinOptions = {}): PinFactoryResult {
+    return this.createEnhancedPin({
+      layerId: 'safety',
+      layerKind: 'ISSUE_PIN', // Use standard LayerKind
+      roofId,
+      position,
+      ...options,
+      layerSpecificData: {
+        type: 'safety',
+        equipment: '',
+        ...options.layerSpecificData,
+      },
+    })
+  }
+
+  static createQualityPin(roofId: string, position: NormalizedCoordinates, options: QualityPinOptions = {}): PinFactoryResult {
+    return this.createEnhancedPin({
+      layerId: 'quality',
+      layerKind: 'ISSUE_PIN', // Use standard LayerKind
+      roofId,
+      position,
+      ...options,
+      layerSpecificData: {
+        defectType: 'visual',
+        impact: 'low',
+        ...options.layerSpecificData,
+      },
+    })
+  }
+
+  static createProgressPin(roofId: string, position: NormalizedCoordinates, options: ProgressPinOptions = {}): PinFactoryResult {
+    return this.createEnhancedPin({
+      layerId: 'progress',
+      layerKind: 'NOTE_PIN', // Use standard LayerKind
+      roofId,
+      position,
+      ...options,
+      layerSpecificData: {
+        stageType: 'inspection',
+        completion: 0,
+        ...options.layerSpecificData,
+      },
+    })
+  }
+
+  static createMaintenancePin(roofId: string, position: NormalizedCoordinates, options: MaintenancePinOptions = {}): PinFactoryResult {
+    return this.createEnhancedPin({
+      layerId: 'maintenance',
+      layerKind: 'ISSUE_PIN', // Use standard LayerKind
+      roofId,
+      position,
+      ...options,
+      layerSpecificData: {
+        actionType: 'preventive',
+        urgency: 'low',
+        ...options.layerSpecificData,
+      },
+    })
+  }
+
+  static createInspectionPin(roofId: string, position: NormalizedCoordinates, options: InspectionPinOptions = {}): PinFactoryResult {
+    return this.createEnhancedPin({
+      layerId: 'inspection',
+      layerKind: 'NOTE_PIN', // Use standard LayerKind
+      roofId,
+      position,
+      ...options,
+      layerSpecificData: {
+        checkType: 'visual',
+        result: 'pass',
+        ...options.layerSpecificData,
+      },
+    })
+  }
+
+  static createGenericPin(layerId: string, roofId: string, position: NormalizedCoordinates, options: GenericPinOptions = {}): PinFactoryResult {
+    return this.createEnhancedPin({
+      ...options,
+      layerId,
+      roofId,
+      position,
+      layerKind: options.layerKind ?? 'NOTE_PIN', // Use provided or default LayerKind
+    })
   }
 
   // Create issue pin
@@ -167,14 +233,12 @@ export class PinFactory {
       actualBehavior: '',
       environment: '',
       browserInfo: '',
-      ...options.issueData
+      ...options.issueData,
     }
-
     return this.createEnhancedPin({
       ...options,
       layerKind: 'ISSUE_PIN',
-      layerSpecificData: issueData,
-      severity: options.severity || 'Medium'
+      severity: options.severity ?? 'Medium',
     })
   }
 
@@ -191,8 +255,7 @@ export class PinFactory {
 
     return this.createEnhancedPin({
       ...options,
-      layerKind: 'RFI_PIN',
-      layerSpecificData: rfiData
+      layerKind: 'RFI_PIN'
     })
   }
 
@@ -209,8 +272,7 @@ export class PinFactory {
 
     return this.createEnhancedPin({
       ...options,
-      layerKind: 'DETAIL_PIN',
-      layerSpecificData: detailData
+      layerKind: 'DETAIL_PIN'
     })
   }
 
@@ -220,15 +282,14 @@ export class PinFactory {
       noteType: 'General',
       isPrivate: false,
       reminder: undefined,
-      color: LAYER_KIND_CONFIG.NOTE_PIN.color,
+      color: '#3b82f6', // default blue color
       fontSize: 14,
       ...options.noteData
     }
 
     return this.createEnhancedPin({
       ...options,
-      layerKind: 'NOTE_PIN',
-      layerSpecificData: noteData
+      layerKind: 'NOTE_PIN'
     })
   }
 
@@ -266,135 +327,76 @@ export class PinFactory {
   }
 
   // Duplicate an existing pin
-  static duplicatePin(originalPin: EnhancedPin, offset: CanvasCoordinates = { x: 0.02, y: 0.02 }): PinFactoryResult {
+  static duplicatePin(originalPin: EnhancedPin, offset: NormalizedCoordinates = { x: 0.02, y: 0.02 }): PinFactoryResult {
     try {
-      const newPosition = {
-        x: Math.min(1, originalPin.x + offset.x),
-        y: Math.min(1, originalPin.y + offset.y)
-      }
-
-      const duplicatedPin: EnhancedPin = {
+      const pin: EnhancedPin = {
         ...originalPin,
-        id: `pin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: genId(),
+        x: clamp01(originalPin.x + offset.x),
+        y: clamp01(originalPin.y + offset.y),
         opened_at: new Date().toISOString(),
-        x: newPosition.x,
-        y: newPosition.y,
-        renderingProps: {
-          ...originalPin.renderingProps,
-          isSelected: false,
-          isHovered: false,
-          isDragging: false
-        }
+        renderingProps: { ...originalPin.renderingProps, isSelected: false, isHovered: false, isDragging: false },
       }
-
-      return {
-        success: true,
-        pin: duplicatedPin
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error duplicating pin'
-      }
+      return { success: true, pin }
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Error duplicating pin' }
     }
   }
 
   // Create pin from database pin
-  static enhanceExistingPin(
-    databasePin: Pin, 
-    layerId: string, 
-    layerKind: LayerKind
-  ): PinFactoryResult {
+  static enhanceExistingPin(dbPin: Pin, layerId: string, layerKind: LayerKind): PinFactoryResult {
     try {
-      const enhancedPin: EnhancedPin = {
-        ...databasePin,
+      const pin: EnhancedPin = {
+        id: dbPin.id,
+        roof_id: dbPin.roof_id,
+        seq_number: dbPin.seq_number,
+        zone: dbPin.zone,
+        x: dbPin.x, y: dbPin.y,
+        status: dbPin.status,
+        status_parent_manual: dbPin.status_parent_manual,
+        group_count: dbPin.group_count,
+        children_total: dbPin.children_total,
+        children_open: dbPin.children_open,
+        children_ready: dbPin.children_ready,
+        children_closed: dbPin.children_closed,
+        parent_mix_state: dbPin.parent_mix_state,
+        opened_by: dbPin.opened_by,
+        opened_at: dbPin.opened_at,
+        last_activity_at: dbPin.last_activity_at,
         layerId,
         layerKind,
-        metadata: createDefaultPinMetadata(),
-        renderingProps: createDefaultRenderingProps(layerKind)
+        tags: [],
+        priority: 'medium',
+        renderingProps: createDefaultRenderingProps(layerKind),
       }
-
-      return {
-        success: true,
-        pin: enhancedPin
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error enhancing existing pin'
-      }
+      return { success: true, pin }
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Error enhancing existing pin' }
     }
   }
 }
 
-// Pin creator utility functions
+// Pin creator utility functions - normalized coordinate focused
 export const PinCreator = {
-  // Quick creation methods
-  createQuickIssue: (layerId: string, position: CanvasCoordinates, title: string) => 
-    PinFactory.createIssuePin({
-      layerId,
-      layerKind: 'ISSUE_PIN',
-      position,
-      title,
-      severity: 'Medium'
-    }),
-
-  createQuickRFI: (layerId: string, position: CanvasCoordinates, title: string) =>
-    PinFactory.createRFIPin({
-      layerId,
-      layerKind: 'RFI_PIN',
-      position,
-      title
-    }),
-
-  createQuickNote: (layerId: string, position: CanvasCoordinates, title: string) =>
-    PinFactory.createNotePin({
-      layerId,
-      layerKind: 'NOTE_PIN',
-      position,
-      title
-    }),
-
-  createQuickDetail: (layerId: string, position: CanvasCoordinates, title: string) =>
-    PinFactory.createDetailPin({
-      layerId,
-      layerKind: 'DETAIL_PIN',
-      position,
-      title
-    }),
-
-  // Batch creation
-  createMultiplePins: (pinOptions: PinCreationOptions[]): PinFactoryResult[] => {
-    return pinOptions.map(options => {
-      switch (options.layerKind) {
-        case 'ISSUE_PIN':
-          return PinFactory.createIssuePin(options)
-        case 'RFI_PIN':
-          return PinFactory.createRFIPin(options)
-        case 'DETAIL_PIN':
-          return PinFactory.createDetailPin(options)
-        case 'NOTE_PIN':
-          return PinFactory.createNotePin(options)
-        default:
-          return PinFactory.createEnhancedPin(options)
-      }
-    })
-  },
-
-  // Validation helpers
+  // Robust validation helpers with normalized coordinates
   validatePinData: (options: PinCreationOptions): { isValid: boolean; errors: string[] } => {
     const errors: string[] = []
 
     if (!options.layerId) errors.push('Layer ID is required')
+    if (!options.roofId) errors.push('Roof ID is required')
     if (!options.position) errors.push('Position is required')
     if (!options.layerKind) errors.push('Layer kind is required')
 
     if (options.position) {
-      if (options.position.x < 0 || options.position.x > 1) {
-        errors.push('X position must be between 0 and 1')
+      const { x, y } = options.position
+      if (Number.isNaN(x) || Number.isNaN(y)) {
+        errors.push('Position coordinates must be numeric')
       }
-      if (options.position.y < 0 || options.position.y > 1) {
-        errors.push('Y position must be between 0 and 1')
+      if (x < 0 || x > 1) {
+        errors.push('X position must be normalized (0..1)')
+      }
+      if (y < 0 || y > 1) {
+        errors.push('Y position must be normalized (0..1)')
       }
     }
 
@@ -412,7 +414,13 @@ export const PinCreator = {
     }
   },
 
-  // Get default data for layer kind
+  // Coordinate utilities for normalized coordinates
+  normalizePosition: (x: number, y: number): NormalizedCoordinates => ({
+    x: clamp01(x),
+    y: clamp01(y),
+  }),
+
+  // Layer-specific defaults with proper data structure
   getDefaultDataForKind: (layerKind: LayerKind): any => {
     switch (layerKind) {
       case 'ISSUE_PIN':
@@ -447,14 +455,37 @@ export const PinCreator = {
         return {
           noteType: 'General',
           isPrivate: false,
-          color: LAYER_KIND_CONFIG.NOTE_PIN.color,
+          color: '#3b82f6',
           fontSize: 14
         } as NotePinData
 
       default:
         return {}
     }
-  }
+  },
+
+  // Utility to create pin with coordinated position validation
+  createWithValidatedPosition: (options: PinCreationOptions): PinFactoryResult => {
+    const validation = PinCreator.validatePinData(options)
+    if (!validation.isValid) {
+      return { success: false, error: validation.errors.join('; ') }
+    }
+
+    const normalizedPosition = PinCreator.normalizePosition(
+      options.position.x,
+      options.position.y
+    )
+
+    return PinFactory.createEnhancedPin({
+      ...options,
+      position: normalizedPosition,
+    })
+  },
+
+  // Batch creation helper
+  createMultiple: (pins: PinCreationOptions[]): Array<PinFactoryResult> => {
+    return pins.map(pinOptions => PinCreator.createWithValidatedPosition(pinOptions))
+  },
 }
 
 export default PinFactory

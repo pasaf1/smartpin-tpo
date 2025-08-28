@@ -9,17 +9,24 @@ import {
   LayerVisibility, 
   LayerStatus, 
   LayerFilter,
-  LayerEventPayload,
-  LayerOperationResult,
-  LayerError
+  LayerOperationResult
 } from '../layer-types'
 import { 
-  createDefaultLayer, 
   createDefaultLayerSet, 
-  VALIDATION_RULES,
-  DEFAULT_LAYER_ORDER 
+  VALIDATION_RULES
 } from '../layer-constants'
 import { PermissionService, UserRole } from './permission-service'
+
+// Helper functions
+const genId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? (crypto as any).randomUUID()
+    : `layer_${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+// Constants
+const ALLOWED_KINDS: LayerKind[] = ['ISSUE_PIN','RFI_PIN','DETAIL_PIN','NOTE_PIN']
+const HEX6 = /^#[0-9A-F]{6}$/i
+const toKey = (s: string) => s.trim().toLowerCase()
 
 // Layer change event
 export interface LayerChangeEvent {
@@ -43,7 +50,6 @@ export interface LayerManagerOptions {
   maxLayers: number
   enableValidation: boolean
   enableEvents: boolean
-  autoSave: boolean
   permissionService?: PermissionService
 }
 
@@ -75,7 +81,6 @@ export class LayerManager {
       maxLayers: VALIDATION_RULES.MAX_LAYERS_PER_CANVAS,
       enableValidation: true,
       enableEvents: true,
-      autoSave: false,
       ...options
     }
     this.permissionService = options.permissionService
@@ -115,45 +120,44 @@ export class LayerManager {
     const errors: string[] = []
     const warnings: string[] = []
 
-    if (!layer.name || layer.name.trim().length === 0) {
+    if (!layer.name?.trim()) {
       errors.push('Layer name is required')
-    } else if (layer.name.length < VALIDATION_RULES.LAYER_NAME_MIN_LENGTH) {
-      errors.push(`Layer name must be at least ${VALIDATION_RULES.LAYER_NAME_MIN_LENGTH} characters`)
-    } else if (layer.name.length > VALIDATION_RULES.LAYER_NAME_MAX_LENGTH) {
-      errors.push(`Layer name must not exceed ${VALIDATION_RULES.LAYER_NAME_MAX_LENGTH} characters`)
+    } else {
+      if (layer.name.length < VALIDATION_RULES.LAYER_NAME_MIN_LENGTH) {
+        errors.push(`Layer name must be at least ${VALIDATION_RULES.LAYER_NAME_MIN_LENGTH} characters`)
+      }
+      if (layer.name.length > VALIDATION_RULES.LAYER_NAME_MAX_LENGTH) {
+        errors.push(`Layer name must not exceed ${VALIDATION_RULES.LAYER_NAME_MAX_LENGTH} characters`)
+      }
+
+      // duplicate name check on create & update (case-insensitive)
+      const existing = this.findLayerByName(layer.name)
+      if (existing && (!layer.id || existing.id !== layer.id)) {
+        errors.push('Layer name already exists')
+      }
     }
 
-    if (!layer.kind || !Object.values(['ISSUE_PIN', 'RFI_PIN', 'DETAIL_PIN', 'NOTE_PIN']).includes(layer.kind)) {
+    if (!layer.kind || !ALLOWED_KINDS.includes(layer.kind as LayerKind)) {
       errors.push('Invalid layer kind')
     }
 
-    if (!layer.color || !/^#[0-9A-F]{6}$/i.test(layer.color)) {
-      errors.push('Invalid color format (must be hex color)')
+    if (!layer.color || !HEX6.test(layer.color)) {
+      errors.push('Invalid color format (must be #RRGGBB)')
     }
 
     if (layer.settings) {
-      if (layer.settings.opacity !== undefined && (layer.settings.opacity < 0 || layer.settings.opacity > 1)) {
+      const { opacity, gridSize, clusterThreshold } = layer.settings as any
+      if (opacity !== undefined && (opacity < 0 || opacity > 1)) {
         errors.push('Opacity must be between 0 and 1')
       }
-      
-      if (layer.settings.gridSize !== undefined && layer.settings.gridSize < 1) {
+      if (gridSize !== undefined && gridSize < 1) {
         errors.push('Grid size must be at least 1')
       }
-      
-      if (layer.settings.clusterThreshold !== undefined && layer.settings.clusterThreshold < 1) {
+      if (clusterThreshold !== undefined && clusterThreshold < 1) {
         errors.push('Cluster threshold must be at least 1')
       }
     }
 
-    // Check for duplicate names
-    if (layer.name && layer.id) {
-      const existingLayer = this.findLayerByName(layer.name)
-      if (existingLayer && existingLayer.id !== layer.id) {
-        warnings.push('A layer with this name already exists')
-      }
-    }
-
-    // Check layer count limit
     if (this.layers.size >= this.options.maxLayers && !layer.id) {
       errors.push(`Cannot exceed maximum of ${this.options.maxLayers} layers`)
     }
@@ -202,7 +206,7 @@ export class LayerManager {
       }
 
       // Generate unique ID
-      const layerId = `layer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const layerId = genId()
       
       // Create layer with ID
       const layer: LayerMetadata = {
@@ -406,7 +410,8 @@ export class LayerManager {
 
   // Find layer by name
   findLayerByName(name: string): LayerMetadata | undefined {
-    return this.getAllLayers().find(layer => layer.name === name)
+    const key = toKey(name)
+    return this.getAllLayers().find(l => toKey(l.name) === key)
   }
 
   // Filter layers
@@ -423,13 +428,13 @@ export class LayerManager {
   // Reorder layers
   async reorderLayers(newOrder: string[], userId: string): Promise<LayerOperationResult<void>> {
     try {
-      // Validate that all layer IDs exist
-      const validIds = newOrder.filter(id => this.layers.has(id))
-      if (validIds.length !== newOrder.length) {
+      const currentSet = new Set(this.layerOrder)
+      const nextSet = new Set(newOrder)
+      if (currentSet.size !== nextSet.size || [...currentSet].some(id => !nextSet.has(id))) {
         return {
           success: false,
-          error: 'LAYER_NOT_FOUND',
-          message: 'Some layer IDs in the new order are invalid',
+          error: 'VALIDATION_FAILED',
+          message: 'New order must contain exactly all existing layer IDs',
           timestamp: new Date()
         }
       }
@@ -450,8 +455,7 @@ export class LayerManager {
         }
       }
 
-      const previousOrder = [...this.layerOrder]
-      this.layerOrder = newOrder
+      this.layerOrder = [...newOrder]
 
       // Emit event
       this.emitEvent({
@@ -486,8 +490,55 @@ export class LayerManager {
       }
     }
 
-    const newVisibility: LayerVisibility = layer.visibility === 'visible' ? 'hidden' : 'visible'
-    return this.updateLayer(layerId, { visibility: newVisibility }, userId)
+    if (this.permissionService) {
+      const permission = this.permissionService.hasPermission({
+        operation: 'edit_layer',
+        layerId,
+        layerKind: layer.kind
+      })
+      
+      if (!permission.allowed) {
+        return {
+          success: false,
+          error: 'PERMISSION_DENIED',
+          message: permission.reason,
+          timestamp: new Date()
+        }
+      }
+    }
+
+    const previousState = { ...layer }
+    const updated: LayerMetadata = { 
+      ...layer, 
+      visibility: layer.visibility === 'visible' ? 'hidden' : 'visible' 
+    }
+    
+    const validation = this.validateLayer(updated)
+    if (!validation.isValid) {
+      return {
+        success: false,
+        error: 'VALIDATION_FAILED',
+        message: validation.errors.join(', '),
+        timestamp: new Date()
+      }
+    }
+
+    this.layers.set(layerId, updated)
+    this.updateLayerStats(updated)
+    
+    this.emitEvent({
+      type: 'visibility_changed',
+      layerId,
+      layer: updated,
+      previousState,
+      userId
+    })
+    
+    return {
+      success: true,
+      data: updated,
+      timestamp: new Date()
+    }
   }
 
   // Set layer visibility
@@ -563,28 +614,36 @@ export class LayerManager {
 
     layers.forEach(layer => {
       layersByKind[layer.kind]++
-      totalPins += layer.stats.totalPins
-      totalMemoryUsage += layer.stats.performanceMetrics.memoryUsage
-      totalRenderTime += layer.stats.performanceMetrics.renderTime
+      const stats = (layer as any).stats ?? { 
+        totalPins: 0, 
+        performanceMetrics: { memoryUsage: 0, renderTime: 0 } 
+      }
+      totalPins += stats.totalPins || 0
+      totalMemoryUsage += stats.performanceMetrics?.memoryUsage || 0
+      totalRenderTime += stats.performanceMetrics?.renderTime || 0
     })
 
     return {
       totalLayers: layers.length,
-      activeLayers: this.getActiveLayers().length,
-      visibleLayers: this.getVisibleLayers().length,
+      activeLayers: layers.filter(l => l.status === 'active').length,
+      visibleLayers: layers.filter(l => l.visibility === 'visible').length,
       layersByKind,
       averageStats: {
-        pinsPerLayer: layers.length > 0 ? totalPins / layers.length : 0,
-        memoryUsage: layers.length > 0 ? totalMemoryUsage / layers.length : 0,
-        renderTime: layers.length > 0 ? totalRenderTime / layers.length : 0
+        pinsPerLayer: layers.length ? totalPins / layers.length : 0,
+        memoryUsage: layers.length ? totalMemoryUsage / layers.length : 0,
+        renderTime: layers.length ? totalRenderTime / layers.length : 0
       }
     }
   }
 
   // Update layer statistics
   private updateLayerStats(layer: LayerMetadata): void {
+    ;(layer as any).stats ??= {
+      totalPins: 0,
+      performanceMetrics: { memoryUsage: 0, renderTime: 0 },
+      lastUpdated: new Date()
+    }
     layer.stats.lastUpdated = new Date()
-    // Additional stats updates would be handled by the consuming application
   }
 
   // Clear all layers
@@ -655,38 +714,38 @@ export class LayerManager {
     replaceExisting: boolean = false
   ): Promise<LayerOperationResult<LayerMetadata[]>> {
     try {
-      // Clear existing layers if replacing
       if (replaceExisting) {
         await this.clearAllLayers(userId)
       }
 
-      const importedLayers: LayerMetadata[] = []
+      const idMap = new Map<string, string>() // oldId -> newId
+      const imported: LayerMetadata[] = []
 
-      // Import layers
-      for (const layerData of data.layers) {
-        const { id, ...layerWithoutId } = layerData
-        const result = await this.createLayer(layerWithoutId, userId)
+      for (const src of data.layers) {
+        const { id: oldId, ...withoutId } = src
+        const result = await this.createLayer(withoutId, userId)
         
         if (result.success && result.data) {
-          importedLayers.push(result.data)
+          imported.push(result.data)
+          if (oldId) {
+            idMap.set(oldId, result.data.id)
+          }
         }
       }
 
-      // Set order if provided
-      if (data.order && data.order.length > 0) {
-        const newOrder = data.order.map(oldId => {
-          const index = data.layers.findIndex(l => l.id === oldId)
-          return index >= 0 && importedLayers[index] ? importedLayers[index].id : null
-        }).filter(Boolean) as string[]
-
-        if (newOrder.length > 0) {
-          await this.reorderLayers(newOrder, userId)
+      if (data.order?.length) {
+        const mapped = data.order.map(oid => idMap.get(oid)).filter(Boolean) as string[]
+        const allIds = new Set(imported.map(l => l.id))
+        const mappedSet = new Set(mapped)
+        
+        if (allIds.size === mappedSet.size && [...allIds].every(id => mappedSet.has(id))) {
+          await this.reorderLayers(mapped, userId)
         }
       }
 
       return {
         success: true,
-        data: importedLayers,
+        data: imported,
         timestamp: new Date()
       }
     } catch (error) {

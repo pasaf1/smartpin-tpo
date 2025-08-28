@@ -3,7 +3,11 @@
  * Core type definitions for the layer-based pin mapping system
  */
 
-import { Pin } from './database.types'
+// Import database types
+import type { Database } from './database.types'
+
+// Type alias for database Pin
+export type Pin = Database['public']['Tables']['pins']['Row']
 
 // Layer Kind definitions - extensible for future pin types
 export type LayerKind = 'ISSUE_PIN' | 'RFI_PIN' | 'DETAIL_PIN' | 'NOTE_PIN'
@@ -70,12 +74,26 @@ export interface LayerStats {
   }
 }
 
-// Enhanced pin interface with layer context
+// Enhanced pin interface with layer context - MVP version
 export interface EnhancedPin extends Pin {
+  // Layer association (required for new schema)
   layerId: string
-  layerKind: LayerKind
-  metadata: PinMetadata
-  renderingProps: PinRenderingProps
+  layerKind?: LayerKind
+  
+  // Enhanced fields matching new database schema
+  renderingProps?: Partial<PinRenderingProps>
+  
+  // Metadata fields (optional for MVP)
+  tags?: string[]
+  priority?: 'low' | 'medium' | 'high' | 'critical'
+  assignee?: string
+  dueDate?: Date
+  estimatedTime?: number
+  actualTime?: number
+  
+  // Computed fields for display
+  displayLabel?: string
+  tooltipContent?: string
 }
 
 // Pin metadata for enhanced functionality
@@ -141,7 +159,8 @@ export interface ScreenCoordinates {
 
 // Viewport state
 export interface ViewportState {
-  zoom: number
+  zoom: number // deprecated, use scale
+  scale?: number // zoom factor (preferred)
   pan: CanvasCoordinates
   bounds: {
     minX: number

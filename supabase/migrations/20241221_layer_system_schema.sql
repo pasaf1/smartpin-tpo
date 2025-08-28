@@ -1,5 +1,21 @@
--- Layer System Schema Extensions
--- Adds support for the enhanced layer-based pin mapping system
+-- Layer System Schema Extensions (DEPRECATED - USE 20241221_fix_layer_system_schema.sql)
+-- This schema has critical issues that are fixed in the new migration:
+--
+-- CRITICAL ISSUES FOUND:
+-- 1. Inline INDEX syntax not valid in PostgreSQL
+-- 2. Missing roof_id association in pin_layers  
+-- 3. UNIQUE constraints should be per roof, not global
+-- 4. FK to users(role) is problematic - fixed with CHECK constraint
+-- 5. created_by should reference auth.users, not public.users
+-- 6. RLS policies too permissive (only SELECT)
+-- 7. dependencies as UUID[] array instead of normalized table
+-- 8. No layer consistency enforcement between pins and metadata
+-- 9. Missing HEX color validation
+-- 10. Missing performance indexes
+--
+-- USE FIXED VERSION: 20241221_fix_layer_system_schema.sql
+
+-- ORIGINAL PROBLEMATIC SCHEMA (FOR REFERENCE ONLY):
 
 -- Layer system tables
 CREATE TABLE IF NOT EXISTS pin_layers (
