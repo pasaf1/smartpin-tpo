@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,9 +9,10 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { useProjects, useCreateProject, useRoofsByProject, useSendChatMessage } from '@/lib/hooks/useSupabaseQueries'
+import { useProjects, useCreateProject, useRoofsByProject, useSendChatMessage, usePinsByRoof } from '@/lib/hooks/useSupabaseQueries'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
 import { extractMentionedUserIds } from '@/lib/mentions'
+import { useOpenIssuesCount } from '@/lib/hooks/useIssuesCount'
 
 function HomePage() {
   const { profile } = useAuth()
@@ -27,6 +28,9 @@ function HomePage() {
   const createProject = useCreateProject()
   const createRoof = useCreateRoof()
   const sendGlobalMessage = useSendChatMessage()
+
+  // Get real count of open issues from all projects
+  const { data: totalOpenIssues = 0, isLoading: issuesLoading } = useOpenIssuesCount()
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -389,7 +393,7 @@ function HomePage() {
             />
           </div>
 
-          {/* Open INCRs */}
+          {/* Issues Open */}
           <div 
             className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
             style={{
@@ -408,9 +412,9 @@ function HomePage() {
               >
                 <AlertTriangle className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Open INCRs</span>
-              <div className="text-4xl font-bold text-white mb-2">{projects.filter(p => p.status === 'Open').length}</div>
-              <p className="text-sm text-white opacity-80 font-medium">Need attention</p>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Issues Open</span>
+              <div className="text-4xl font-bold text-white mb-2">{totalOpenIssues}</div>
+              <p className="text-sm text-white opacity-80 font-medium">Pins & children</p>
             </div>
             <div 
               className="absolute inset-0 animate-pulse"
