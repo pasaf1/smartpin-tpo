@@ -9,8 +9,9 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { useProjects, useCreateProject, useRoofsByProject } from '@/lib/hooks/useSupabaseQueries'
+import { useProjects, useCreateProject, useRoofsByProject, useSendChatMessage } from '@/lib/hooks/useSupabaseQueries'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
+import { extractMentionedUserIds } from '@/lib/mentions'
 
 function HomePage() {
   const { profile } = useAuth()
@@ -25,12 +26,14 @@ function HomePage() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
   const createProject = useCreateProject()
   const createRoof = useCreateRoof()
+  const sendGlobalMessage = useSendChatMessage()
   
   // Filter state
   const [filters, setFilters] = useState({
     status: 'all',
     completion: 'all',
-    sort: 'name'
+    sort: 'name',
+    search: ''
   })
 
   // New Project Modal state
@@ -83,11 +86,47 @@ function HomePage() {
 
   // Filtered and sorted projects
   const filteredProjects = useMemo(() => {
-    const filtered = [...projects]
-    // basic sort
-    filtered.sort((a, b) => a.name.localeCompare(b.name))
+    let filtered = [...projects]
+    
+    // Apply status filter
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(project => project.status === filters.status)
+    }
+    
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      filtered = filtered.filter(project => 
+        project.name.toLowerCase().includes(searchLower) ||
+        project.contractor?.toLowerCase().includes(searchLower)
+      )
+    }
+    
+    // Apply completion filter
+    if (filters.completion !== 'all') {
+      filtered = filtered.filter(project => {
+        // Calculate completion based on project status
+        const completion = project.status === 'Completed' ? 100 : 
+                          project.status === 'InProgress' ? 50 : 0
+        
+        if (filters.completion === 'high') return completion >= 75
+        if (filters.completion === 'medium') return completion >= 25 && completion < 75
+        if (filters.completion === 'low') return completion < 25
+        return true
+      })
+    }
+    
+    // Apply sorting
+    if (filters.sort === 'name') {
+      filtered.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (filters.sort === 'status') {
+      filtered.sort((a, b) => a.status.localeCompare(b.status))
+    } else if (filters.sort === 'date') {
+      filtered.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
+    }
+    
     return filtered
-  }, [projects])
+  }, [projects, filters])
   
   const handleFilterChange = (filterType: string, value: string) => {
     setFilters(prev => ({
@@ -238,8 +277,16 @@ function HomePage() {
 
   const handleSendGlobalMessage = (message: string) => {
     console.log('Sending global message:', message)
-    // In a real implementation, this would send the message to your chat system
-    // with the mentioned users extracted for notifications
+    
+    // For now, we'll send without mentions since we don't have user data here
+    // In a complete implementation, you would pass users list to extract mentions
+    
+    sendGlobalMessage.mutate({
+      text: message,
+      scope: 'global',
+      scope_id: null,
+      mentions: null // We can add mention extraction later when needed
+    })
   }
 
   // הצג טעינה אם הדאטה עדיין נטענת
@@ -272,17 +319,38 @@ function HomePage() {
           {/* Project Status Filters */}
           <div className="flex items-center gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
+              <button 
+                onClick={() => handleFilterChange('status', filters.status === 'Open' ? 'all' : 'Open')}
+                className={`btn-filter inline-flex items-center gap-2 px-3 py-2 backdrop-blur-sm border text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg ${
+                  filters.status === 'Open' ? 'bg-blue-100 border-blue-300' : 'bg-white/80 border-white/30'
+                }`}
+              >
                 Open
-                <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">2</span>
+                <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  {projects.filter(p => p.status === 'Open').length}
+                </span>
               </button>
-              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
+              <button 
+                onClick={() => handleFilterChange('status', filters.status === 'InProgress' ? 'all' : 'InProgress')}
+                className={`btn-filter inline-flex items-center gap-2 px-3 py-2 backdrop-blur-sm border text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg ${
+                  filters.status === 'InProgress' ? 'bg-blue-100 border-blue-300' : 'bg-white/80 border-white/30'
+                }`}
+              >
                 In Progress
-                <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold">1</span>
+                <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  {projects.filter(p => p.status === 'InProgress').length}
+                </span>
               </button>
-              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
+              <button 
+                onClick={() => handleFilterChange('status', filters.status === 'Completed' ? 'all' : 'Completed')}
+                className={`btn-filter inline-flex items-center gap-2 px-3 py-2 backdrop-blur-sm border text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg ${
+                  filters.status === 'Completed' ? 'bg-blue-100 border-blue-300' : 'bg-white/80 border-white/30'
+                }`}
+              >
                 Completed
-                <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">0</span>
+                <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  {projects.filter(p => p.status === 'Completed').length}
+                </span>
               </button>
             </div>
           </div>
@@ -310,7 +378,7 @@ function HomePage() {
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Total Projects</span>
-              <div className="text-4xl font-bold text-white mb-2">3</div>
+              <div className="text-4xl font-bold text-white mb-2">{projects.length}</div>
               <p className="text-sm text-white opacity-80 font-medium">Active roofs</p>
             </div>
             <div 
@@ -341,7 +409,7 @@ function HomePage() {
                 <AlertTriangle className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Open INCRs</span>
-              <div className="text-4xl font-bold text-white mb-2">12</div>
+              <div className="text-4xl font-bold text-white mb-2">{projects.filter(p => p.status === 'Open').length}</div>
               <p className="text-sm text-white opacity-80 font-medium">Need attention</p>
             </div>
             <div 
@@ -372,7 +440,7 @@ function HomePage() {
                 <Eye className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Ready for Inspection</span>
-              <div className="text-4xl font-bold text-white mb-2">8</div>
+              <div className="text-4xl font-bold text-white mb-2">{projects.filter(p => p.status === 'InProgress').length}</div>
               <p className="text-sm text-white opacity-80 font-medium">Pending review</p>
             </div>
             <div 
@@ -403,7 +471,7 @@ function HomePage() {
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Closed</span>
-              <div className="text-4xl font-bold text-white mb-2">145</div>
+              <div className="text-4xl font-bold text-white mb-2">{projects.filter(p => p.status === 'Completed').length}</div>
               <p className="text-sm text-white opacity-80 font-medium">Completed items</p>
             </div>
             <div 
@@ -470,6 +538,8 @@ function HomePage() {
                   <input
                     type="text"
                     placeholder="Search projects..."
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
                     className="pl-10 pr-4 py-2 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
                   />
                 </div>
