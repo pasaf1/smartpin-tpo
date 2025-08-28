@@ -1,10 +1,25 @@
-# SmartP## What's new (highlights)
+# SmartP## What's n## What's new (highlights)
+- **Fixed Project Creation Permissions** - All authenticated users can now create projects (removed Admin/QA_Manager restriction) with role-based warnings for non-Admin users
+- **Automatic Roof Creation** - When creating a new project, a roof is automatically generated and properly linked
+- **Enhanced Navigation Flow** - Smart navigation from project table to roof dashboard with automatic roof detection
+- **Improved User Experience** - User profile display with role information in navigation header
+- **User Management Scripts** - Administrative tools for managing user roles and permissions
+- Parent/Child pins with status timeline (Open → ReadyForInspection → Closed) and parent aggregates. New UI: PinDetailsModalV2.
+- Photos stored in a dedicated public bucket `pin-photos`; child closure requires a Closure photo.
+- **Project creation** is now available to all authenticated users with appropriate role-based guidance and warnings.
+- Chat improvements: edit/delete actions, with a DELETE RLS policy migration included.
+- SSR-safe Supabase client with diagnostics and `/api/env-check` + `/api/health` endpoints.
+- Simplified ESLint (flat config) and hardened `next.config.js`. Legacy demo pages were removed.ights)
+- **Fixed Project Creation Permissions** - All authenticated users can now create projects (removed Admin/QA_Manager restriction) with role-based warnings for non-Admin users
+- **Automatic Roof Creation** - When creating a new project, a roof is automatically generated and properly linked
+- **Enhanced Navigation Flow** - Smart navigation from project table to roof dashboard with automatic roof detection
+- **Improved User Experience** - User profile display with role information in navigation header
 - **Dark/Light Theme System** - Complete theme support with CSS custom properties, theme toggle, and system preference detection
 - **Uniform Page Layout** - PageLayout template component for consistent design across all pages with navigation, breadcrumbs, and theme controls
 - **Enhanced Authentication** - Improved login page with proper input components and Google OAuth integration
 - **Parent/Child pins** with status timeline (Open → ReadyForInspection → Closed) and parent aggregates. New UI: PinDetailsModalV2.
 - **Photos** stored in a dedicated public bucket `pin-photos`; child closure requires a Closure photo.
-- **Project creation** is RLS-gated: only roles Admin or QA_Manager can create projects. UI is gated accordingly with clear messages.
+- **User Management Scripts** - Administrative tools for managing user roles and permissions
 - **Chat improvements**: edit/delete actions, with a DELETE RLS policy migration included.
 - **SSR-safe Supabase client** with diagnostics and `/api/env-check` + `/api/health` endpoints.
 - **Simplified ESLint** (flat config) and hardened `next.config.js`. Legacy demo pages were removed.– Project Guide (EN/HE)
@@ -121,10 +136,11 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 
 2) /
     - File: src/app/page.tsx
-    - Purpose: Home dashboard/overview; lists real projects from Supabase.
-    - Features: Uses PageLayout template for consistent design.
-    - Data: Projects via Supabase; create project modal (Admin/QA_Manager only).
-    - Navigation: to /roofs/[id], /roofs/[id]/settings, /admin/users.
+    - Purpose: Home dashboard/overview; lists real projects from Supabase with project creation functionality.
+    - Features: Uses PageLayout template for consistent design, user profile display with role information.
+    - Data: Projects via Supabase; create project available to all authenticated users with role-based warnings.
+    - Project Creation Flow: Creates project → automatically creates linked roof → navigates to roof dashboard.
+    - Navigation: Smart ProjectOpenButton navigates to /roofs/[id] based on project's linked roof, /roofs/[id]/settings, /admin/users.
     - Chat scope: global.
 
 3) /roofs
@@ -136,9 +152,10 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 
 4) /roofs/[id]
     - File: src/app/roofs/[id]/page.tsx (if present)
-    - Purpose: Roof details with pins.
+    - Purpose: Roof details with pins and project management functionality.
     - Components: PinCanvas, PinDetailsModalV2, PhotoDashboard, ChatPanel.
-    - Navigation: to settings /roofs/[id]/settings.
+    - Features: Displays roof information linked to projects, pin management, photo handling.
+    - Navigation: to settings /roofs/[id]/settings, back to home via breadcrumbs.
     - Chat scope: roof (scope_id = roofId).
 
 5) /roofs/[id]/settings
@@ -152,15 +169,20 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
     - File: src/app/admin/users/page.tsx
     - Purpose: Admin user management (search, role/status changes).
     - Permissions: Admin only.
+    - Features: User role management, status updates, administrative controls.
     - Navigation: back to /.
     - Chat scope: none.
 
-Navigation graph (text):
-- /login → /
-- / → /roofs, /roofs/[id], /roofs/[id]/settings, /admin/users
-- /roofs → /roofs/[id]
-- /roofs/[id] ↔ /roofs/[id]/settings
-- /admin/users → /
+Navigation Flow Summary:
+- Project Creation: / → Create Project → Auto-create Roof → Navigate to /roofs/[id]
+- Project Access: / → Click Project in Table → /roofs/[linked-roof-id]
+- Settings: /roofs/[id] ↔ /roofs/[id]/settings
+- Admin: / → /admin/users → /
+
+Button Behaviors:
+- "New Project" Button: Available to all authenticated users, shows role-based warnings for non-Admin users
+- "Open Project" Button: Smart navigation - finds linked roof and navigates to roof dashboard
+- Project Table Rows: Clicking navigates directly to the associated roof dashboard
 
 ## מפת עמודים וקשרים (עברית)
 1) /login
@@ -172,10 +194,11 @@ Navigation graph (text):
 
 2) /
     - קובץ: src/app/page.tsx
-    - מטרה: דשבורד ביתי/סקירה; מציג פרויקטים אמיתיים מסביבת Supabase.
-    - תכונות: משתמש בתבנית PageLayout לעיצוב אחיד.
-    - דאטה: פרויקטים מסופבאייס; יצירת פרויקט אפשרית רק ל-Admin/QA_Manager.
-    - ניווט: ל-/roofs/[id], הגדרות /roofs/[id]/settings, /admin/users.
+    - מטרה: דשבורד ביתי/סקירה; מציג פרויקטים אמיתיים מסביבת Supabase עם יכולת יצירת פרויקטים.
+    - תכונות: משתמש בתבנית PageLayout לעיצוב אחיד, הצגת פרופיל משתמש עם מידע על התפקיד.
+    - דאטה: פרויקטים מסופבאייס; יצירת פרויקט זמינה לכל המשתמשים המחוברים עם אזהרות לפי תפקיד.
+    - זרימת יצירת פרויקט: יוצר פרויקט → יוצר גג מקושר באופן אוטומטי → מנווט לדשבורד הגג.
+    - ניווט: כפתור ProjectOpenButton חכם מנווט ל-/roofs/[id] על בסיס הגג המקושר לפרויקט, הגדרות /roofs/[id]/settings, /admin/users.
     - היקף צ׳אט: global.
 
 3) /roofs
@@ -187,9 +210,10 @@ Navigation graph (text):
 
 4) /roofs/[id]
     - קובץ: src/app/roofs/[id]/page.tsx (אם קיים)
-    - מטרה: פרטי גג עם פינים.
+    - מטרה: פרטי גג עם פינים ופונקציונליות ניהול פרויקטים.
     - רכיבים: PinCanvas, PinDetailsModalV2, PhotoDashboard, ChatPanel.
-    - ניווט: להגדרות /roofs/[id]/settings.
+    - תכונות: הצגת מידע גג המקושר לפרויקטים, ניהול פינים, טיפול בתמונות.
+    - ניווט: להגדרות /roofs/[id]/settings, חזרה לבית דרך breadcrumbs.
     - היקף צ׳אט: roof (scope_id = roofId).
 
 5) /roofs/[id]/settings
@@ -203,15 +227,20 @@ Navigation graph (text):
     - קובץ: src/app/admin/users/page.tsx
     - מטרה: ניהול משתמשים (חיפוש, שינוי תפקיד/סטטוס).
     - הרשאות: Admin בלבד.
+    - תכונות: ניהול תפקידי משתמשים, עדכוני סטטוס, בקרות ניהוליות.
     - ניווט: חזרה ל-/.
     - היקף צ׳אט: אין.
 
-גרף ניווט (טקסט):
-- /login → /
-- / → /roofs, /roofs/[id], /roofs/[id]/settings, /admin/users
-- /roofs → /roofs/[id]
-- /roofs/[id] ↔ /roofs/[id]/settings
-- /admin/users → /
+סיכום זרימת הניווט:
+- יצירת פרויקט: / → יצירת פרויקט → יצירת גג אוטומטית → ניווט ל-/roofs/[id]
+- גישה לפרויקט: / → לחיצה על פרויקט בטבלה → /roofs/[linked-roof-id]
+- הגדרות: /roofs/[id] ↔ /roofs/[id]/settings
+- ניהול: / → /admin/users → /
+
+התנהגות כפתורים:
+- כפתור "פרויקט חדש": זמין לכל המשתמשים המחוברים, מציג אזהרות לפי תפקיד למשתמשים שאינם Admin
+- כפתור "פתח פרויקט": ניווט חכם - מוצא את הגג המקושר ומנווט לדשבורד הגג
+- שורות טבלת פרויקטים: לחיצה מנווטת ישירות לדשבורד הגג המשויך
 
 ## 🎨 Recent Design System Improvements
 
@@ -655,10 +684,27 @@ pnpm node scripts/generate-admin-link.mjs
 
 # Set an admin password (requires service role key)
 pnpm node scripts/set-admin-password.mjs
+
+# List all users with their roles and status
+pnpm node scripts/list-users.mjs
+
+# Update a user's role
+pnpm node scripts/update-user-role.mjs
+
+# Emergency admin role fix for existing users
+pnpm node scripts/emergency-admin-fix.mjs
 ```
 
+**User Management Features:**
+- **Role Management**: Update user roles (Admin, QA_Manager, Supervisor, Foreman, Viewer)
+- **User Listing**: View all users with their current roles and status
+- **Emergency Admin Access**: Scripts to grant admin access when needed
+- **Bulk Operations**: Support for managing multiple users efficiently
+
 Notes:
-- After first login, ensure the user row in `users` has `role = 'Admin'` or `QA_Manager` for project creation.
+- Project creation is now available to all authenticated users with role-based guidance
+- Admin and QA_Manager roles receive full project management capabilities
+- Other roles receive appropriate warnings but can still create projects
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser; it is used server-side only.
 
 ## 🚀 Production Features
@@ -681,11 +727,24 @@ The application includes built-in monitoring for:
 
 - Row Level Security (RLS) enabled on all database tables
 - Secure file upload with validation
-- Authentication via Supabase Auth
+- Authentication via Supabase Auth with Google OAuth support
 - Environment variable protection
+- Role-based access control with user-friendly permissions
 
-Project creation permissions:
-- Only `Admin` or `QA_Manager` can INSERT into `projects` per RLS. The UI disables the action for other roles and shows a clear message.
+**Project Creation & Access Control:**
+- **All authenticated users** can create projects (improved from previous Admin/QA_Manager only restriction)
+- **Role-based guidance**: Non-Admin users receive appropriate warnings and confirmations
+- **Automatic workflow**: Project creation includes automatic roof generation and proper navigation
+- **Database security**: RLS policies still protect sensitive operations at the database level
+- **User experience**: Clear role information displayed in navigation header
+
+**Permission Levels:**
+- **Admin**: Full access to all features, user management, no restrictions
+- **QA_Manager**: Full project management capabilities, advanced features
+- **Supervisor/Foreman**: Project creation with guidance, standard workflow access
+- **Viewer**: Limited access, read-only in most areas
+
+The security model balances user-friendly frontend interactions with robust database-level protection.
 
 ## 🤝 Contributing
 
@@ -732,9 +791,20 @@ For support and questions:
 
 ### Database Issues
 - **Failed to create project (permission denied / RLS)**:
-  - Ensure your `users.role` is `Admin` or `QA_Manager`
-  - Verify `20240828_rls_policies.sql` was applied
-  - Sign out/in to refresh the JWT after role changes
+  - Note: Project creation is now available to all authenticated users
+  - Ensure you are logged in with a valid user account
+  - Role-based warnings are shown for non-Admin users but creation is still allowed
+  - Verify database RLS policies are correctly configured
+
+- **Project doesn't appear in table after creation**:
+  - Fixed: Automatic roof creation and navigation now works properly
+  - Project creation now includes automatic linked roof generation
+  - Navigation flows correctly from project table to roof dashboard
+
+- **Navigation issues from project table**:
+  - Fixed: Smart ProjectOpenButton now correctly identifies linked roofs
+  - Projects without roofs will trigger automatic roof creation
+  - Navigation properly routes to /roofs/[roof-id] instead of generic paths
 
 ### Build Issues
 - **Next.js "inferred workspace root" warning (multiple lockfiles)**:
