@@ -17,6 +17,18 @@ import type {
   ChatInsert
 } from '../database.types'
 
+// Enhanced layer system imports
+import { 
+  useAvailableLayers,
+  useEnhancedPinsForRoof,
+  useLayerStatistics,
+  useCreateEnhancedPin,
+  useUpdatePinChild,
+  useAddPinPhoto,
+  useLayerManagement,
+  useFilteredPins
+} from '../layers'
+
 // Query keys factory
 export const queryKeys = {
   projects: ['projects'] as const,
@@ -623,4 +635,16 @@ export function useSupabaseError() {
       return error
     }
   }
+}
+
+// Re-export layer system hooks for convenience
+export {
+  useAvailableLayers,
+  useEnhancedPinsForRoof,
+  useLayerStatistics,
+  useCreateEnhancedPin,
+  useUpdatePinChild,
+  useAddPinPhoto,
+  useLayerManagement,
+  useFilteredPins
 }
