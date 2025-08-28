@@ -60,6 +60,7 @@ export function PinCanvas({
   
   // State to control if panning is enabled (only when zoomed in)
   const [panningEnabled, setPanningEnabled] = useState(false)
+  const [showControls, setShowControls] = useState(true)
 
   // Calculate and cache scale factors for performance
   const calculateScaleFactors = useCallback((): ScaleCache | null => {
@@ -379,67 +380,73 @@ export function PinCanvas({
         </g>
       </svg>
 
-      {/* Canvas controls - Map Controls */}
-      <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-3 space-y-2">
-        <h4 className="text-white text-sm font-semibold mb-2">Map Controls</h4>
-        <button
-          onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.min(prev.zoom * 1.2, 5) }))}
-          className="w-full p-2 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-sm"
-          title="Zoom In"
-        >
-          🔍+ Zoom In
-        </button>
-        
-        <button
-          onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.max(prev.zoom / 1.2, 0.1) }))}
-          className="w-full p-2 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-sm"
-          title="Zoom Out"
-        >
-          🔍- Zoom Out
-        </button>
-        
-        <button
-          onClick={() => setCanvasState({ zoom: 1, panX: 0, panY: 0, isDragging: false, dragStart: { x: 0, y: 0 }, hasMoved: false })}
-          className="w-full p-2 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-sm"
-          title="Reset View"
-        >
-          🏠 Reset View
-        </button>
-        
-        {editable && (
-          <button
-            className="w-full p-2 bg-emerald-500/80 border border-emerald-400 rounded-md shadow-sm hover:bg-emerald-600/80 transition-colors text-white text-sm font-medium"
-            title="Click to Add Pin"
-          >
-            📍 Click to Add Pin
-          </button>
-        )}
-        
-        <div className="text-xs text-white/70 mt-2 pt-2 border-t border-white/20">
-          Scroll: Zoom • Drag: Pan (when zoomed)
-        </div>
-      </div>
+      {/* Toggle button for controls */}
+      <button
+        onClick={() => setShowControls(!showControls)}
+        className="absolute top-4 right-4 w-8 h-8 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10"
+        title={showControls ? "Hide Controls" : "Show Controls"}
+      >
+        {showControls ? "👁️" : "⚙️"}
+      </button>
 
-      {/* Pin Status Legend - separate container */}
-      <div className="absolute bottom-4 left-4">
-        <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
-          <h4 className="text-sm font-semibold mb-3">Pin Status Legend</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span>Open Issues</span>
+      {/* Canvas controls - Map Controls - moved to bottom right */}
+      {showControls && (
+        <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm rounded-lg p-2 space-y-1">
+          <h4 className="text-white text-xs font-semibold mb-1 text-center">Map Controls</h4>
+          <button
+            onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.min(prev.zoom * 1.2, 5) }))}
+            className="w-full p-1.5 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-xs"
+            title="Zoom In"
+          >
+            🔍+ Zoom In
+          </button>
+          
+          <button
+            onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.max(prev.zoom / 1.2, 0.1) }))}
+            className="w-full p-1.5 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-xs"
+            title="Zoom Out"
+          >
+            🔍- Zoom Out
+          </button>
+          
+          <button
+            onClick={() => setCanvasState({ zoom: 1, panX: 0, panY: 0, isDragging: false, dragStart: { x: 0, y: 0 }, hasMoved: false })}
+            className="w-full p-1.5 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-xs"
+            title="Reset View"
+          >
+            🏠 Reset
+          </button>
+          
+          {editable && (
+            <div className="text-xs text-white/70 mt-1 pt-1 border-t border-white/20 text-center">
+              Click: Add Pin
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-              <span>Ready for Inspection</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-              <span>Closed</span>
+          )}
+        </div>
+      )}
+
+      {/* Pin Status Legend - smaller and moved to top left */}
+      {showControls && (
+        <div className="absolute top-4 left-4">
+          <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 text-white">
+            <h4 className="text-xs font-semibold mb-2">Pin Status</h4>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span>Open</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span>Review</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span>Closed</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
