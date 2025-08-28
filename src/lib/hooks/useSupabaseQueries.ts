@@ -1,5 +1,5 @@
 // React Query hooks for production Supabase integration
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabaseService, db } from '../supabase-production'
 import { supabase } from '../supabase'
@@ -28,6 +28,9 @@ import {
   useLayerManagement,
   useFilteredPins
 } from '../layers'
+
+// מחוץ לכל קומפוננט/הוק (קבוע יחיד)
+const ANON_USER = { id: 'anonymous', name: 'Anonymous', role: 'Viewer' }
 
 // Query keys factory
 export const queryKeys = {
@@ -158,14 +161,14 @@ export function useCreatePinChild() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (pinChild: PinChildInsert) => db.pinChildren.create(pinChild),
-    onSuccess: (data) => {
-      // Invalidate related queries
+    // קבל גם roofId כדי לאמת קווארי נכון
+    mutationFn: ({ pinChild, roofId }: { pinChild: PinChildInsert; roofId: string }) =>
+      db.pinChildren.create(pinChild),
+    onSuccess: (data, { roofId }) => {
+      // ילד ספציפי
       queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(data.pin_id) })
-      queryClient.invalidateQueries({ 
-        queryKey: ['pins', 'roof'], 
-        predicate: (query) => query.queryKey.includes(data.pin_id)
-      })
+      // רשימת פינים לרעף
+      queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
     },
     onError: (error) => {
       console.error('Failed to create pin child:', error)
@@ -177,15 +180,13 @@ export function useUpdatePinChildStatus() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ childId, status }: { childId: string; status: PinChild['status_child'] }) =>
-      db.pinChildren.updateStatus(childId, status),
-    onSuccess: (data) => {
+    mutationFn: ({ childId, status, roofId }: {
+      childId: string; status: PinChild['status_child']; roofId: string
+    }) => db.pinChildren.updateStatus(childId, status),
+    onSuccess: (data, { roofId }) => {
       // Invalidate related queries to trigger re-aggregation
       queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(data.pin_id) })
-      queryClient.invalidateQueries({ 
-        queryKey: ['pins', 'roof'],
-        predicate: (query) => query.queryKey.includes('roof')
-      })
+      queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
     },
     onError: (error) => {
       console.error('Failed to update pin child status:', error)
@@ -229,14 +230,14 @@ export function useUploadPhoto() {
         queryClient.invalidateQueries({ 
           queryKey: queryKeys.photosByChild(data.child_id) 
         })
-        
-        // If it's a closure photo, might affect pin status
-        if (data.type === 'ClosurePIC') {
-          queryClient.invalidateQueries({ 
-            queryKey: ['pins', 'children'],
-            predicate: (query) => query.queryKey.includes(data.pin_id)
-          })
-        }
+      }
+      
+      // Invalidate pin with children if pin_id exists
+      if (data.pin_id) {
+        // תקין: מפתח קיים
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.pinWithChildren(data.pin_id) 
+        })
       }
     },
     onError: (error) => {
@@ -252,6 +253,7 @@ export function useChatMessages(scope: Chat['scope'], scopeId?: string) {
     queryFn: () => db.chat.getMessages(scope, scopeId),
     staleTime: 30 * 1000, // 30 seconds - chat should be relatively fresh
     refetchInterval: 30 * 1000, // Poll every 30 seconds when active
+    refetchIntervalInBackground: false, // אל תפול ברקע
   })
 }
 
@@ -510,9 +512,12 @@ export function usePresence(channel: string, userInfo: { id: string; name: strin
 export function useRealTimeChat(scope: Chat['scope'], scopeId?: string, userInfo?: { id: string; name: string; role: string }) {
   const queryClient = useQueryClient()
   const chatQuery = useChatMessages(scope, scopeId)
+  
+  // יציב - נמנע מ-resubscribe אינסופי
+  const stableUser = useMemo(() => userInfo ?? ANON_USER, [userInfo])
   const { users: onlineUsers, onlineCount } = usePresence(
     `chat:${scope}:${scopeId || 'global'}`,
-    userInfo || { id: 'anonymous', name: 'Anonymous', role: 'Viewer' }
+    stableUser
   )
 
   useEffect(() => {
@@ -544,7 +549,7 @@ export function useRealTimeChat(scope: Chat['scope'], scopeId?: string, userInfo
 // Enhanced real-time pin management
 export function useRealTimePinManagement(roofId: string, pinId?: string) {
   const queryClient = useQueryClient()
-  const pinQuery = usePinWithChildren(pinId || '')
+  const pinQuery = usePinWithChildren(pinId || '') // ההוק עצמו כבר עושה enabled: !!pinId
   const pinsQuery = usePinsByRoof(roofId)
 
   useEffect(() => {
