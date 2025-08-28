@@ -7,6 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PinCanvas } from '@/components/canvas/PinCanvas'
+import { EnhancedPinCanvas } from '@/components/canvas/EnhancedPinCanvas'
+import dynamic from 'next/dynamic'
+
+// Dynamic import for Enhanced Pin Canvas to avoid SSR issues
+const DynamicEnhancedPinCanvas = dynamic(
+  () => import('@/components/canvas/EnhancedPinCanvas').then(mod => ({ default: mod.EnhancedPinCanvas })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
+        <div className="text-muted-foreground">Loading canvas...</div>
+      </div>
+    )
+  }
+)
 import { PinDetailsCard } from '@/components/pins/PinDetailsCard'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import ExportDialog from '@/components/export/ExportDialog'
@@ -357,11 +372,11 @@ function RoofDashboardPage() {
               
               {/* Roof Plan Container */}
               <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden relative">
-                <PinCanvas
+                <DynamicEnhancedPinCanvas
                   roofId={roofId}
                   onPinCreate={handlePinCreate}
                   onPinSelect={(pin) => {
-                    console.log('PinCanvas onPinSelect called with:', pin) // Debug log
+                    console.log('EnhancedPinCanvas onPinSelect called with:', pin) // Debug log
                     if (pin) handlePinClick(pin)
                   }}
                   selectedPinId={selectedPin?.id}

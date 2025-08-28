@@ -51,6 +51,13 @@ const nextConfig = {
       }
     }
 
+    // Handle Konva for client-side only
+    config.externals = config.externals || []
+    config.externals.push({
+      'canvas': 'canvas',
+      'jsdom': 'jsdom'
+    })
+
     // Optimize bundle splitting
     config.optimization = {
       ...config.optimization,
