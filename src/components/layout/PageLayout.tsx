@@ -1,6 +1,6 @@
 "use client"
 
-import React, { ReactNode } from 'react'
+import React, { ReactNode, useState, useEffect, useRef } from 'react'
 import { Search, Settings, User, Bell, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -38,13 +38,41 @@ export function PageLayout({
   onSearchChange,
 }: PageLayoutProps) {
   const { profile } = useAuth()
+  const [showMobileSearch, setShowMobileSearch] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const profileMenuRef = useRef<HTMLDivElement>(null)
+  
+  // Close profile menu on outside click or escape key
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false)
+      }
+    }
+    
+    function handleEscapeKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setShowProfileMenu(false)
+        setShowMobileSearch(false)
+      }
+    }
+    
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleEscapeKey)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('keydown', handleEscapeKey)
+      }
+    }
+  }, [showProfileMenu])
   
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 ${className}`}>
+    <div className={`min-h-screen pt-[env(safe-area-inset-top)] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 ${className}`}>
       {/* Premium 3D Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/50 shadow-xl shadow-indigo-500/5 pt-safe">
+      <nav className="sticky top-0 z-50 backdrop-blur md:backdrop-blur-lg bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/50 shadow md:shadow-xl shadow-indigo-500/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             {/* Logo & Title */}
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
@@ -59,8 +87,19 @@ export function PageLayout({
             </div>
 
             {/* Navigation Actions */}
-            <div className="flex items-center space-x-3">
-              {/* Search */}
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap justify-end">
+              {/* Mobile search toggle */}
+              {showSearch && (
+                <button
+                  aria-label="Search"
+                  onClick={() => setShowMobileSearch(v => !v)}
+                  className="p-2 sm:hidden bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow shadow-slate-500/10 transition-all duration-300"
+                >
+                  <Search className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                </button>
+              )}
+
+              {/* Desktop search */}
               {showSearch && (
                 <div className="relative hidden sm:block">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
@@ -68,32 +107,55 @@ export function PageLayout({
                     type="text"
                     placeholder={searchPlaceholder}
                     onChange={(e) => onSearchChange?.(e.target.value)}
-                    className="pl-10 pr-4 py-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none shadow-lg shadow-slate-500/5 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    className="pl-10 pr-4 py-2 w-64 md:w-80 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none shadow shadow-slate-500/5 transition-all duration-300 text-slate-900 dark:text-slate-100"
                   />
                 </div>
               )}
               
-              {/* Connection Status */}
-              <ConnectionStatus variant="inline" />
+              {/* Connection Status - hidden on mobile */}
+              <div className="hidden md:block">
+                <ConnectionStatus variant="inline" />
+              </div>
               
-              {/* Theme Toggle */}
-              <ThemeToggle />
+              {/* Theme Toggle - hidden on small mobile */}
+              <div className="hidden sm:inline-flex">
+                <ThemeToggle />
+              </div>
               
-              {/* Action Buttons */}
-              <button className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+              {/* Notifications */}
+              <button 
+                aria-label="Notifications"
+                className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow shadow-slate-500/10 transition-all duration-300 hover:scale-105"
+              >
                 <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               </button>
-              <Link href="/settings">
-                <button className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+
+              {/* Settings - hidden on mobile */}
+              <Link href="/settings" className="hidden sm:inline-flex">
+                <button 
+                  aria-label="Settings"
+                  className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow shadow-slate-500/10 transition-all duration-300 hover:scale-105"
+                >
                   <Settings className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                 </button>
               </Link>
-              <div className="relative group">
-                <button className="p-2 bg-gradient-to-r from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 text-white rounded-lg shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+
+              {/* Profile Button with Click (not hover) */}
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  aria-label="Profile menu" 
+                  aria-haspopup="menu"
+                  aria-expanded={showProfileMenu}
+                  onClick={() => setShowProfileMenu(o => !o)}
+                  className="p-2 bg-gradient-to-r from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 text-white rounded-lg shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                >
                   <User className="w-5 h-5" />
                 </button>
-                {profile && (
-                  <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl p-3 min-w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                {showProfileMenu && profile && (
+                  <div 
+                    role="menu"
+                    className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl p-3 min-w-48 z-50"
+                  >
                     <div className="text-sm">
                       <div className="font-semibold text-slate-900 dark:text-slate-100">{profile.full_name}</div>
                       <div className="text-slate-600 dark:text-slate-400">{profile.email}</div>
@@ -106,15 +168,31 @@ export function PageLayout({
               </div>
             </div>
           </div>
+
+          {/* Mobile search dropdown */}
+          {showSearch && showMobileSearch && (
+            <div className="sm:hidden mt-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder={searchPlaceholder}
+                  onChange={(e) => onSearchChange?.(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white/80 dark:bg-slate-800/80 border border-white/30 dark:border-slate-700/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-slate-100"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
       {/* Page Header */}
       <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm border-b border-white/40 dark:border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          {/* Breadcrumbs */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          {/* Breadcrumbs - hidden on mobile */}
           {breadcrumbs && breadcrumbs.length > 0 && (
-            <nav className="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <nav className="hidden sm:flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400 mb-4">
               {breadcrumbs.map((crumb, index) => (
                 <React.Fragment key={index}>
                   {index > 0 && <span>/</span>}
@@ -130,12 +208,15 @@ export function PageLayout({
             </nav>
           )}
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
               {/* Back Button */}
               {showBackButton && (
                 <Link href={backHref}>
-                  <button className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow-lg shadow-slate-500/10 transition-all duration-300 hover:scale-105">
+                  <button 
+                    aria-label="Back"
+                    className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow shadow-slate-500/10 transition-all duration-300 hover:scale-105"
+                  >
                     <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                   </button>
                 </Link>
@@ -143,16 +224,16 @@ export function PageLayout({
               
               {/* Page Title */}
               <div>
-                <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{title}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">{title}</h1>
                 {subtitle && (
-                  <p className="text-slate-600 dark:text-slate-400 mt-1">{subtitle}</p>
+                  <p className="text-slate-600 dark:text-slate-400 mt-1 truncate">{subtitle}</p>
                 )}
               </div>
             </div>
             
             {/* Page Actions */}
             {actions && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 {actions}
               </div>
             )}
@@ -161,7 +242,7 @@ export function PageLayout({
       </div>
 
       {/* Main Content */}
-      <main className={`max-w-7xl mx-auto px-6 sm:px-8 py-8 pb-safe ${contentClassName}`}>
+      <main className={`max-w-7xl mx-auto px-4 sm:px-8 py-8 pb-[calc(env(safe-area-inset-bottom)+84px)] ${contentClassName}`}>
         {children}
       </main>
 
