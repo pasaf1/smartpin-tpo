@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { pinService } from '../services/PinServiceEnhanced'
 import { storageService } from '../services/StorageService'
+import { isRLSError, getRLSErrorMessage } from '@/components/error/RLSErrorBoundary'
 import type { 
   PinWithRelations, 
   CreatePinForm, 
@@ -29,7 +30,7 @@ export function usePinsForRoof(roofId: string) {
     refetchOnWindowFocus: true,
     retry: (failureCount, error: any) => {
       // Don't retry on RLS errors
-      if (['PGRST116', 'PGRST301', 'PGRST204'].includes(error?.code)) {
+      if (['PGRST116', 'PGRST301', 'PGRST204', '42501'].includes(error?.code)) {
         return false
       }
       return failureCount < 3
@@ -47,7 +48,7 @@ export function usePin(pinId: string) {
     enabled: !!pinId,
     staleTime: 1000 * 60 * 2, // 2 minutes
     retry: (failureCount, error: any) => {
-      if (['PGRST116', 'PGRST301', 'PGRST204'].includes(error?.code)) {
+      if (['PGRST116', 'PGRST301', 'PGRST204', '42501'].includes(error?.code)) {
         return false
       }
       return failureCount < 3

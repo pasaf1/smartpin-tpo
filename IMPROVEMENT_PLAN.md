@@ -106,33 +106,33 @@ interface PinWithRelations extends Pin {
 
 ---
 
-## 🔐 שלב 2: תיקון מדיניות RLS וטיפול בשגיאות
-**משך זמן משוער**: 3-4 ימים
+## 🔐 שלב 2: תיקון מדיניות RLS וטיפול בשגיאות ✅ הושלם חלקית!
+**משך זמן בפועל**: 1 יום
 
-### 2.1 בדיקת מדיניות RLS
-- [ ] **סקירת כל המדיניות** ב-`supabase/migrations/`
-- [ ] **בדיקת הרשאות** לכל טבלה (SELECT, INSERT, UPDATE, DELETE)
-- [ ] **תיקון מדיניות חסרות** לפעולות ייחודיות
+### ✅ 2.1 בדיקת מדיניות RLS - הושלם!
+- [x] **סקירת כל המדיניות** ב-`supabase/migrations/`
+- [x] **זיהוי מדיניות חסרות** - נמצאו חסרות מדיניות DELETE!
+- [x] **יצירת מדיניות DELETE** ב-`20240829_add_delete_policies.sql`
+- [x] **יצירת מדיניות Storage** ב-`20240829_storage_policies.sql`
 
-### 2.2 טיפול בשגיאות RLS
-```typescript
-// במקום:
-const { data } = await supabase.from('pins').update(updates)
+### ✅ 2.2 טיפול בשגיאות RLS - הושלם!
+- [x] **עדכון BaseService** עם קוד שגיאה 42501
+- [x] **שיפור RLSErrorBoundary** (כבר היה קיים וטוב)
+- [x] **עדכון hooks** לטיפול בשגיאה 42501
+- [x] **הודעות שגיאה בעברית** מקיפות
 
-// להשתמש ב:
-const { data, error } = await supabase.from('pins').update(updates)
-if (error) {
-  if (error.code === 'PGRST116') {
-    throw new Error('אין הרשאה לעדכן פין זה')
-  }
-  throw new Error(`שגיאה בעדכון: ${error.message}`)
-}
-```
+### 📁 קבצים שנוצרו/עודכנו:
+1. **`supabase/migrations/20240829_add_delete_policies.sql`** - מדיניות DELETE חסרות
+2. **`supabase/migrations/20240829_storage_policies.sql`** - מדיניות Storage מקיפות  
+3. **`src/lib/services/BaseService.ts`** - תמיכה בקוד שגיאה 42501
+4. **`src/lib/hooks/useEnhancedPins.ts`** - טיפול משופר בשגיאות RLS
 
-### 2.3 יצירת Error Boundary Components
-- [ ] **ErrorBoundary** כללי לכל האפליקציה
-- [ ] **RLSErrorHandler** ספציפי לשגיאות הרשאות
-- [ ] **הודעות שגיאה ידידותיות** למשתמש
+### 🎯 תוצאות שלב 2:
+- ✅ **כל הטבלאות** כוללות עכשיו מדיניות DELETE מתאימות
+- ✅ **Storage buckets** מוגנים עם RLS policies נכונות  
+- ✅ **שגיאות RLS** מטופלות בצורה ידידותית למשתמש
+- ✅ **Build מצליח** - אפס שגיאות קומפילציה
+- ✅ **Error boundaries** עובדים ברמת האפליקציה
 
 ---
 

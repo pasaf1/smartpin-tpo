@@ -4,7 +4,7 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { usePhotoAnalytics } from '@/lib/hooks/useSupabaseQueries'
+import { usePhotoAnalytics } from '@/lib/hooks/usePhotosAndChat'
 import { BarChart3, HardDrive, Camera, TrendingUp, Users, Calendar, Zap } from 'lucide-react'
 
 type NumRecord = Record<string, number>
@@ -63,7 +63,7 @@ function formatPercentage(value: number, total: number): string {
  * @param {string} [className] - Optional CSS class for custom styling.
  */
 export default function PhotoAnalytics({ pinId, className }: PhotoAnalyticsProps) {
-  const analyticsQuery = usePhotoAnalytics(pinId)
+  const analyticsQuery = usePhotoAnalytics()
   const a = (analyticsQuery.data as Partial<AnalyticsData> | undefined) ?? {}
 
   const totalPhotos = asNumber(a.total_photos)

@@ -5,6 +5,7 @@ import QueryProvider from "@/lib/query/QueryProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth/AuthContext";
+import RLSErrorBoundary from "@/components/error/RLSErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -104,7 +105,9 @@ export default function RootLayout({
         >
           <AuthProvider>
             <QueryProvider>
-              {children}
+              <RLSErrorBoundary>
+                {children}
+              </RLSErrorBoundary>
               <Toaster />
             </QueryProvider>
           </AuthProvider>

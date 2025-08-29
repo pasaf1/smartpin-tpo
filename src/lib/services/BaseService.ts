@@ -98,7 +98,7 @@ export abstract class BaseService {
    * Check if error is RLS related
    */
   private isRLSError(error: any): boolean {
-    return ['PGRST116', 'PGRST301', 'PGRST204'].includes(error.code)
+    return ['PGRST116', 'PGRST301', 'PGRST204', '42501'].includes(error.code)
   }
 
   /**
@@ -199,12 +199,20 @@ export abstract class BaseService {
    */
   protected handleSupabaseError(error: any): never {
     // RLS Permission Errors
-    if (['PGRST116', 'PGRST301', 'PGRST204'].includes(error.code)) {
+    if (['PGRST116', 'PGRST301', 'PGRST204', '42501'].includes(error.code)) {
       const messages = {
         PGRST116: 'אין הרשאה לצפות ברשומה זו',
         PGRST301: 'אין הרשאה לעדכן רשומה זו', 
-        PGRST204: 'הרשומה לא נמצאה או שאין הרשאה לגשת אליה'
+        PGRST204: 'הרשומה לא נמצאה או שאין הרשאה לגשת אליה',
+        '42501': 'הרשאות לא מספקות לביצוע פעולה זו'
       }
+      
+      console.warn(`[RLS Error ${error.code}]:`, {
+        message: messages[error.code as keyof typeof messages],
+        originalError: error,
+        timestamp: new Date().toISOString()
+      })
+      
       throw new RLSPermissionError(
         error,
         messages[error.code as keyof typeof messages] || 'שגיאת הרשאה',

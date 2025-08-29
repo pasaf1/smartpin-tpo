@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { usePhotoAnalytics, usePhotosByPin } from '@/lib/hooks/useSupabaseQueries'
+import { usePhotosForPin, usePhotoAnalytics } from '@/lib/hooks/usePhotosAndChat'
 import { PhotoGallery, PinPhoto } from './PhotoGallery'
 import { PhotoUploadZone } from './PhotoUploadZone'
 import { 
@@ -26,8 +26,8 @@ interface PhotoDashboardProps {
 
 export function PhotoDashboard({ pinId, className }: PhotoDashboardProps) {
   const [activeTab, setActiveTab] = useState('gallery')
-  const photosQuery = usePhotosByPin(pinId)
-  const analyticsQuery = usePhotoAnalytics(pinId)
+  const photosQuery = usePhotosForPin(pinId)
+  const analyticsQuery = usePhotoAnalytics()
 
   // Map raw photos to PinPhoto shape, fallback for missing fields
   const rawPhotos = photosQuery.data || [];
