@@ -282,15 +282,16 @@ export function useDeleteRoof() {
 
 // Additional hooks for compatibility
 export function useProjects() {
-  // Return projects (roofs grouped by project or simple mock)
   return useQuery({
     queryKey: ['projects'],
-    queryFn: async () => {
-      // Mock projects data
-      return [
-        { id: '1', project_id: '1', name: 'Project 1', description: 'Demo project', status: 'Open' },
-        { id: '2', project_id: '2', name: 'Project 2', description: 'Demo project 2', status: 'Open' }
-      ]
+    queryFn: async (): Promise<Project[]> => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
     }
   })
 }
@@ -318,6 +319,34 @@ export function useCreateProject() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+    }
+  })
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (projectId: string): Promise<void> => {
+      // First delete all associated roofs (cascade delete)
+      const { error: roofsError } = await supabase
+        .from('roofs')
+        .delete()
+        .eq('project_id', projectId)
+      
+      if (roofsError) throw roofsError
+
+      // Then delete the project
+      const { error: projectError } = await supabase
+        .from('projects')
+        .delete()
+        .eq('project_id', projectId)
+
+      if (projectError) throw projectError
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofs })
     }
   })
 }

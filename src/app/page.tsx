@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,9 +9,10 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { useProjects, useCreateProject } from '@/lib/hooks/useRoofs'
+import { useProjects, useCreateProject, useDeleteProject } from '@/lib/hooks/useRoofs'
 import { useRoofsByProject } from '@/lib/hooks/useRoofs'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
+import { supabase } from '@/lib/supabase'
 
 function HomePage() {
   const { profile } = useAuth()
@@ -26,6 +27,63 @@ function HomePage() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
   const createProject = useCreateProject()
   const createRoof = useCreateRoof()
+  const deleteProject = useDeleteProject()
+
+  // Issue statistics state
+  const [issueStats, setIssueStats] = useState({
+    totalProjects: 0,
+    openIssues: 0,
+    readyForInspection: 0,
+    closedIssues: 0
+  })
+
+  // Modal state for KPI details
+  const [showKpiModal, setShowKpiModal] = useState<null | string>(null)
+
+  // Fetch issue statistics
+  const fetchIssueStats = useCallback(async () => {
+    try {
+      // Get all pins (parent issues) across all projects
+      const { data: pins, error: pinsError } = await supabase
+        .from('pins')
+        .select('status, id')
+
+      if (pinsError) throw pinsError
+
+      // Get all pin children (child issues) across all projects
+      const { data: pinChildren, error: childrenError } = await supabase
+        .from('pin_children')
+        .select('status_child')
+
+      if (childrenError) throw childrenError
+
+      // Calculate statistics
+      const openIssues = (pins?.filter(p => p.status === 'Open').length || 0) + 
+                        (pinChildren?.filter(c => c.status_child === 'Open').length || 0)
+      
+      const readyForInspection = (pins?.filter(p => p.status === 'ReadyForInspection').length || 0) + 
+                                (pinChildren?.filter(c => c.status_child === 'ReadyForInspection').length || 0)
+      
+      const closedIssues = (pins?.filter(p => p.status === 'Closed').length || 0) + 
+                          (pinChildren?.filter(c => c.status_child === 'Closed').length || 0)
+
+      setIssueStats({
+        totalProjects: projects.length,
+        openIssues,
+        readyForInspection,
+        closedIssues
+      })
+    } catch (error) {
+      console.error('Failed to fetch issue statistics:', error)
+      // Set to 0 on error
+      setIssueStats({
+        totalProjects: projects.length,
+        openIssues: 0,
+        readyForInspection: 0,
+        closedIssues: 0
+      })
+    }
+  }, [projects.length])
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -241,6 +299,68 @@ function HomePage() {
     // with the mentioned users extracted for notifications
   }
 
+  const handleDeleteProject = async (project: any) => {
+    const confirmed = confirm(
+      `Are you sure you want to delete "${project.name}"?\n\n` +
+      `This will permanently delete:\n` +
+      `• The project and all its data\n` +
+      `• All associated roofs and issues\n` +
+      `• All photos and documentation\n\n` +
+      `This action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      await deleteProject.mutateAsync(project.project_id)
+      alert(`Project "${project.name}" has been successfully deleted.`)
+    } catch (error: any) {
+      console.error('Failed to delete project:', error)
+      const code = error?.code || 'UNKNOWN'
+      const msg = error?.message || 'Unknown error'
+      
+      if (code === '42501' || /insufficient privileges|RLS|policy/i.test(msg)) {
+        alert('Permission denied. You do not have permission to delete this project.')
+      } else {
+        alert(`Failed to delete project. ${msg} (code: ${code})`)
+      }
+    }
+  }
+
+  const handleProjectRowClick = async (project: any) => {
+    try {
+      // Get the first roof for this project to navigate to
+      const { data: roofs } = await supabase
+        .from('roofs')
+        .select('*')
+        .eq('project_id', project.project_id)
+        .limit(1)
+
+      if (roofs && roofs.length > 0) {
+        // Navigate to the roof dashboard
+        router.push(`/roofs/${roofs[0].id}`)
+      } else {
+        // No roofs found, show message
+        alert(`No roofs found for project "${project.name}". Please create a roof first.`)
+      }
+    } catch (error) {
+      console.error('Failed to navigate to project:', error)
+      alert('Failed to open project. Please try again.')
+    }
+  }
+
+  // KPI click handlers
+  const handleKpiClick = (kpiType: string) => {
+    setShowKpiModal(kpiType)
+  }
+
+  // Fetch stats when projects change
+  useEffect(() => {
+    if (!projectsLoading) {
+      fetchIssueStats()
+    }
+  }, [fetchIssueStats, projectsLoading])
+
   // הצג טעינה אם הדאטה עדיין נטענת
   if (projectsLoading) {
     return (
@@ -268,34 +388,18 @@ function HomePage() {
             <h2 className="text-2xl font-bold text-slate-800">Project Dashboard</h2>
           </div>
           
-          {/* Project Status Filters */}
-          <div className="flex items-center gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
-                Open
-                <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">2</span>
-              </button>
-              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
-                In Progress
-                <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold">1</span>
-              </button>
-              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
-                Completed
-                <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">0</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Projects */}
           <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
             style={{
               background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #4338ca 100%)',
               boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.4)'
             }}
+            onClick={() => handleKpiClick('projects')}
           >
             <div className="relative z-10 flex flex-col items-center">
               <div 
@@ -309,8 +413,8 @@ function HomePage() {
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Total Projects</span>
-              <div className="text-4xl font-bold text-white mb-2">3</div>
-              <p className="text-sm text-white opacity-80 font-medium">Active roofs</p>
+              <div className="text-4xl font-bold text-white mb-2">{projects.length}</div>
+              <p className="text-sm text-white opacity-80 font-medium">Active projects</p>
             </div>
             <div 
               className="absolute inset-0 animate-pulse"
@@ -320,13 +424,14 @@ function HomePage() {
             />
           </div>
 
-          {/* Open INCRs */}
+          {/* Open Issues */}
           <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
             style={{
               background: 'linear-gradient(135deg, #fb923c 0%, #ef4444 50%, #dc2626 100%)',
               boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.4)'
             }}
+            onClick={() => handleKpiClick('open')}
           >
             <div className="relative z-10 flex flex-col items-center">
               <div 
@@ -339,8 +444,8 @@ function HomePage() {
               >
                 <AlertTriangle className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Open INCRs</span>
-              <div className="text-4xl font-bold text-white mb-2">12</div>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Open Issues</span>
+              <div className="text-4xl font-bold text-white mb-2">{issueStats.openIssues}</div>
               <p className="text-sm text-white opacity-80 font-medium">Need attention</p>
             </div>
             <div 
@@ -353,11 +458,12 @@ function HomePage() {
 
           {/* Ready for Inspection */}
           <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
             style={{
               background: 'linear-gradient(135deg, #818cf8 0%, #8b5cf6 50%, #a855f7 100%)',
               boxShadow: '0 25px 50px -12px rgba(139, 92, 246, 0.4)'
             }}
+            onClick={() => handleKpiClick('ready')}
           >
             <div className="relative z-10 flex flex-col items-center">
               <div 
@@ -371,7 +477,7 @@ function HomePage() {
                 <Eye className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Ready for Inspection</span>
-              <div className="text-4xl font-bold text-white mb-2">8</div>
+              <div className="text-4xl font-bold text-white mb-2">{issueStats.readyForInspection}</div>
               <p className="text-sm text-white opacity-80 font-medium">Pending review</p>
             </div>
             <div 
@@ -384,11 +490,12 @@ function HomePage() {
 
           {/* Closed */}
           <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
             style={{
               background: 'linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%)',
               boxShadow: '0 25px 50px -12px rgba(16, 185, 129, 0.4)'
             }}
+            onClick={() => handleKpiClick('closed')}
           >
             <div className="relative z-10 flex flex-col items-center">
               <div 
@@ -401,8 +508,8 @@ function HomePage() {
               >
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Closed</span>
-              <div className="text-4xl font-bold text-white mb-2">145</div>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Closed Issues</span>
+              <div className="text-4xl font-bold text-white mb-2">{issueStats.closedIssues}</div>
               <p className="text-sm text-white opacity-80 font-medium">Completed items</p>
             </div>
             <div 
@@ -540,35 +647,60 @@ function HomePage() {
               </thead>
               <tbody className="divide-y divide-white/20">
                   {filteredProjects.map((p) => (
-                    <tr key={p.id} className="hover:bg-white/30 transition-all duration-200 group">
+                    <tr 
+                      key={p.project_id} 
+                      className="hover:bg-white/30 transition-all duration-200 group cursor-pointer"
+                      onClick={() => handleProjectRowClick(p)}
+                    >
                     <td className="px-6 py-4">
                       <div>
                           <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
                             {p.name}
                           </h3>
-                          <p className="text-xs text-slate-500 font-mono mt-1">{p.id}</p>
+                          <p className="text-xs text-slate-500 font-mono mt-1">{p.project_id}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg">
-                          Active
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-lg ${
+                          p.status === 'Open' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' :
+                          p.status === 'InProgress' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' :
+                          p.status === 'Completed' ? 'bg-gradient-to-r from-gray-500 to-slate-600 text-white' :
+                          'bg-gradient-to-r from-indigo-500 to-blue-600 text-white'
+                        }`}>
+                          {p.status || 'Open'}
                         </span>
                     </td>
                     <td className="px-6 py-4">
-                        <div className="text-sm text-slate-600">—</div>
+                        <div className="text-sm text-slate-600">{p.contractor || '—'}</div>
                     </td>
                     <td className="px-6 py-4">
                         <div className="flex items-center gap-1 text-xs text-slate-500">
                           <Clock className="w-3 h-3" />
-                          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {p.created_at ? new Date(p.created_at).toLocaleDateString() : new Date().toLocaleDateString()}
                         </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <ProjectOpenButton project={p} />
-                        <button className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200">
-                          Edit
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleProjectRowClick(p)
+                          }}
+                          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-all duration-200"
+                        >
+                          Open
                         </button>
+                        {isHighPrivilegeUser && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteProject(p)
+                            }}
+                            className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-all duration-200"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -807,6 +939,98 @@ function HomePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* KPI Detail Modals */}
+      {showKpiModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">
+                  {showKpiModal === 'projects' && `Projects Details (${issueStats.totalProjects})`}
+                  {showKpiModal === 'open' && `Open Issues Details (${issueStats.openIssues})`}
+                  {showKpiModal === 'ready' && `Ready for Inspection Details (${issueStats.readyForInspection})`}
+                  {showKpiModal === 'closed' && `Closed Issues Details (${issueStats.closedIssues})`}
+                </h2>
+                <button
+                  onClick={() => setShowKpiModal(null)}
+                  className="text-white/80 hover:text-white text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {showKpiModal === 'projects' && (
+                <div>
+                  {projects.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                      <div className="text-4xl mb-3">📋</div>
+                      <p>No projects found</p>
+                      <p className="text-sm mt-1">Create your first project to get started</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50">
+                            <th className="text-left p-3 font-semibold">Project Name</th>
+                            <th className="text-left p-3 font-semibold">Status</th>
+                            <th className="text-left p-3 font-semibold">Created</th>
+                            <th className="text-left p-3 font-semibold">Contractor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {projects.map(project => (
+                            <tr key={project.project_id} className="border-b hover:bg-slate-50">
+                              <td className="p-3">
+                                <div>
+                                  <div className="font-semibold">{project.name}</div>
+                                  <div className="text-sm text-slate-500">{project.project_id}</div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                  project.status === 'Open' ? 'bg-green-100 text-green-800' :
+                                  project.status === 'InProgress' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {project.status}
+                                </span>
+                              </td>
+                              <td className="p-3 text-sm text-slate-600">
+                                {new Date(project.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="p-3 text-sm text-slate-600">
+                                {project.contractor || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+              {(showKpiModal === 'open' || showKpiModal === 'ready' || showKpiModal === 'closed') && (
+                <div className="text-center py-8 text-slate-500">
+                  <div className="text-4xl mb-3">
+                    {showKpiModal === 'open' && '🚨'}
+                    {showKpiModal === 'ready' && '👁️'}
+                    {showKpiModal === 'closed' && '✅'}
+                  </div>
+                  <p>No {showKpiModal} issues found</p>
+                  <p className="text-sm mt-1">
+                    {showKpiModal === 'open' && 'All issues are resolved or in progress'}
+                    {showKpiModal === 'ready' && 'No issues are ready for inspection'}
+                    {showKpiModal === 'closed' && 'No issues have been completed yet'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
