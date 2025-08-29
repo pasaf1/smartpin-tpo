@@ -319,7 +319,8 @@ function HomePage() {
                 .from('roof-photos')
                 .getPublicUrl(filePath)
               planImageUrl = urlData.publicUrl
-              console.log('Roof plan image uploaded:', planImageUrl)
+              console.log('Roof plan image uploaded successfully:', planImageUrl)
+              console.log('Upload data:', uploadData)
             }
           } catch (error) {
             console.error('Error uploading roof plan image:', error)
@@ -352,7 +353,8 @@ function HomePage() {
           timeoutPromise
         ]) as any
 
-        console.log('Roof created:', newRoof)
+        console.log('Roof created with plan_image_url:', newRoof.plan_image_url)
+        console.log('Full roof data:', newRoof)
 
         // Close modal and reset form
         setShowNewProjectModal(false)

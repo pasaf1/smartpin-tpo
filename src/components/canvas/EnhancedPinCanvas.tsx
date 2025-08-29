@@ -146,6 +146,13 @@ export function EnhancedPinCanvas({
   editable = true,
   enableCanvasCore = true, // Enable Canvas Core by default
 }: EnhancedPinCanvasProps) {
+  // Debug: Log when component renders with backgroundImageUrl
+  console.log('EnhancedPinCanvas rendered:', {
+    roofId,
+    backgroundImageUrl,
+    hasBackgroundImage: !!backgroundImageUrl
+  })
+  
   const stageRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 })
@@ -206,10 +213,23 @@ export function EnhancedPinCanvas({
 
   // טעינת תמונת הרקע
   useEffect(() => {
+    console.log('Background image effect triggered:', {
+      backgroundImageUrl,
+      hasUrl: !!backgroundImageUrl
+    })
+    
     if (!backgroundImageUrl) return
+    
+    console.log('Starting to load background image:', backgroundImageUrl)
     
     const imageObj = new window.Image()
     imageObj.onload = () => {
+      console.log('Background image loaded successfully:', {
+        width: imageObj.width,
+        height: imageObj.height,
+        url: backgroundImageUrl
+      })
+      
       setBackgroundImage(imageObj)
       // התאמת גודל הקנבס לתמונה
       const aspectRatio = imageObj.width / imageObj.height
@@ -376,6 +396,14 @@ export function EnhancedPinCanvas({
       </div>
     )
   }
+
+  console.log('Rendering EnhancedPinCanvas:', {
+    roofId,
+    backgroundImageUrl,
+    hasBackgroundImage: !!backgroundImage,
+    stageSize,
+    pinsCount: pins.length
+  })
 
   return (
     <div ref={containerRef} className={cn('relative border rounded-lg overflow-hidden bg-gray-100', className)}>

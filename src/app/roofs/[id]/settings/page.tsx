@@ -65,7 +65,7 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
       // Upload to Supabase Storage
       const fileName = `roof-${Date.now()}-${file.name}`
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('roof-plans')
+        .from('roof-photos')
         .upload(fileName, file)
       
       if (uploadError) {
@@ -86,7 +86,7 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
       
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('roof-plans')
+        .from('roof-photos')
         .getPublicUrl(fileName)
       
       if (urlData?.publicUrl) {

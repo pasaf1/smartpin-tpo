@@ -52,6 +52,16 @@ function RoofDashboardPage() {
   
   // Real-time roof data with live updates
   const { roof, pins, isLoading: roofLoading, error: roofError } = useRealTimeRoof(roofId)
+  
+  // Debug: Log roof data to see plan_image_url
+  console.log('Roof page roof data:', {
+    roofId,
+    roof,
+    plan_image_url: roof?.plan_image_url,
+    roof_plan_url: roof?.roof_plan_url,
+    hasRoof: !!roof
+  })
+  
   const { data: pinItems = [] } = useAllPinItems(roofId)
   const { messages } = useChat(roofId, selectedPin?.id)
   const { data: users = [] } = useUsers()
