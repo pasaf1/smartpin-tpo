@@ -312,7 +312,21 @@ function HomePage() {
     if (!confirmed) return
 
     try {
+      console.log('🗑️ Deleting project:', project.project_id, project.name)
+      console.log('📊 Current projects count before deletion:', projects.length)
+      
       await deleteProject.mutateAsync(project.project_id)
+      console.log('✅ Project deleted successfully from database')
+      
+      // Wait a moment for React Query cache invalidation to complete
+      console.log('⏳ Waiting for cache invalidation...')
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Refresh issue statistics after successful deletion
+      await fetchIssueStats()
+      console.log('📊 Issue statistics refreshed')
+      console.log('📊 Current projects count after deletion:', projects.length)
+      
       alert(`Project "${project.name}" has been successfully deleted.`)
     } catch (error: any) {
       console.error('Failed to delete project:', error)

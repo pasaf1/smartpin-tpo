@@ -3,7 +3,9 @@
     "allow": [
       "Bash(pnpm build:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(pnpm dev:*)"
     ],
     "deny": [],
     "ask": []
