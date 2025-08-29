@@ -1,12 +1,15 @@
 import next from '@next/eslint-plugin-next'
 
 export default [
-	{ ignores: ['.next/**', 'node_modules/**', '**/*.{ts,tsx}'] },
+	{ ignores: ['.next/**', 'node_modules/**'] },
 	{
-	files: ['**/*.{js,jsx}'],
+		files: ['**/*.{js,jsx}'],
 		plugins: { '@next/next': next },
 		rules: {
-	// Minimal lint: Next plugin available; no TS/React Hooks plugins required
+			// Next.js specific rules
+			'@next/next/no-html-link-for-pages': 'error',
+			'@next/next/no-img-element': 'warn',
+			'@next/next/no-unwanted-polyfillio': 'error',
 		},
 	},
 ]

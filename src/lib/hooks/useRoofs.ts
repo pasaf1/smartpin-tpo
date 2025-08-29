@@ -292,7 +292,6 @@ export function useProjects() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      console.log('📊 Fetched projects count:', data?.length || 0)
       return data || []
     }
   })
@@ -330,10 +329,7 @@ export function useDeleteProject() {
   
   return useMutation({
     mutationFn: async (projectId: string): Promise<void> => {
-      console.log('🔍 Starting deletion process for project:', projectId)
-      
       // First delete all associated roofs (cascade delete)
-      console.log('🏠 Deleting associated roofs...')
       const { data: deletedRoofs, error: roofsError } = await supabase
         .from('roofs')
         .delete()
@@ -344,10 +340,8 @@ export function useDeleteProject() {
         console.error('❌ Failed to delete roofs:', roofsError)
         throw roofsError
       }
-      console.log('✅ Deleted roofs:', deletedRoofs?.length || 0)
 
       // Then delete the project
-      console.log('📋 Deleting project...')
       const { data: deletedProject, error: projectError } = await supabase
         .from('projects')
         .delete()
@@ -358,17 +352,13 @@ export function useDeleteProject() {
         console.error('❌ Failed to delete project:', projectError)
         throw projectError
       }
-      console.log('✅ Deleted project:', deletedProject?.[0]?.name || projectId)
     },
     onSuccess: () => {
       // Aggressively invalidate and refetch all related queries
-      console.log('🔄 Invalidating React Query caches...')
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofs })
       // Force immediate refetch
-      console.log('🔄 Force refetching projects...')
       queryClient.refetchQueries({ queryKey: ['projects'] })
-      console.log('✅ Cache invalidation completed')
     }
   })
 }

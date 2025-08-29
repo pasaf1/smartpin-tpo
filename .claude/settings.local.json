@@ -5,7 +5,9 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(pnpm dev:*)"
+      "Bash(pnpm dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm lint:*)"
     ],
     "deny": [],
     "ask": []

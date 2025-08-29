@@ -2,7 +2,9 @@
 const path = require('path')
 
 const nextConfig = {
-  // Note: Avoid setting outputFileTracingRoot here to prevent Vercel packaging issues
+  // Output file tracing root to fix workspace detection warning
+  outputFileTracingRoot: path.join(__dirname),
+  
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', '@tanstack/react-query', 'date-fns'],
