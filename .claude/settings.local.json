@@ -7,7 +7,10 @@
       "Bash(git commit:*)",
       "Bash(pnpm dev:*)",
       "Bash(npx tsc:*)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm add:*)"
     ],
     "deny": [],
     "ask": []
