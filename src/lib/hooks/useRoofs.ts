@@ -12,6 +12,10 @@ type Roof = Database['public']['Tables']['roofs']['Row'] & {
 type RoofInsert = Database['public']['Tables']['roofs']['Insert']
 type RoofUpdate = Database['public']['Tables']['roofs']['Update']
 
+// Project types
+type Project = Database['public']['Tables']['projects']['Row']
+type ProjectInsert = Database['public']['Tables']['projects']['Insert']
+
 // Demo data for roofs
 const DEMO_ROOFS: Roof[] = [
   {
@@ -295,14 +299,22 @@ export function useCreateProject() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async (project: { name: string; description?: string }) => {
-      // For now, just return a mock project
-      return {
-        id: Math.random().toString(),
+    mutationFn: async (project: { name: string; description?: string }): Promise<Project> => {
+      const projectData: ProjectInsert = {
         name: project.name,
-        description: project.description || '',
-        created_at: new Date().toISOString()
+        status: 'Open',
+        contractor: null,
+        created_by: null,
       }
+
+      const { data, error } = await supabase
+        .from('projects')
+        .insert(projectData)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })

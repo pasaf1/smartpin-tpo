@@ -187,7 +187,7 @@ function HomePage() {
         .substring(0, 5) // Max 5 characters
         
       const newRoof = await createRoof.mutateAsync({
-        project_id: newProject.id,
+        project_id: newProject.project_id,
         code: roofCode,
         name: `${newProjectForm.name} - Main Roof`,
         building: newProjectForm.location.trim(),
