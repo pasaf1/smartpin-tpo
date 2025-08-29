@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 interface Pin {
@@ -27,6 +28,8 @@ interface InteractiveRoofPlanProps {
   onAddPin?: (x: number, y: number) => void
   highlightedPinId?: string
   className?: string
+  planImageUrl?: string | null
+  fallbackText?: string
 }
 
 export function InteractiveRoofPlan({ 
@@ -34,10 +37,15 @@ export function InteractiveRoofPlan({
   onPinClick, 
   onAddPin, 
   highlightedPinId, 
-  className 
+  className,
+  planImageUrl,
+  fallbackText = "No roof plan image available"
 }: InteractiveRoofPlanProps) {
   const [hoveredPin, setHoveredPin] = useState<Pin | null>(null)
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 })
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
   const pinData: Record<string, PinPreview> = {
@@ -106,100 +114,167 @@ export function InteractiveRoofPlan({
     setHoveredPin(null)
   }
 
-  const handleSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
-    if (!onAddPin || !svgRef.current) return
+  const handleContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!onAddPin || !containerRef.current) return
     
-    const rect = svgRef.current.getBoundingClientRect()
-    const x = ((event.clientX - rect.left) / rect.width) * 600
-    const y = ((event.clientY - rect.top) / rect.height) * 400
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width) * 100 // Convert to percentage
+    const y = ((event.clientY - rect.top) / rect.height) * 100 // Convert to percentage
     
-    // Check if click is within the roof boundary
-    if (x >= 40 && x <= 560 && y >= 40 && y <= 360) {
+    // Only allow adding pins if there's an image loaded
+    if (imageLoaded && !imageError) {
       onAddPin(x, y)
     }
   }
 
-  return (
-    <div className={cn("relative bg-gradient-to-br from-luxury-50 to-luxury-100 rounded-xl p-4", className)}>
-      <svg
-        ref={svgRef}
-        className="w-full h-full cursor-crosshair"
-        viewBox="0 0 600 400"
-        onClick={handleSvgClick}
-      >
-        {/* Roof Structure */}
-        <rect x="40" y="40" width="520" height="320" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="3" rx="12"/>
-        <line x1="240" y1="40" x2="240" y2="360" stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,4" opacity="0.6"/>
-        <line x1="400" y1="40" x2="400" y2="360" stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,4" opacity="0.6"/>
-        
-        {/* Sample pins */}
-        <g 
-          className={cn(
-            "cursor-pointer pin-element transition-all duration-200",
-            highlightedPinId === '1' && "animate-pulse-highlight"
-          )}
-          onClick={() => onPinClick({ id: '1', x: 140, y: 132, severity: 'critical', status: 'open', issueType: 'membrane' })}
-          onMouseEnter={(e) => handlePinHover({ id: '1', x: 140, y: 132, severity: 'critical', status: 'open', issueType: 'membrane' }, e)}
-          onMouseLeave={handlePinLeave}
-        >
-          <path d="M140 120 C130 120, 124 126, 124 132 C124 138, 140 150, 140 150 C140 150, 156 138, 156 132 C156 126, 150 120, 140 120 Z" fill="#dc2626" stroke="#ffffff" strokeWidth="3"/>
-          <circle cx="140" cy="132" r="8" fill="#ffffff"/>
-          <text x="140" y="138" textAnchor="middle" className="text-red-600 text-sm font-bold">1</text>
-        </g>
-        
-        <g 
-          className={cn(
-            "cursor-pointer pin-element transition-all duration-200",
-            highlightedPinId === '2' && "animate-pulse-highlight"
-          )}
-          onClick={() => onPinClick({ id: '2', x: 300, y: 192, severity: 'high', status: 'ready', issueType: 'seam' })}
-          onMouseEnter={(e) => handlePinHover({ id: '2', x: 300, y: 192, severity: 'high', status: 'ready', issueType: 'seam' }, e)}
-          onMouseLeave={handlePinLeave}
-        >
-          <path d="M300 180 C290 180, 284 186, 284 192 C284 198, 300 210, 300 210 C300 210, 316 198, 316 192 C316 186, 310 180, 300 180 Z" fill="#f97316" stroke="#ffffff" strokeWidth="3"/>
-          <circle cx="300" cy="192" r="8" fill="#ffffff"/>
-          <text x="300" y="198" textAnchor="middle" className="text-orange-600 text-sm font-bold">2</text>
-        </g>
-        
-        <g 
-          className={cn(
-            "cursor-pointer pin-element transition-all duration-200",
-            highlightedPinId === '3' && "animate-pulse-highlight"
-          )}
-          onClick={() => onPinClick({ id: '3', x: 460, y: 252, severity: 'low', status: 'closed', issueType: 'insulation' })}
-          onMouseEnter={(e) => handlePinHover({ id: '3', x: 460, y: 252, severity: 'low', status: 'closed', issueType: 'insulation' }, e)}
-          onMouseLeave={handlePinLeave}
-        >
-          <path d="M460 240 C450 240, 444 246, 444 252 C444 258, 460 270, 460 270 C460 270, 476 258, 476 252 C476 246, 470 240, 460 240 Z" fill="#10b981" stroke="#ffffff" strokeWidth="3"/>
-          <circle cx="460" cy="252" r="8" fill="#ffffff"/>
-          <text x="460" y="258" textAnchor="middle" className="text-emerald-600 text-sm font-bold">3</text>
-        </g>
+  const handleImageLoad = () => {
+    setImageLoaded(true)
+    setImageError(false)
+  }
 
-        {/* Dynamic pins */}
-        {pins.map((pin) => (
-          <g
-            key={pin.id}
-            className={cn(
-              "cursor-pointer pin-element transition-all duration-200",
-              highlightedPinId === pin.id && "animate-pulse-highlight"
-            )}
-            onClick={() => onPinClick(pin)}
-            onMouseEnter={(e) => handlePinHover(pin, e)}
-            onMouseLeave={handlePinLeave}
-          >
-            <path
-              d={`M${pin.x} ${pin.y - 12} C${pin.x - 10} ${pin.y - 12}, ${pin.x - 16} ${pin.y - 9}, ${pin.x - 16} ${pin.y - 6} C${pin.x - 16} ${pin.y - 3}, ${pin.x} ${pin.y + 3}, ${pin.x} ${pin.y + 3} C${pin.x} ${pin.y + 3}, ${pin.x + 16} ${pin.y - 3}, ${pin.x + 16} ${pin.y - 6} C${pin.x + 16} ${pin.y - 9}, ${pin.x + 10} ${pin.y - 12}, ${pin.x} ${pin.y - 12} Z`}
-              fill={getSeverityColor(pin.severity)}
-              stroke="#ffffff"
-              strokeWidth="3"
-            />
-            <circle cx={pin.x} cy={pin.y - 6} r="8" fill="#ffffff"/>
-            <text x={pin.x} y={pin.y - 2} textAnchor="middle" className="text-xs font-bold" fill={getSeverityColor(pin.severity)}>
-              {pin.id.slice(-1)}
-            </text>
-          </g>
-        ))}
-      </svg>
+  const handleImageError = () => {
+    setImageError(true)
+    setImageLoaded(false)
+  }
+
+  return (
+    <div className={cn("relative bg-gradient-to-br from-luxury-50 to-luxury-100 rounded-xl overflow-hidden", className)}>
+      {/* Main Container */}
+      <div 
+        ref={containerRef}
+        className={cn(
+          "relative w-full aspect-[4/3] min-h-[400px]",
+          (imageLoaded && !imageError && onAddPin) && "cursor-crosshair"
+        )}
+        onClick={handleContainerClick}
+      >
+        {/* Roof Plan Image */}
+        {planImageUrl && !imageError ? (
+          <Image
+            src={planImageUrl}
+            alt="Roof Plan"
+            fill
+            className="object-contain bg-white"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            priority
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-100 to-gray-200">
+            <div className="text-center p-8">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
+                <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <p className="text-gray-600 font-medium">{fallbackText}</p>
+              <p className="text-gray-400 text-sm mt-2">Upload a roof plan image when creating a project</p>
+            </div>
+          </div>
+        )}
+
+        {/* Pin Overlay Layer */}
+        {(imageLoaded && !imageError) && (
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Sample pins with percentage positioning */}
+            <div 
+              className={cn(
+                "absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto transition-all duration-200",
+                highlightedPinId === '1' && "animate-pulse scale-110"
+              )}
+              style={{ left: '23%', top: '33%' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onPinClick({ id: '1', x: 23, y: 33, severity: 'critical', status: 'open', issueType: 'membrane' })
+              }}
+              onMouseEnter={(e) => handlePinHover({ id: '1', x: 23, y: 33, severity: 'critical', status: 'open', issueType: 'membrane' }, e)}
+              onMouseLeave={handlePinLeave}
+            >
+              <div className="relative">
+                <div className="w-8 h-10 flex items-center justify-center">
+                  <svg className="w-8 h-10" viewBox="0 0 24 28" fill="none">
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 16 12 16s12-7 12-16c0-6.627-5.373-12-12-12z" fill="#dc2626" stroke="#ffffff" strokeWidth="3"/>
+                  </svg>
+                  <span className="absolute text-white font-bold text-sm">1</span>
+                </div>
+              </div>
+            </div>
+
+            <div 
+              className={cn(
+                "absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto transition-all duration-200",
+                highlightedPinId === '2' && "animate-pulse scale-110"
+              )}
+              style={{ left: '50%', top: '48%' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onPinClick({ id: '2', x: 50, y: 48, severity: 'high', status: 'ready', issueType: 'seam' })
+              }}
+              onMouseEnter={(e) => handlePinHover({ id: '2', x: 50, y: 48, severity: 'high', status: 'ready', issueType: 'seam' }, e)}
+              onMouseLeave={handlePinLeave}
+            >
+              <div className="relative">
+                <div className="w-8 h-10 flex items-center justify-center">
+                  <svg className="w-8 h-10" viewBox="0 0 24 28" fill="none">
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 16 12 16s12-7 12-16c0-6.627-5.373-12-12-12z" fill="#f97316" stroke="#ffffff" strokeWidth="3"/>
+                  </svg>
+                  <span className="absolute text-white font-bold text-sm">2</span>
+                </div>
+              </div>
+            </div>
+
+            <div 
+              className={cn(
+                "absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto transition-all duration-200",
+                highlightedPinId === '3' && "animate-pulse scale-110"
+              )}
+              style={{ left: '77%', top: '63%' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onPinClick({ id: '3', x: 77, y: 63, severity: 'low', status: 'closed', issueType: 'insulation' })
+              }}
+              onMouseEnter={(e) => handlePinHover({ id: '3', x: 77, y: 63, severity: 'low', status: 'closed', issueType: 'insulation' }, e)}
+              onMouseLeave={handlePinLeave}
+            >
+              <div className="relative">
+                <div className="w-8 h-10 flex items-center justify-center">
+                  <svg className="w-8 h-10" viewBox="0 0 24 28" fill="none">
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 16 12 16s12-7 12-16c0-6.627-5.373-12-12-12z" fill="#10b981" stroke="#ffffff" strokeWidth="3"/>
+                  </svg>
+                  <span className="absolute text-white font-bold text-sm">3</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dynamic pins */}
+            {pins.map((pin) => (
+              <div
+                key={pin.id}
+                className={cn(
+                  "absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto transition-all duration-200",
+                  highlightedPinId === pin.id && "animate-pulse scale-110"
+                )}
+                style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onPinClick(pin)
+                }}
+                onMouseEnter={(e) => handlePinHover(pin, e)}
+                onMouseLeave={handlePinLeave}
+              >
+                <div className="relative">
+                  <div className="w-8 h-10 flex items-center justify-center">
+                    <svg className="w-8 h-10" viewBox="0 0 24 28" fill="none">
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 16 12 16s12-7 12-16c0-6.627-5.373-12-12-12z" fill={getSeverityColor(pin.severity)} stroke="#ffffff" strokeWidth="3"/>
+                    </svg>
+                    <span className="absolute text-white font-bold text-xs">{pin.id.slice(-1)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Pin Legend */}
       <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">

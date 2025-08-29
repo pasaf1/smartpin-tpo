@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Home, X } from 'lucide-react'
 import { LuxuryHeader } from '@/components/dashboard/LuxuryHeader'
@@ -11,6 +11,8 @@ import { RoofCard } from '@/components/dashboard/RoofCard'
 import { FilterPanel } from '@/components/dashboard/FilterPanel'
 import { PinDetailsCard } from '@/components/pins/PinDetailsCard'
 import { PinDetailsModalV2 } from '@/components/dashboard/PinDetailsModalV2'
+import { InteractiveRoofPlan } from '@/components/dashboard/InteractiveRoofPlan'
+import { useProjects, useRoofsByProject } from '@/lib/hooks/useRoofs'
 
 interface FilterState {
   issueType: string
@@ -44,6 +46,7 @@ interface PinDetails {
 
 export default function DashboardPage() {
   const [selectedRoof, setSelectedRoof] = useState<string | null>(null)
+  const [selectedProject, setSelectedProject] = useState<string | null>(null)
   const [selectedPin, setSelectedPin] = useState<PinDetails | null>(null)
   const [selectedPinIdV2, setSelectedPinIdV2] = useState<string | null>(null)
   const [filters, setFilters] = useState<FilterState>({
@@ -58,42 +61,27 @@ export default function DashboardPage() {
     { open: false, filter: 'all', title: '' }
   )
 
-  // Sample roof data
-  const roofs = [
-    {
-      id: 'roof-001',
-      name: 'Building A - North Wing',
-      code: 'BA-NW-001',
-      area: '2,400 sq ft',
-      openCount: 3,
-      readyCount: 1,
-      closedCount: 2,
-      lastUpdated: 'Today 2:30 PM',
-      status: 'in-progress' as const
-    },
-    {
-      id: 'roof-002',
-      name: 'Building B - Main Roof',
-      code: 'BB-MR-002',
-      area: '4,200 sq ft',
-      openCount: 2,
-      readyCount: 1,
-      closedCount: 5,
-      lastUpdated: 'Yesterday 4:15 PM',
-      status: 'active' as const
-    },
-    {
-      id: 'roof-003',
-      name: 'Building C - East Section',
-      code: 'BC-ES-003',
-      area: '3,100 sq ft',
-      openCount: 0,
-      readyCount: 0,
-      closedCount: 8,
-      lastUpdated: '2 days ago',
-      status: 'completed' as const
+  // Get real data from hooks
+  const { data: projects = [], isLoading: projectsLoading } = useProjects()
+  const { data: roofs = [], isLoading: roofsLoading } = useRoofsByProject(selectedProject || '')
+  
+  // Use the first project by default if none selected
+  const currentProject = selectedProject ? projects.find(p => p.project_id === selectedProject) : projects[0]
+  const currentRoof = selectedRoof ? roofs.find(r => r.id === selectedRoof) : roofs[0]
+
+  // Auto-select first project when projects load
+  useEffect(() => {
+    if (projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0].project_id)
     }
-  ]
+  }, [projects, selectedProject])
+
+  // Auto-select first roof when roofs load for a project
+  useEffect(() => {
+    if (roofs.length > 0 && !selectedRoof) {
+      setSelectedRoof(roofs[0].id)
+    }
+  }, [roofs, selectedRoof])
 
   const handleRoofSelect = (roofId: string) => {
     setSelectedRoof(roofId)
@@ -220,16 +208,102 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* Roofs Grid - This will be replaced by the main content for a single project */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {roofs.map((roof) => (
-              <RoofCard
-                key={roof.id}
-                roof={roof}
-                onViewDetails={handleRoofSelect}
+          {/* Project Selector */}
+          {projects.length > 0 && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium text-slate-700">Project:</label>
+                <select 
+                  value={selectedProject || currentProject?.project_id || ''}
+                  onChange={(e) => {
+                    setSelectedProject(e.target.value)
+                    setSelectedRoof(null) // Reset roof selection when changing project
+                  }}
+                  className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                >
+                  {projects.map((project) => (
+                    <option key={project.project_id} value={project.project_id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+                {roofs.length > 0 && (
+                  <>
+                    <label className="text-sm font-medium text-slate-700 ml-4">Roof:</label>
+                    <select 
+                      value={selectedRoof || currentRoof?.id || ''}
+                      onChange={(e) => setSelectedRoof(e.target.value)}
+                      className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                    >
+                      {roofs.map((roof) => (
+                        <option key={roof.id} value={roof.id}>
+                          {roof.name}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Interactive Roof Plan */}
+          {currentRoof ? (
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-800">{currentRoof.name}</h2>
+                  <p className="text-slate-600 text-sm">Code: {currentRoof.code}</p>
+                </div>
+                <div className="text-right text-sm text-slate-600">
+                  <div>Building: {currentRoof.building}</div>
+                  {currentRoof.created_at && (
+                    <div>Created: {new Date(currentRoof.created_at).toLocaleDateString()}</div>
+                  )}
+                </div>
+              </div>
+              
+              <InteractiveRoofPlan
+                pins={pins}
+                onPinClick={handlePinClick}
+                onAddPin={handleAddPin}
+                highlightedPinId={highlightedPinId}
+                planImageUrl={currentRoof.plan_image_url}
+                fallbackText={`No roof plan image available for ${currentRoof.name}`}
+                className="w-full"
               />
-            ))}
-          </div>
+            </div>
+          ) : projects.length > 0 ? (
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 text-center">
+              <div className="text-gray-500">
+                {roofsLoading ? (
+                  <div>Loading roofs...</div>
+                ) : (
+                  <div>
+                    <div className="text-lg font-medium mb-2">No roofs found for this project</div>
+                    <div className="text-sm">Create a roof from the project dashboard to get started</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 text-center">
+              <div className="text-gray-500">
+                {projectsLoading ? (
+                  <div>Loading projects...</div>
+                ) : (
+                  <div>
+                    <div className="text-lg font-medium mb-2">No projects available</div>
+                    <div className="text-sm">
+                      <Link href="/" className="text-blue-600 hover:text-blue-800 underline">
+                        Go to the main page to create your first project
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
