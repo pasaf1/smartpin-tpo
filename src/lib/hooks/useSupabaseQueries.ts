@@ -662,3 +662,88 @@ export {
   useLayerManagement,
   useFilteredPins
 }
+
+// Delete project hook (Admin only)
+export function useDeleteProject() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      // First, get all roofs for this project
+      const { data: roofs, error: roofsError } = await supabase
+        .from('roofs')
+        .select('id')
+        .eq('project_id', projectId)
+      
+      if (roofsError) throw roofsError
+      
+      // Delete all pins and their children for each roof
+      for (const roof of roofs || []) {
+        // Get all pin IDs for this roof
+        const { data: pins, error: pinsError } = await supabase
+          .from('pins')
+          .select('id')
+          .eq('roof_id', roof.id)
+        
+        if (pinsError && pinsError.code !== 'PGRST116') {
+          console.warn('Error getting pins:', pinsError)
+          continue
+        }
+        
+        // Delete pin children first (if any pins exist)
+        if (pins && pins.length > 0) {
+          const pinIds = pins.map(p => p.id)
+          
+          const { error: childrenError } = await supabase
+            .from('pin_children')
+            .delete()
+            .in('pin_id', pinIds)
+          
+          if (childrenError && childrenError.code !== 'PGRST116') {
+            console.warn('Error deleting pin children:', childrenError)
+          }
+          
+          // Delete pins
+          const { error: deletePinsError } = await supabase
+            .from('pins')
+            .delete()
+            .eq('roof_id', roof.id)
+          
+          if (deletePinsError) {
+            console.warn('Error deleting pins:', deletePinsError)
+          }
+        }
+        
+        // Delete roof
+        const { error: roofError } = await supabase
+          .from('roofs')
+          .delete()
+          .eq('id', roof.id)
+        
+        if (roofError) throw roofError
+      }
+      
+      // Finally, delete the project
+      const { error: projectError } = await supabase
+        .from('projects')
+        .delete()
+        .eq('project_id', projectId)
+      
+      if (projectError) throw projectError
+      
+      return { projectId }
+    },
+    onSuccess: (data) => {
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+      queryClient.invalidateQueries({ queryKey: queryKeys.project(data.projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.roofsByProject(data.projectId) })
+      
+      // Remove specific project from cache
+      queryClient.removeQueries({ queryKey: queryKeys.project(data.projectId) })
+    },
+    onError: (error) => {
+      console.error('Failed to delete project:', error)
+    }
+  })
+}

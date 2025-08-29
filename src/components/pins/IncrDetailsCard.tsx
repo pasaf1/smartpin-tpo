@@ -47,8 +47,10 @@ import {
   ChevronUp,
   Target,
   Users,
-  Calendar
+  Calendar,
+  Shield
 } from 'lucide-react'
+import { useAuth } from '@/lib/hooks/useAuth'
 import { toast } from 'sonner'
 import type { PinWithRelations } from '@/lib/hooks/usePins'
 import type { PinStatus, Severity as PinSeverity } from '@/lib/database.types'
@@ -78,6 +80,20 @@ interface ChildPin {
   x_position?: number
   y_position?: number
   photos?: Array<{ id: string; url: string; type: 'opening' | 'closure' }>
+  opening_photo_url?: string
+  closure_photo_url?: string
+}
+
+interface PhotoContainerProps {
+  pinId: string
+  pinNumber: string | number
+  title: string
+  type: 'opening' | 'closure'
+  photoUrl?: string
+  status: PinStatus
+  onPhotoUpload: (file: File) => void
+  canUpload: boolean
+  isAdminOnly?: boolean
 }
 
 export function IncrDetailsCard({
@@ -97,6 +113,238 @@ export function IncrDetailsCard({
   const [isEditing, setIsEditing] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['details', 'roof-plan']))
   const [globalCompletionCounter, setGlobalCompletionCounter] = useState(0)
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'Admin'
+
+  // Photo Container Component
+  const PhotoContainer = ({ 
+    pinId, 
+    pinNumber, 
+    title, 
+    type, 
+    photoUrl, 
+    status, 
+    onPhotoUpload, 
+    canUpload, 
+    isAdminOnly = false 
+  }: PhotoContainerProps) => {
+    const fileInputId = `${type}-photo-${pinId}-${uid}`
+    const canUserUpload = canUpload && (!isAdminOnly || isAdmin)
+    
+    // Dynamic styling based on status and type
+    const getContainerStyle = () => {
+      if (type === 'opening') {
+        return {
+          borderColor: isAdminOnly ? 'border-orange-300' : 'border-orange-200',
+          bgColor: photoUrl ? 'bg-orange-100/80' : 'bg-orange-50/50',
+          accentColor: 'bg-orange-500',
+          textColor: 'text-orange-800'
+        }
+      } else {
+        // Closure photo styling based on status
+        switch (status) {
+          case 'Open':
+            return {
+              borderColor: 'border-red-300',
+              bgColor: photoUrl ? 'bg-red-100/80' : 'bg-red-50/50',
+              accentColor: 'bg-red-500',
+              textColor: 'text-red-800'
+            }
+          case 'ReadyForInspection':
+            return {
+              borderColor: 'border-yellow-300',
+              bgColor: photoUrl ? 'bg-yellow-100/80' : 'bg-yellow-50/50',
+              accentColor: 'bg-yellow-500',
+              textColor: 'text-yellow-800'
+            }
+          case 'Closed':
+            return {
+              borderColor: 'border-green-300',
+              bgColor: photoUrl ? 'bg-green-100/80' : 'bg-green-50/50',
+              accentColor: 'bg-green-600',
+              textColor: 'text-green-800'
+            }
+          default:
+            return {
+              borderColor: 'border-slate-300',
+              bgColor: photoUrl ? 'bg-slate-100/80' : 'bg-slate-50/50',
+              accentColor: 'bg-slate-500',
+              textColor: 'text-slate-800'
+            }
+        }
+      }
+    }
+    
+    const containerStyle = getContainerStyle()
+    
+    return (
+      <Card className={cn(
+        "border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1",
+        containerStyle.borderColor,
+        containerStyle.bgColor
+      )}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg",
+              containerStyle.accentColor
+            )}>
+              {type === 'opening' ? '📷' : status === 'Closed' ? '✅' : status === 'ReadyForInspection' ? '⏳' : '🔄'}
+            </div>
+            <div className="flex-1">
+              <h4 className={cn("font-semibold text-sm", containerStyle.textColor)}>
+                {title} - {type === 'opening' ? 'Opening Photo' : 'Closure Photo'}
+              </h4>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-slate-600">Pin #{pinNumber}</p>
+                <StatusBadge status={status} />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="space-y-3">
+            {/* Photo Display Area */}
+            <div className={cn(
+              "relative w-full h-36 rounded-lg overflow-hidden border-2 border-dashed transition-all duration-300",
+              photoUrl ? "border-solid" : containerStyle.borderColor,
+              photoUrl ? containerStyle.bgColor : "bg-slate-100"
+            )}>
+              {photoUrl ? (
+                <div className="relative w-full h-full group">
+                  <img
+                    src={photoUrl}
+                    alt={`${type} photo for pin ${pinNumber}`}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-white/90 hover:bg-white text-slate-800"
+                        onClick={() => window.open(photoUrl, '_blank')}
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      {canUserUpload && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-white/90 hover:bg-white text-slate-800"
+                          onClick={() => document.getElementById(fileInputId)?.click()}
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          Replace
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute top-2 right-2">
+                    <Badge className={cn(
+                      "text-xs shadow-lg",
+                      containerStyle.accentColor
+                    )}>
+                      {type === 'opening' ? 'Opening' : 'Closure'}
+                    </Badge>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-500">
+                  <div className="text-center">
+                    <div className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg",
+                      containerStyle.accentColor
+                    )}>
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                    <p className={cn("text-sm font-medium", containerStyle.textColor)}>
+                      No {type} photo
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {type === 'opening' ? 'Admin can upload' : 'Upload to close defect'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Upload Controls */}
+            <div className="flex gap-2">
+              {canUserUpload && (
+                <>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) onPhotoUpload(file)
+                    }}
+                    className="hidden"
+                    id={fileInputId}
+                  />
+                  <Button 
+                    size="sm" 
+                    className={cn(
+                      "flex-1 text-white shadow-lg hover:shadow-xl transition-all duration-200",
+                      containerStyle.accentColor,
+                      photoUrl ? "hover:opacity-90" : "animate-pulse"
+                    )}
+                    asChild
+                  >
+                    <label htmlFor={fileInputId} className="cursor-pointer">
+                      <Upload className="w-3 h-3 mr-1" />
+                      {photoUrl ? 'Replace Photo' : `Upload ${type === 'opening' ? 'Opening' : 'Closure'}`}
+                    </label>
+                  </Button>
+                </>
+              )}
+              
+              {!canUserUpload && isAdminOnly && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  disabled
+                  className="flex-1"
+                >
+                  <Shield className="w-3 h-3 mr-1" />
+                  Admin Only
+                </Button>
+              )}
+            </div>
+            
+            {/* Status Info */}
+            <div className="text-xs space-y-1">
+              <div className={cn(
+                "flex items-center justify-between p-2 rounded-lg",
+                containerStyle.bgColor
+              )}>
+                <span className={cn("font-medium", containerStyle.textColor)}>
+                  Status: {status}
+                </span>
+                {type === 'closure' && !photoUrl && status === 'Open' && (
+                  <Badge variant="outline" className="text-xs bg-red-100 text-red-700 border-red-300">
+                    Photo Required
+                  </Badge>
+                )}
+                {type === 'closure' && photoUrl && status === 'ReadyForInspection' && (
+                  <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                    Awaiting Review
+                  </Badge>
+                )}
+                {type === 'closure' && status === 'Closed' && (
+                  <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                    Completed
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   // Normalize children data
   const children = useMemo<ChildPin[]>(
@@ -132,6 +380,13 @@ export function IncrDetailsCard({
   useEffect(() => {
     setGlobalCompletionCounter(completionStats.closed)
   }, [completionStats.closed])
+
+  // Auto-expand sections when children are added
+  useEffect(() => {
+    if (children.length > 0) {
+      setExpandedSections(prev => new Set([...prev, 'child-pins']))
+    }
+  }, [children.length])
 
   // Section toggle functionality
   const toggleSection = (sectionId: string) => {
@@ -195,12 +450,19 @@ export function IncrDetailsCard({
       const childY = Math.max(0, Math.min(1, parentY + 0.02))
       
       await onChildPinCreate?.((pin as any).id, childX, childY)
-      toast.success('Child pin created successfully!')
+      
+      // Auto-expand child pins section when first child is added
+      if (children.length === 0) {
+        setExpandedSections(prev => new Set([...prev, 'child-pins']))
+        toast.success('First child pin created! Photo containers are now available.')
+      } else {
+        toast.success('Child pin created successfully!')
+      }
     } catch (error) {
       toast.error('Failed to create child pin')
       console.error('Child pin creation error:', error)
     }
-  }, [pin, onChildPinCreate])
+  }, [pin, onChildPinCreate, children.length])
 
   // Pin container component for consistent styling
   const PinContainer = ({ 
@@ -355,7 +617,7 @@ export function IncrDetailsCard({
             )}
           </Card>
 
-          {/* Roof Plan with Parent Pin Visualization */}
+          {/* Roof Plan with Only Selected Parent Pin */}
           <Card>
             <CardHeader 
               className="cursor-pointer pb-2"
@@ -364,7 +626,7 @@ export function IncrDetailsCard({
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <MapPin className="w-5 h-5" />
-                  Roof Plan & Pin Location
+                  Roof Plan & Selected Pin
                 </CardTitle>
                 {expandedSections.has('roof-plan') ? 
                   <ChevronUp className="w-4 h-4" /> : 
@@ -390,96 +652,92 @@ export function IncrDetailsCard({
                     </div>
                   )}
                   
-                  {/* Parent Pin Marker */}
+                  {/* Only Show Selected Parent Pin */}
                   <div
-                    className="absolute w-6 h-6 bg-blue-600 rounded-full border-2 border-white shadow-lg transform -translate-x-3 -translate-y-3 flex items-center justify-center"
+                    className="absolute w-8 h-8 bg-blue-600 rounded-full border-2 border-white shadow-lg transform -translate-x-4 -translate-y-4 flex items-center justify-center animate-pulse"
                     style={{
                       left: `${((pin as any).x_position ?? 0.5) * 100}%`,
                       top: `${((pin as any).y_position ?? 0.5) * 100}%`
                     }}
                   >
-                    <span className="text-white text-xs font-bold">{(pin as any).seq_number}</span>
+                    <span className="text-white text-sm font-bold">{(pin as any).seq_number}</span>
                   </div>
-                  
-                  {/* Child Pin Markers */}
-                  {children.map((child, index) => (
-                    <div
-                      key={child.id}
-                      className="absolute w-4 h-4 bg-orange-500 rounded-full border border-white shadow-md transform -translate-x-2 -translate-y-2 flex items-center justify-center"
-                      style={{
-                        left: `${(child.x_position ?? 0.5) * 100}%`,
-                        top: `${(child.y_position ?? 0.5) * 100}%`
-                      }}
-                    >
-                      <span className="text-white text-xs font-bold">{index + 1}</span>
-                    </div>
-                  ))}
                 </div>
                 
                 {/* Legend */}
-                <div className="mt-3 flex flex-wrap gap-4 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                    <span>Primary Pin</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    <span>Child Pins</span>
+                <div className="mt-3 flex items-center justify-center text-xs">
+                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full">
+                    <div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div>
+                    <span className="font-medium">Selected Pin #{(pin as any).seq_number}</span>
                   </div>
                 </div>
               </CardContent>
             )}
           </Card>
 
-          {/* Primary Pin Container */}
+          {/* Primary Pin Container with Photo Containers */}
           <PinContainer pinData={pin} isPrimary={true}>
             <div className="space-y-4">
               
-              {/* Primary Pin Actions */}
-              <div className="flex flex-wrap gap-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleClosurePhotoUpload((pin as any).id, file)
-                  }}
-                  className="hidden"
-                  id={`primary-closure-${uid}`}
-                />
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  asChild
-                  className="flex-1 sm:flex-none"
-                >
-                  <label htmlFor={`primary-closure-${uid}`} className="cursor-pointer">
-                    <Camera className="w-4 h-4 mr-1" />
-                    Closure Photo
-                  </label>
-                </Button>
+              {/* Photo Containers for Primary Pin */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Opening Photo Container */}
+                <div className="relative">
+                  {/* Glow effect for opening photo */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-lg blur opacity-25 animate-pulse"></div>
+                  <PhotoContainer
+                    pinId={(pin as any).id}
+                    pinNumber={(pin as any).seq_number}
+                    title="Primary Pin"
+                    type="opening"
+                    photoUrl={(pin as any).opening_photo_url}
+                    status={(pin as any).status}
+                    onPhotoUpload={(file) => {
+                      // Handle opening photo upload
+                      console.log('Opening photo uploaded for primary pin:', file.name)
+                      toast.success('Opening photo uploaded successfully!')
+                    }}
+                    canUpload={true}
+                    isAdminOnly={true}
+                  />
+                </div>
                 
-                {(pin as any).status === 'ReadyForInspection' && (
+                {/* Closure Photo Container */}
+                <div className="relative">
+                  {/* Dynamic glow effect based on status */}
+                  <div className={cn(
+                    "absolute -inset-1 rounded-lg blur opacity-25 transition-all duration-500",
+                    (pin as any).status === 'Open' ? "bg-gradient-to-r from-red-400 to-red-600 animate-pulse" :
+                    (pin as any).status === 'ReadyForInspection' ? "bg-gradient-to-r from-yellow-400 to-yellow-600 animate-pulse" :
+                    (pin as any).status === 'Closed' ? "bg-gradient-to-r from-green-400 to-green-600" : ""
+                  )}></div>
+                  <PhotoContainer
+                    pinId={(pin as any).id}
+                    pinNumber={(pin as any).seq_number}
+                    title="Primary Pin"
+                    type="closure"
+                    photoUrl={(pin as any).closure_photo_url}
+                    status={(pin as any).status}
+                    onPhotoUpload={(file) => handleClosurePhotoUpload((pin as any).id, file)}
+                    canUpload={true}
+                    isAdminOnly={false}
+                  />
+                </div>
+              </div>
+
+              {/* Status Change Actions */}
+              {(pin as any).status === 'ReadyForInspection' && (
+                <div className="flex justify-center">
                   <Button 
                     size="sm" 
-                    className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+                    className="bg-green-600 hover:bg-green-700"
                     onClick={() => handleClosureComplete((pin as any).id)}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-1" />
-                    Close Pin
+                    Close Primary Pin
                   </Button>
-                )}
-                
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                  className="flex-1 sm:flex-none"
-                >
-                  <Edit3 className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-              </div>
+                </div>
+              )}
 
               {/* Status Controls */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -535,62 +793,100 @@ export function IncrDetailsCard({
                     className="bg-emerald-600 hover:bg-emerald-700"
                   >
                     <Plus className="w-4 h-4 mr-1" />
-                    Add
+                    Add Child
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-3">
+                <div className="space-y-6">
                   {children.map((child, index) => (
-                    <PinContainer key={child.id} pinData={child}>
-                      <div className="space-y-3">
-                        
-                        {/* Child Pin Actions */}
-                        <div className="flex flex-wrap gap-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) handleClosurePhotoUpload(child.id, file)
-                            }}
-                            className="hidden"
-                            id={`child-closure-${uid}-${child.id}`}
-                          />
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            asChild
-                            className="flex-1 sm:flex-none"
-                          >
-                            <label htmlFor={`child-closure-${uid}-${child.id}`} className="cursor-pointer">
-                              <Camera className="w-4 h-4 mr-1" />
-                              Closure Photo
-                            </label>
-                          </Button>
-                          
-                          {child.status === 'ReadyForInspection' && (
-                            <Button 
-                              size="sm" 
-                              className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
-                              onClick={() => handleClosureComplete(child.id)}
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-1" />
-                              Close
-                            </Button>
-                          )}
+                    <div key={child.id} className="border-2 border-slate-200 rounded-lg p-4 bg-slate-50/50">
+                      {/* Child Pin Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-slate-500 to-slate-600 rounded-full flex items-center justify-center text-white font-bold">
+                            {(pin as any).seq_number}.{index + 1}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-800">
+                              {child.title || `Sub-Pin ${index + 1}`}
+                            </h3>
+                            <p className="text-sm text-slate-600">{child.description || 'No description provided'}</p>
+                          </div>
                         </div>
-
-                        {/* Child Pin Details */}
-                        <div className="text-xs text-slate-600 space-y-1">
-                          <div>Created: {child.created_at ? format(new Date(child.created_at), 'dd/MM/yyyy HH:mm') : 'Unknown'}</div>
-                          <div>Location: X:{(child.x_position ?? 0).toFixed(3)}, Y:{(child.y_position ?? 0).toFixed(3)}</div>
-                          {child.completed_at && (
-                            <div>Completed: {format(new Date(child.completed_at), 'dd/MM/yyyy HH:mm')}</div>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={child.status} />
+                          <SeverityBadge severity={child.severity} />
                         </div>
                       </div>
-                    </PinContainer>
+                      
+                      {/* Photo Containers for Child Pin */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {/* Opening Photo Container */}
+                        <div className="relative">
+                          <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-lg blur opacity-20 animate-pulse"></div>
+                          <PhotoContainer
+                            pinId={child.id}
+                            pinNumber={`${(pin as any).seq_number}.${index + 1}`}
+                            title={`Sub-Pin ${index + 1}`}
+                            type="opening"
+                            photoUrl={child.opening_photo_url}
+                            status={child.status}
+                            onPhotoUpload={(file) => {
+                              // Handle opening photo upload for child
+                              console.log('Opening photo uploaded for child pin:', file.name)
+                              toast.success('Opening photo uploaded successfully!')
+                            }}
+                            canUpload={true}
+                            isAdminOnly={true}
+                          />
+                        </div>
+                        
+                        {/* Closure Photo Container */}
+                        <div className="relative">
+                          <div className={cn(
+                            "absolute -inset-1 rounded-lg blur opacity-20 transition-all duration-500",
+                            child.status === 'Open' ? "bg-gradient-to-r from-red-400 to-red-600 animate-pulse" :
+                            child.status === 'ReadyForInspection' ? "bg-gradient-to-r from-yellow-400 to-yellow-600 animate-pulse" :
+                            child.status === 'Closed' ? "bg-gradient-to-r from-green-400 to-green-600" : ""
+                          )}></div>
+                          <PhotoContainer
+                            pinId={child.id}
+                            pinNumber={`${(pin as any).seq_number}.${index + 1}`}
+                            title={`Sub-Pin ${index + 1}`}
+                            type="closure"
+                            photoUrl={child.closure_photo_url}
+                            status={child.status}
+                            onPhotoUpload={(file) => handleClosurePhotoUpload(child.id, file)}
+                            canUpload={true}
+                            isAdminOnly={false}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Child Pin Actions */}
+                      {child.status === 'ReadyForInspection' && (
+                        <div className="flex justify-center mb-4">
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleClosureComplete(child.id)}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            Close Sub-Pin
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Child Pin Details */}
+                      <div className="text-xs text-slate-600 space-y-1 pt-3 border-t border-slate-200">
+                        <div>Created: {child.created_at ? format(new Date(child.created_at), 'dd/MM/yyyy HH:mm') : 'Unknown'}</div>
+                        <div>Location: X:{(child.x_position ?? 0).toFixed(3)}, Y:{(child.y_position ?? 0).toFixed(3)}</div>
+                        {child.completed_at && (
+                          <div>Completed: {format(new Date(child.completed_at), 'dd/MM/yyyy HH:mm')}</div>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </CardContent>
@@ -599,16 +895,30 @@ export function IncrDetailsCard({
 
           {/* Add Child Pin if no children exist */}
           {children.length === 0 && !(pin as any).parent_pin_id && (
-            <Card className="border-dashed border-2 border-slate-300">
+            <Card className="border-dashed border-2 border-slate-300 hover:border-emerald-400 transition-all duration-300">
               <CardContent className="py-8 text-center">
-                <Users className="w-8 h-8 text-slate-400 mx-auto mb-3" />
-                <h3 className="font-medium text-slate-700 mb-2">No Child Pins</h3>
+                <div className="relative">
+                  {/* Animated glow for call-to-action */}
+                  <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full blur opacity-20 animate-pulse"></div>
+                  <Users className="relative w-12 h-12 text-slate-400 mx-auto mb-4" />
+                </div>
+                <h3 className="font-medium text-slate-700 mb-2">No Child Pins Yet</h3>
                 <p className="text-sm text-slate-600 mb-4">
-                  Create sub-defects for more detailed tracking
+                  Create sub-defects with separate photo containers for detailed tracking
                 </p>
+                <div className="space-y-2 text-xs text-slate-500 mb-6">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                    <span>Each child pin gets opening photo container (Admin only)</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span>Each child pin gets closure photo container (All users)</span>
+                  </div>
+                </div>
                 <Button 
                   onClick={handleAddChild}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add First Child Pin

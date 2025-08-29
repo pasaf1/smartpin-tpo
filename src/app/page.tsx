@@ -9,7 +9,7 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { useProjects, useCreateProject, useUpdateProject, useRoofsByProject, useSendChatMessage, usePinsByRoof } from '@/lib/hooks/useSupabaseQueries'
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject, useRoofsByProject, useSendChatMessage, usePinsByRoof } from '@/lib/hooks/useSupabaseQueries'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -32,6 +32,10 @@ function HomePage() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()
+  const deleteProject = useDeleteProject()
+  
+  // Check if user is admin (can delete projects)
+  const isAdmin = profile?.role === 'Admin'
   
   // Get all project IDs and fetch roofs in one query to avoid N+1
   const projectIds = useMemo(() => projects.map(p => p.project_id), [projects])
@@ -83,7 +87,9 @@ function HomePage() {
     location: '',
     priority: 'normal',
     roofPlanFile: null as File | null,
-    roofPlanPreview: ''
+    roofPlanPreview: '',
+    openingPhotoFile: null as File | null,
+    openingPhotoPreview: ''
   })
 
   // Global Chat state
@@ -206,15 +212,89 @@ function HomePage() {
       location: '',
       priority: 'normal',
       roofPlanFile: null,
-      roofPlanPreview: ''
+      roofPlanPreview: '',
+      openingPhotoFile: null,
+      openingPhotoPreview: ''
     })
     setShowNewProjectModal(true)
+  }
+
+  const handleDeleteProject = async (project: Project) => {
+    // Only allow admins to delete projects
+    if (!isAdmin) {
+      alert('Only administrators can delete projects.')
+      return
+    }
+    
+    // Show confirmation dialog with project details
+    const confirmed = confirm(
+      `⚠️ DELETE PROJECT WARNING ⚠️\n\n` +
+      `Project: "${project.name}"\n` +
+      `ID: ${project.project_id}\n` +
+      `Status: ${project.status}\n\n` +
+      `This action will PERMANENTLY DELETE:\n` +
+      `• The entire project\n` +
+      `• All roofs in this project\n` +
+      `• All pins and defects\n` +
+      `• All photos and data\n\n` +
+      `❌ THIS CANNOT BE UNDONE! ❌\n\n` +
+      `Type "DELETE" to confirm you want to proceed.`
+    )
+    
+    if (!confirmed) return
+    
+    // Second confirmation - make them type DELETE
+    const confirmText = prompt(
+      `Final confirmation required.\n\n` +
+      `To permanently delete project "${project.name}", type exactly: DELETE`
+    )
+    
+    if (confirmText !== 'DELETE') {
+      alert('Deletion cancelled. You must type exactly "DELETE" to confirm.')
+      return
+    }
+    
+    try {
+      // Show loading state
+      const originalButtonText = document.querySelector(`[data-project-id="${project.project_id}"] .delete-btn`)?.textContent
+      const deleteButton = document.querySelector(`[data-project-id="${project.project_id}"] .delete-btn`)
+      if (deleteButton) {
+        deleteButton.textContent = 'Deleting...'
+        deleteButton.setAttribute('disabled', 'true')
+      }
+      
+      await deleteProject.mutateAsync(project.project_id)
+      
+      alert(`Project "${project.name}" has been permanently deleted from the database.`)
+      
+    } catch (error: any) {
+      console.error('Failed to delete project:', error)
+      
+      // Reset button state
+      const deleteButton = document.querySelector(`[data-project-id="${project.project_id}"] .delete-btn`)
+      if (deleteButton) {
+        deleteButton.textContent = 'Delete'
+        deleteButton.removeAttribute('disabled')
+      }
+      
+      // Show user-friendly error message
+      if (error?.code === '42501' || /insufficient privileges|RLS|policy/i.test(error?.message || '')) {
+        alert('Permission denied. Only administrators can delete projects. Please contact your system administrator.')
+      } else if (error?.code === '23503' || /foreign key/i.test(error?.message || '')) {
+        alert('Cannot delete project because it contains data. Please remove all roofs and pins first, or contact an administrator.')
+      } else {
+        alert(`Failed to delete project: ${error?.message || 'Unknown error'}`)
+      }
+    }
   }
 
   const resetNewProjectForm = () => {
     // Clean up preview URL
     if (newProjectForm.roofPlanPreview) {
       URL.revokeObjectURL(newProjectForm.roofPlanPreview)
+    }
+    if (newProjectForm.openingPhotoPreview) {
+      URL.revokeObjectURL(newProjectForm.openingPhotoPreview)
     }
     
     setNewProjectForm({
@@ -223,7 +303,9 @@ function HomePage() {
       location: '',
       priority: 'normal',
       roofPlanFile: null,
-      roofPlanPreview: ''
+      roofPlanPreview: '',
+      openingPhotoFile: null,
+      openingPhotoPreview: ''
     })
     setEditingProject(null)
   }
@@ -748,7 +830,7 @@ function HomePage() {
                         </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" data-project-id={p.project_id}>
                         <ProjectOpenButton project={p} />
                         <button 
                           className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200"
@@ -756,6 +838,15 @@ function HomePage() {
                         >
                           Edit
                         </button>
+                        {isAdmin && (
+                          <button 
+                            className="delete-btn px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => handleDeleteProject(p)}
+                            title="Delete project (Admin only)"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -775,7 +866,7 @@ function HomePage() {
                     </h3>
                     <p className="text-xs text-slate-500 font-mono mt-1 break-all">{p.project_id}</p>
                   </div>
-                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0" data-project-id={p.project_id}>
                     <ProjectOpenButton project={p} />
                     <button 
                       className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200"
@@ -783,6 +874,15 @@ function HomePage() {
                     >
                       Edit
                     </button>
+                    {isAdmin && (
+                      <button 
+                        className="delete-btn px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => handleDeleteProject(p)}
+                        title="Delete project (Admin only)"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
                 
