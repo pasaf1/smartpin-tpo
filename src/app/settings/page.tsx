@@ -266,10 +266,10 @@ export default function SettingsPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/dashboard" prefetch onClick={() => setIsNavigating(true)}>
+              <Link href="/" prefetch onClick={() => setIsNavigating(true)}>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
+                  Back to Projects
                 </Button>
               </Link>
               <div>
