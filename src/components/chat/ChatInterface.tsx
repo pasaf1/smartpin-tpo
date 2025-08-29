@@ -212,7 +212,7 @@ export function ChatInterface({ projectId, roofId, pinId, className }: ChatInter
                 <div className="flex flex-wrap gap-1">
                   {availableUsers.map((user) => (
                     <Badge key={user.id} variant="outline" className="text-xs">
-                      {user.name}
+                      {user.full_name}
                     </Badge>
                   ))}
                 </div>

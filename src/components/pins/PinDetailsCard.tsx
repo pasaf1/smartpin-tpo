@@ -21,8 +21,14 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { format, getISOWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations } from '@/lib/types/relations'
+import type { PinWithRelations } from '@/lib/hooks/usePins'
 import type { PinStatus, Severity as PinSeverity, Pin } from '@/lib/database.types'
+import { 
+  deriveIssueRowStatusFromPin, 
+  getIssueStatusColor, 
+  getIssueStatusIcon, 
+  formatIssueId 
+} from '@/lib/utils/issueStatus'
 
 interface PinDetailsCardProps {
   pin: PinWithRelations
@@ -33,6 +39,8 @@ interface PinDetailsCardProps {
   onStatusChange?: (pinId: string, status: string) => void
   onSeverityChange?: (pinId: string, severity: string) => void
   onChildPinCreate?: (parentPinId: string, x: number, y: number) => void
+  onUpdate?: (updatedPin: any) => void | Promise<void>
+  onDelete?: (pinId: string) => void | Promise<void>
   className?: string
 }
 
@@ -45,6 +53,8 @@ export function PinDetailsCard({
   onStatusChange,
   onSeverityChange,
   onChildPinCreate,
+  onUpdate,
+  onDelete,
   className
 }: PinDetailsCardProps) {
   const uid = useId()
@@ -91,10 +101,17 @@ export function PinDetailsCard({
   // derive dates from pin when available
   const openedAt = ((pin as any).opened_at ?? (pin as any).created_at) as string | undefined
   const openedDate = openedAt ? new Date(openedAt) : new Date()
-  const incrId = useMemo(() => {
-    const seq = String((pin as any).seq_number ?? 1).padStart(3, '0')
-    return `INCR-${openedDate.getFullYear()}-${seq}`
+  
+  // Generate Issue ID using new format
+  const issueId = useMemo(() => {
+    const seq = (pin as any).seq_number ?? 1
+    return formatIssueId(openedDate.getFullYear(), seq)
   }, [pin, openedDate])
+  
+  // Derive Issue Row Status from parent + children
+  const issueRowStatus = useMemo(() => {
+    return deriveIssueRowStatusFromPin(pin as any)
+  }, [pin, children])
 
   const dateOfOpening = format(openedDate, 'dd/MM/yyyy')
   const weekWW = getISOWeek(openedDate)
@@ -130,8 +147,9 @@ export function PinDetailsCard({
     inspector_name: 'Asaf Peer'
   })
 
-  const handleSave = () => {
+  const handleSave = async () => {
     console.log('Save INCR changes:', incrData)
+    await onUpdate?.(pin as any)
     setIsEditing(false)
   }
 
@@ -139,14 +157,15 @@ export function PinDetailsCard({
     setIsEditing(false)
   }
 
-  const handleImageUpload = (type: 'opening' | 'closure', file: File | null) => {
+  const handleImageUpload = async (type: 'opening' | 'closure', file: File | null) => {
     if (type === 'opening') {
       setOpeningImage(file)
     } else {
       setClosureImage(file)
-      // When a closure photo is uploaded, automatically change status to Ready for Inspection
-      if (file && (pin as any).status === 'Open') {
-        onStatusChange?.((pin as any).id, 'ReadyForInspection')
+      // AUTOMATION: When a parent closure photo is uploaded, automatically change parent status to Ready for Inspection
+      if (file && (pin as any).status !== 'ReadyForInspection' && (pin as any).status !== 'Closed') {
+        console.log('🚀 AUTOMATION: Parent closure photo uploaded - setting status to ReadyForInspection')
+        await onStatusChange?.((pin as any).id, 'ReadyForInspection')
       }
     }
   }
@@ -159,7 +178,9 @@ export function PinDetailsCard({
       const childPin = children.find((child: any) => child.id === childPinId)
       if (!childPin) return
 
-      // Process the closure photo with enhanced status management
+      console.log('🚀 AUTOMATION: Child closure photo uploaded - setting child status to ReadyForInspection')
+
+      // AUTOMATION: Upload closure photo and set child status to ReadyForInspection
       const result = await handleChildPinClosurePhoto(
         childPin as any,
         pin as any,
@@ -171,6 +192,10 @@ export function PinDetailsCard({
       result.notifications.forEach((notification: any) => {
         console.log('Status Update:', notification)
       })
+
+      // After child status change, we should trigger recompute_parent_aggregates
+      // This would normally be handled by the database trigger or RPC
+      console.log('🔄 Should trigger recompute_parent_aggregates for pin:', (pin as any).id)
     } catch (error) {
       console.error('Failed to process child pin closure photo:', error)
       alert('Failed to upload closure photo. Please try again.')
@@ -181,7 +206,9 @@ export function PinDetailsCard({
     if (children.length === 0) return
 
     try {
-      // Close the child pin with enhanced status management
+      console.log('🚀 MANUAL CLOSE: Closing child issue and triggering parent aggregates recompute')
+
+      // MANUAL CLOSE: Set child status to Closed and set completion timestamp
       const result = await handleCloseChildPin(
         child,
         pin as any,
@@ -193,11 +220,14 @@ export function PinDetailsCard({
         console.log('Status Update:', notification)
       })
 
+      // After child status change, we should trigger recompute_parent_aggregates
+      console.log('🔄 Should trigger recompute_parent_aggregates for pin:', (pin as any).id)
+
       // Show success message
-      alert(`Child pin "${child.title}" has been successfully closed!`)
+      alert(`Child issue "${child.title || `Issue ${child.seq_suffix || 'N/A'}`}" has been successfully closed!`)
     } catch (error) {
-      console.error('Failed to close child pin:', error)
-      alert(error instanceof Error ? error.message : 'Failed to close child pin. Please try again.')
+      console.error('Failed to close child issue:', error)
+      alert(error instanceof Error ? error.message : 'Failed to close child issue. Please try again.')
     }
   }
 
@@ -210,19 +240,44 @@ export function PinDetailsCard({
     <ScrollArea className={cn('h-full max-h-[90vh]', className)}>
       <div className="p-6 space-y-6 max-w-4xl mx-auto">
 
-        {/* INCR HEADER */}
+        {/* ISSUE HEADER */}
         <Card className="border-2 border-blue-500/20 bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-2xl text-blue-900">{incrId}</CardTitle>
+                <CardTitle className="text-2xl text-blue-900">{issueId}</CardTitle>
                 <CardDescription className="text-lg font-medium text-blue-700">
-                  Internal Non-Conformance Record
+                  Quality Issue Tracker
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <StatusBadge status={(pin as any).status} />
+                {/* Show Issue Row Status (aggregated status) */}
+                <div className={cn(
+                  "inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border",
+                  getIssueStatusColor(issueRowStatus)
+                )}>
+                  {getIssueStatusIcon(issueRowStatus)}
+                  {issueRowStatus}
+                </div>
                 <SeverityBadge severity={(pin as any).severity} />
+              </div>
+            </div>
+            
+            {/* Issue Progress Summary */}
+            <div className="mt-4 p-3 bg-white/50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-slate-700">Issue Progress</span>
+                <span className="text-slate-600">
+                  {statusSummary.closed} of {statusSummary.totalChildren + 1} items completed
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${Math.round(((statusSummary.closed + (pin.status === 'Closed' ? 1 : 0)) / (statusSummary.totalChildren + 1)) * 100)}%` 
+                  }}
+                />
               </div>
             </div>
           </CardHeader>
@@ -235,8 +290,8 @@ export function PinDetailsCard({
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label className="text-sm font-medium text-slate-600">INCR ID</Label>
-              <Input value={incrId} disabled className="bg-slate-50 font-mono text-blue-700" />
+              <Label className="text-sm font-medium text-slate-600">Issue ID</Label>
+              <Input value={issueId} disabled className="bg-slate-50 font-mono text-blue-700" />
             </div>
             <div>
               <Label className="text-sm font-medium text-slate-600">Roof Name</Label>
@@ -453,34 +508,34 @@ export function PinDetailsCard({
           </CardContent>
         </Card>
 
-        {/* CHILD PINS (SUB-PINS) SECTION */}
+        {/* CHILD ISSUES SECTION */}
         {!((pin as any).parent_pin_id) && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xl text-slate-800">👥 Child Pins (Sub-Pins)</CardTitle>
+                <CardTitle className="text-xl text-slate-800">📋 Additional Issues (Same Type)</CardTitle>
                 <Button
                   size="sm"
                   onClick={handleAddChild}
                   className="bg-emerald-600 hover:bg-emerald-700"
-                  aria-label="Add child pin"
+                  aria-label="Add additional issue of same type"
                 >
-                  ➕ Add Child Pin
+                  ➕ Add Issue (Same Type)
                 </Button>
               </div>
               <CardDescription>
-                Manage sub-defects related to this main pin. Each child pin has independent status tracking.
+                Manage additional occurrences of the same issue type. Each occurrence has independent status tracking and photos.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {/* Status Summary */}
               {children.length > 0 && (
                 <div className="bg-slate-50 rounded-lg p-4 border mb-6">
-                  <h4 className="font-semibold text-slate-800 mb-3">Status Summary</h4>
+                  <h4 className="font-semibold text-slate-800 mb-3">Additional Issues Summary</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
                       <div className="text-lg font-bold text-slate-800">{statusSummary.totalChildren}</div>
-                      <div className="text-xs text-slate-600">Total</div>
+                      <div className="text-xs text-slate-600">Total Issues</div>
                     </div>
                     <div className="text-center">
                       <div className="text-lg font-bold text-red-600">{statusSummary.open}</div>
@@ -497,7 +552,7 @@ export function PinDetailsCard({
                   </div>
                   <div className="mt-3">
                     <div className="flex justify-between items-center text-sm text-slate-600 mb-1">
-                      <span>Completion Progress</span>
+                      <span>Individual Issue Progress</span>
                       <span>{statusSummary.completionPercentage}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
@@ -567,9 +622,9 @@ export function PinDetailsCard({
                 </div>
               ) : (
                 <div className="text-center py-8 text-slate-500">
-                  <div className="text-4xl mb-3">👥</div>
-                  <p className="text-sm">No child pins created yet</p>
-                  <p className="text-xs mt-1">Click &quot;Add Child Pin&quot; to create sub-defects</p>
+                  <div className="text-4xl mb-3">📋</div>
+                  <p className="text-sm">No additional issues created yet</p>
+                  <p className="text-xs mt-1">Click &quot;Add Issue (Same Type)&quot; to create additional occurrences</p>
                 </div>
               )}
             </CardContent>
@@ -622,13 +677,13 @@ export function PinDetailsCard({
           </CardContent>
         </Card>
 
-        {/* PIN CHAT HISTORY - Each Father Pin has its own chat */}
+        {/* ISSUE COMMUNICATION HISTORY */}
         {!((pin as any).parent_pin_id) && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-slate-800">💬 Pin Chat & History</CardTitle>
+              <CardTitle className="text-xl text-slate-800">💬 Issue Communication & History</CardTitle>
               <CardDescription>
-                Communication history for Pin #{(pin as any).seq_number} - includes all activities and updates
+                Communication history for {issueId} - includes all activities and updates
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -700,18 +755,18 @@ export function PinDetailsCard({
         )}
 
         {/* ACTION BUTTONS */}
-        <div className="flex justify-between items-center pt-6 border-t">
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={handleCancel}>
+        <div className="flex flex-col sm:flex-row justify-between items-center pt-6 border-t gap-4">
+          <div className="flex gap-3 w-full sm:w-auto">
+            <Button variant="outline" onClick={handleCancel} className="flex-1 sm:flex-none">
               ❌ Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-              💾 Save INCR
+            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none">
+              💾 Save Issue
             </Button>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline">📄 Export PDF</Button>
-            <Button variant="outline">📧 Send Report</Button>
+          <div className="flex gap-3 w-full sm:w-auto">
+            <Button variant="outline" className="flex-1 sm:flex-none">📄 Export PDF</Button>
+            <Button variant="outline" className="flex-1 sm:flex-none">📧 Send Report</Button>
           </div>
         </div>
       </div>

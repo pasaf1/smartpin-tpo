@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useChat } from './useChat';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import type { User } from '@/lib/database.types';
 
 export interface ChatNotification {
   id: string;
@@ -178,6 +179,6 @@ export function useChatSystem(scopes: ChatScope[]) {
     clearNotifications,
     markNotificationAsRead,
     detectMentions,
-    availableUsers: []
+    availableUsers: [] as User[]
   };
 }

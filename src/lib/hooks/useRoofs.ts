@@ -284,8 +284,8 @@ export function useProjects() {
     queryFn: async () => {
       // Mock projects data
       return [
-        { id: '1', name: 'Project 1', description: 'Demo project' },
-        { id: '2', name: 'Project 2', description: 'Demo project 2' }
+        { id: '1', project_id: '1', name: 'Project 1', description: 'Demo project', status: 'Open' },
+        { id: '2', project_id: '2', name: 'Project 2', description: 'Demo project 2', status: 'Open' }
       ]
     }
   })

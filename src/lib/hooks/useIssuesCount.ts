@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useProjects, useRoofsByProject } from './useSupabaseQueries'
+import { useProjects, useRoofsByProject } from './useRoofs'
 import { db } from '../supabase-production'
 
 /**
