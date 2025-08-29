@@ -11,8 +11,13 @@ import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
 import { useProjects, useCreateProject, useUpdateProject, useRoofsByProject, useSendChatMessage, usePinsByRoof } from '@/lib/hooks/useSupabaseQueries'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { extractMentionedUserIds } from '@/lib/mentions'
 import { useOpenIssuesCount } from '@/lib/hooks/useIssuesCount'
+import type { Database } from '@/lib/database.types'
+
+type Project = Database['public']['Tables']['projects']['Row']
 
 function HomePage() {
   const { profile } = useAuth()
@@ -27,6 +32,33 @@ function HomePage() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()
+  
+  // Get all project IDs and fetch roofs in one query to avoid N+1
+  const projectIds = useMemo(() => projects.map(p => p.project_id), [projects])
+  
+  const { data: roofs = [] } = useQuery({
+    queryKey: ['roofs', 'by-projects', projectIds],
+    enabled: projectIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('roofs')
+        .select('id, project_id')
+        .in('project_id', projectIds)
+      if (error) throw error
+      return data || []
+    }
+  })
+  
+  // Create map of first roof ID by project
+  const firstRoofIdByProject = useMemo(() => {
+    const map = new Map<string, string>()
+    roofs.forEach(roof => {
+      if (!map.has(roof.project_id)) {
+        map.set(roof.project_id, roof.id)
+      }
+    })
+    return map
+  }, [roofs])
   const createRoof = useCreateRoof()
   const sendGlobalMessage = useSendChatMessage()
 
@@ -63,11 +95,10 @@ function HomePage() {
   ]
 
   // Project Link Component - gets first roof for project
-  const ProjectOpenButton = ({ project }: { project: any }) => {
-    const { data: roofs = [] } = useRoofsByProject(project.project_id)
-    const firstRoof = roofs[0]
+  const ProjectOpenButton = ({ project }: { project: Project }) => {
+    const firstRoofId = firstRoofIdByProject[project.project_id]
     
-    if (!firstRoof) {
+    if (!firstRoofId) {
       return (
         <button 
           disabled 
@@ -79,7 +110,7 @@ function HomePage() {
     }
     
     return (
-      <Link href={`/roofs/${firstRoof.id}`}>
+      <Link href={`/roofs/${firstRoofId}`}>
         <button className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300">
           Open
         </button>
@@ -89,6 +120,7 @@ function HomePage() {
 
   // Filtered and sorted projects
   const filteredProjects = useMemo(() => {
+    const getCompletion = (p: Project) => p.status === 'Completed' ? 100 : p.status === 'InProgress' ? 50 : 0
     let filtered = [...projects]
     
     // Apply status filter
@@ -107,15 +139,10 @@ function HomePage() {
     
     // Apply completion filter
     if (filters.completion !== 'all') {
+      const [min, max] = filters.completion.split('-').map(Number)
       filtered = filtered.filter(project => {
-        // Calculate completion based on project status
-        const completion = project.status === 'Completed' ? 100 : 
-                          project.status === 'InProgress' ? 50 : 0
-        
-        if (filters.completion === 'high') return completion >= 75
-        if (filters.completion === 'medium') return completion >= 25 && completion < 75
-        if (filters.completion === 'low') return completion < 25
-        return true
+        const completion = getCompletion(project)
+        return completion >= min && completion <= max
       })
     }
     
@@ -171,7 +198,7 @@ function HomePage() {
     }))
   }
 
-  const handleEditProject = (project: any) => {
+  const handleEditProject = (project: Project) => {
     setEditingProject(project)
     setNewProjectForm({
       name: project.name,
@@ -225,13 +252,20 @@ function HomePage() {
 
     try {
       if (editingProject) {
-        // Update existing project
-        await updateProject.mutateAsync({
-          projectId: editingProject.project_id,
-          updates: {
-            name: newProjectForm.name.trim(),
-          }
-        })
+        // Update existing project with timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000)
+        )
+        
+        await Promise.race([
+          updateProject.mutateAsync({
+            projectId: editingProject.project_id,
+            updates: {
+              name: newProjectForm.name.trim(),
+            }
+          }),
+          timeoutPromise
+        ])
 
         console.log('Project updated:', editingProject.project_id)
         
@@ -241,21 +275,59 @@ function HomePage() {
 
         alert(`Project "${newProjectForm.name}" updated successfully!`)
       } else {
-        // Create new project (existing logic)
+        // Create new project with timeout protection
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000)
+        )
+        
         // Map priority to status
         const status = 'Open' as const
         
-        // Create project in Supabase
-        const newProject = await createProject.mutateAsync({
-          name: newProjectForm.name.trim(),
-          status,
-          contractor: null,
-          created_by: profile?.id || null,
-        })
+        // Create project in Supabase with timeout
+        const newProject = await Promise.race([
+          createProject.mutateAsync({
+            name: newProjectForm.name.trim(),
+            status,
+            contractor: null,
+            created_by: profile?.id || null,
+          }),
+          timeoutPromise
+        ]) as any
 
         console.log('Project created:', newProject)
 
-        // Create a default roof for the project
+        // Upload roof plan image to Supabase Storage if provided
+        let planImageUrl: string | null = null
+        if (newProjectForm.roofPlanFile) {
+          try {
+            const timestamp = Date.now()
+            const fileName = `${timestamp}-${newProjectForm.roofPlanFile.name}`
+            const filePath = `projects/${newProject.project_id}/roof-plans/${fileName}`
+            
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('roof-photos')
+              .upload(filePath, newProjectForm.roofPlanFile, {
+                cacheControl: '3600',
+                upsert: false
+              })
+
+            if (uploadError) {
+              console.error('Failed to upload roof plan image:', uploadError)
+              // Continue without image rather than fail completely
+            } else {
+              const { data: urlData } = supabase.storage
+                .from('roof-photos')
+                .getPublicUrl(filePath)
+              planImageUrl = urlData.publicUrl
+              console.log('Roof plan image uploaded:', planImageUrl)
+            }
+          } catch (error) {
+            console.error('Error uploading roof plan image:', error)
+            // Continue without image rather than fail completely
+          }
+        }
+
+        // Create a default roof for the project with timeout
         const roofCode = newProjectForm.name.trim()
           .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
           .split(' ')
@@ -263,19 +335,22 @@ function HomePage() {
           .join('')
           .substring(0, 5) // Max 5 characters
           
-        const newRoof = await createRoof.mutateAsync({
-          project_id: newProject.project_id,
-          code: roofCode,
-          name: `${newProjectForm.name} - Main Roof`,
-          building: newProjectForm.location.trim(),
-          plan_image_url: newProjectForm.roofPlanPreview || null,
-          roof_plan_url: null,
-          zones: {},
-          stakeholders: {},
-          origin_lat: null,
-          origin_lng: null,
-          is_active: true,
-        })
+        const newRoof = await Promise.race([
+          createRoof.mutateAsync({
+            project_id: newProject.project_id,
+            code: roofCode,
+            name: `${newProjectForm.name} - Main Roof`,
+            building: newProjectForm.location.trim(),
+            plan_image_url: planImageUrl, // Use uploaded image URL
+            roof_plan_url: null,
+            zones: {},
+            stakeholders: {},
+            origin_lat: null,
+            origin_lng: null,
+            is_active: true,
+          }),
+          timeoutPromise
+        ]) as any
 
         console.log('Roof created:', newRoof)
 
@@ -346,16 +421,16 @@ function HomePage() {
       showSearch={true}
       searchPlaceholder="Search projects..."
     >
-      <div className="space-y-8">
+      <div className="space-y-8 pb-safe">
         
         {/* Project Overview Filters - Now positioned above KPI cards */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-safe">
           <div className="flex flex-wrap items-center gap-4">
-            <h2 className="text-2xl font-bold text-slate-800">Project Dashboard</h2>
+            <h2 className="text-2xl sm:text-2xl font-bold text-slate-800">Project Dashboard</h2>
           </div>
           
           {/* Project Status Filters */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto">
             <div className="flex flex-wrap items-center gap-2">
               <button 
                 onClick={() => handleFilterChange('status', filters.status === 'Open' ? 'all' : 'Open')}
@@ -596,10 +671,9 @@ function HomePage() {
                   className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">All Statuses</option>
-                  <option value="active">Active</option>
-                  <option value="review">Review</option>
-                  <option value="critical">Critical</option>
-                  <option value="completed">Completed</option>
+                  <option value="Open">Open</option>
+                  <option value="InProgress">In Progress</option>
+                  <option value="Completed">Completed</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
@@ -624,9 +698,8 @@ function HomePage() {
                   className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="name">Name</option>
-                  <option value="completion">Completion</option>
                   <option value="status">Status</option>
-                  <option value="updated">Last Updated</option>
+                  <option value="date">Created</option>
                 </select>
               </div>
               <div className="ml-auto flex items-center gap-2">
@@ -635,8 +708,8 @@ function HomePage() {
             </div>
           </div>
           
-          {/* Projects Table */}
-          <div className="overflow-x-auto">
+          {/* Projects Table - Desktop */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white/50">
                 <tr>
@@ -687,6 +760,51 @@ function HomePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Projects Cards - Mobile */}
+          <div className="md:hidden space-y-4">
+            {filteredProjects.map((p) => (
+              <div key={p.project_id} className="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-lg">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-800 text-lg leading-tight">
+                      {p.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-mono mt-1 break-all">{p.project_id}</p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                    <ProjectOpenButton project={p} />
+                    <button 
+                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200"
+                      onClick={() => handleEditProject(p)}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-slate-500 text-xs font-medium block mb-1">Status</span>
+                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg inline-block">
+                      {p.status}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-xs font-medium block mb-1">Contractor</span>
+                    <span className="text-slate-600">{p.contractor || '—'}</span>
+                  </div>
+                </div>
+                
+                <div className="mt-3 pt-3 border-t border-white/30">
+                  <div className="flex items-center gap-1 text-xs text-slate-500">
+                    <Clock className="w-3 h-3" />
+                    Created: {new Date(p.created_at).toLocaleDateString()} {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -837,11 +955,9 @@ function HomePage() {
                 <div className="border-2 border-dashed border-white/30 rounded-lg hover:border-indigo-400 transition-colors">
                   {newProjectForm.roofPlanPreview ? (
                     <div className="relative">
-                      <Image 
+                      <img 
                         src={newProjectForm.roofPlanPreview} 
                         alt="Roof plan preview" 
-                        width={400}
-                        height={192}
                         className="w-full h-48 object-cover rounded-lg"
                       />
                       <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">

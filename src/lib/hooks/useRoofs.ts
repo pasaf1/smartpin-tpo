@@ -103,18 +103,29 @@ export function useCreateRoof() {
 
   return useMutation({
     mutationFn: async (roof: RoofInsert): Promise<Roof> => {
-      const { data, error } = await supabase
-        .from('roofs')
-        .insert(roof)
-        .select()
-        .single()
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timeout after 10 seconds')), 10000)
+      )
+      
+      const operation = async () => {
+        const { data, error } = await supabase
+          .from('roofs')
+          .insert(roof)
+          .select()
+          .single()
 
-      if (error) throw error
-      return data
+        if (error) throw error
+        return data
+      }
+
+      return Promise.race([operation(), timeoutPromise]) as Promise<Roof>
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofs })
     },
+    onError: (error) => {
+      console.error('Failed to create roof:', error)
+    }
   })
 }
 

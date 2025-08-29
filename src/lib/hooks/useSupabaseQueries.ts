@@ -79,7 +79,16 @@ export function useCreateProject() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (project: ProjectInsert) => db.projects.create(project),
+    mutationFn: async (project: ProjectInsert) => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timeout after 10 seconds')), 10000)
+      )
+      
+      return Promise.race([
+        db.projects.create(project),
+        timeoutPromise
+      ])
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
     },

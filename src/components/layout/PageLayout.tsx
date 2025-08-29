@@ -42,19 +42,19 @@ export function PageLayout({
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 ${className}`}>
       {/* Premium 3D Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/50 shadow-xl shadow-indigo-500/5">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/50 shadow-xl shadow-indigo-500/5 pt-safe">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Logo & Title */}
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-                <div className="w-6 h-6 bg-white rounded-md opacity-90"></div>
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
+                <div className="w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-md opacity-90"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                   SmartPin TPO
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Quality Management Platform</p>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium hidden sm:block">Quality Management Platform</p>
               </div>
             </div>
 
@@ -161,7 +161,7 @@ export function PageLayout({
       </div>
 
       {/* Main Content */}
-      <main className={`max-w-7xl mx-auto px-6 py-8 ${contentClassName}`}>
+      <main className={`max-w-7xl mx-auto px-6 sm:px-8 py-8 pb-safe ${contentClassName}`}>
         {children}
       </main>
 

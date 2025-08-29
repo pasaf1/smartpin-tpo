@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useChatPro } from "@/lib/hooks/useChatPro"
 
 export type Scope = "global" | "roof" | "pin"
@@ -69,7 +70,6 @@ export default function ChatProUI({ scope, scopeId = null, title = "Chat", curre
   const [searchResults, setSearchResults] = useState<any[] | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [showSidebar, setShowSidebar] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
 
   const onSend = useCallback(async () => {
@@ -146,16 +146,6 @@ export default function ChatProUI({ scope, scopeId = null, title = "Chat", curre
         {/* Header - Sticky */}
         <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
           <div className="flex items-center gap-3 px-2 md:px-4 py-3">
-            {/* Mobile Sidebar Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden h-8 w-8"
-              onClick={() => setShowSidebar(true)}
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
-            
             <div className="flex items-center gap-2 min-w-0">
               <div className="font-semibold truncate">{title}</div>
               {unreadCount > 0 && <Badge variant="secondary" className="shrink-0">{unreadCount}</Badge>}
@@ -205,43 +195,6 @@ export default function ChatProUI({ scope, scopeId = null, title = "Chat", curre
           </div>
         </header>
 
-        {/* Mobile Sidebar Overlay */}
-        {showSidebar && (
-          <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setShowSidebar(false)}>
-            <div 
-              className="w-72 h-full bg-background border-r shadow-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 border-b flex items-center justify-between">
-                <h3 className="font-semibold">Chat Info</h3>
-                <Button variant="ghost" size="icon" onClick={() => setShowSidebar(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="p-4 space-y-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Recent Activity</h4>
-                  <div className="text-xs text-muted-foreground">
-                    {onlineCount} users online
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Last message: {messages[messages.length - 1]?.created_at ? 
-                      formatDistanceToNow(new Date(messages[messages.length - 1].created_at), { addSuffix: true }) : 
-                      'No messages yet'
-                    }
-                  </div>
-                </div>
-                {unreadCount > 0 && (
-                  <div className="p-3 border rounded-lg bg-primary/5">
-                    <div className="text-sm font-medium">Unread Messages</div>
-                    <div className="text-2xl font-bold text-primary">{unreadCount}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Search Results */}
         {searchResults && (
           <div className="border-b bg-muted/30 p-3">
@@ -276,7 +229,7 @@ export default function ChatProUI({ scope, scopeId = null, title = "Chat", curre
               <MessageRow
                 key={m.id}
                 message={m}
-                isOwn={Boolean(m.created_by && currentUser?.id === m.created_by)}
+                isOwn={!!m.created_by && currentUser?.id === m.created_by}
                 onReply={() => setReplyTo(m.id)}
                 onEdit={() => { setEditingId(m.id); setText(m.text) }}
                 onDelete={() => deleteMessage(m.id)}
