@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import { RoofCard } from '@/components/dashboard/RoofCard'
 import { FilterPanel } from '@/components/dashboard/FilterPanel'
-import { IncrDetailsCard } from '@/components/pins/IncrDetailsCard'
+import { PinDetailsCard } from '@/components/pins/PinDetailsCard'
 import { PinDetailsModalV2 } from '@/components/dashboard/PinDetailsModalV2'
 
 interface FilterState {
@@ -244,12 +244,12 @@ export default function DashboardPage() {
             >
               <X className="w-5 h-5" />
             </button>
-            <IncrDetailsCard
+            <PinDetailsCard
               pin={selectedPin as any}
               roofId="current-roof"
               roofName="Main Roof"
               backgroundImageUrl="/api/placeholder/800/600"
-              onClosurePhoto={async (pinId: string, file: File) => {
+              onClosurePhoto={async (pinId: string) => {
                 console.log('Closure photo uploaded for pin:', pinId)
               }}
               onStatusChange={async (pinId: string, status: string) => {

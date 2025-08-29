@@ -2,9 +2,9 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { usePinsForRoof, useCreatePin, useServiceError } from '@/lib/hooks/useEnhancedPins'
-import { PinMarker } from './PinMarkerNew'
-import type { PinWithRelations } from '@/lib/types/relations'
+import { usePins } from '@/lib/hooks/usePins'
+import { PinMarker } from './PinMarker'
+import type { PinWithRelations } from '@/lib/hooks/usePins'
 
 interface PinCanvasProps {
   roofId: string
@@ -57,10 +57,6 @@ export function PinCanvas({
     dragStart: { x: 0, y: 0 },
     hasMoved: false
   })
-  
-  // State to control if panning is enabled (only when zoomed in)
-  const [panningEnabled, setPanningEnabled] = useState(false)
-  const [showControls, setShowControls] = useState(true)
 
   // Calculate and cache scale factors for performance
   const calculateScaleFactors = useCallback((): ScaleCache | null => {
@@ -104,10 +100,8 @@ export function PinCanvas({
     return () => resizeObserver.disconnect()
   }, [calculateScaleFactors])
 
-  // Fetch pins for this roof with enhanced error handling
-  const { data: pins = [], isLoading, error } = usePinsForRoof(roofId)
-  const createPinMutation = useCreatePin()
-  const { handleError } = useServiceError()
+  // Fetch pins for this roof
+  const { data: pins = [], isLoading } = usePins(roofId)
 
   // Convert screen coordinates to SVG coordinates - OPTIMIZED VERSION with cache
   const screenToSvgCoords = useCallback((clientX: number, clientY: number) => {
@@ -138,43 +132,20 @@ export function PinCanvas({
     }
   }, [canvasState.panX, canvasState.panY, canvasState.zoom, calculateScaleFactors])
 
-  // Enhanced pin creation with error handling
-  const handleCreatePin = useCallback(async (x: number, y: number) => {
-    try {
-      await createPinMutation.mutateAsync({
-        roof_id: roofId,
-        x,
-        y
-      })
-    } catch (error) {
-      const errorInfo = handleError(error, 'CreatePin')
-      console.error('Failed to create pin:', errorInfo)
-      // Could show toast notification here
-    }
-  }, [roofId, createPinMutation, handleError])
-
   // Handle canvas click for pin creation (only if not dragging)
   const handleCanvasClick = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     // Don't create pin if we were dragging or clicking on existing pin
     if (canvasState.hasMoved || (event.target as Element).closest('.pin-marker')) return
     
-    if (editable) {
+    if (editable && onPinCreate) {
       const coords = screenToSvgCoords(event.clientX, event.clientY)
-      if (onPinCreate) {
-        onPinCreate(coords.x, coords.y)
-      } else {
-        // Use internal enhanced pin creation
-        handleCreatePin(coords.x, coords.y)
-      }
+      onPinCreate(coords.x, coords.y)
     }
-  }, [editable, onPinCreate, screenToSvgCoords, canvasState.hasMoved, handleCreatePin])
+  }, [editable, onPinCreate, screenToSvgCoords, canvasState.hasMoved])
 
-  // Handle mouse down for panning (only when zoomed in)
+  // Handle mouse down for panning
   const handleMouseDown = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     if (event.button !== 0) return // Only left mouse button
-    
-    // Only allow panning when zoomed in significantly
-    if (canvasState.zoom <= 1.2) return
     
     setCanvasState(prev => ({
       ...prev,
@@ -184,11 +155,11 @@ export function PinCanvas({
     }))
     
     event.preventDefault()
-  }, [canvasState.zoom])
+  }, [])
 
-  // Handle mouse move for panning (only when zoomed and dragging enabled)
+  // Handle mouse move for panning
   const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
-    if (!canvasState.isDragging || canvasState.zoom <= 1.2) return
+    if (!canvasState.isDragging) return
 
     const deltaX = event.clientX - canvasState.dragStart.x
     const deltaY = event.clientY - canvasState.dragStart.y
@@ -214,7 +185,7 @@ export function PinCanvas({
       dragStart: { x: event.clientX, y: event.clientY },
       hasMoved: hasMoved || prev.hasMoved
     }))
-  }, [canvasState.isDragging, canvasState.dragStart, canvasState.zoom, calculateScaleFactors])
+  }, [canvasState.isDragging, canvasState.dragStart, calculateScaleFactors])
 
   // Handle mouse up to stop panning
   const handleMouseUp = useCallback(() => {
@@ -295,8 +266,7 @@ export function PinCanvas({
       ref={containerRef}
       className={cn(
         'canvas-container relative overflow-hidden bg-muted/30',
-        canvasState.isDragging && canvasState.zoom > 1.2 && 'cursor-move',
-        canvasState.zoom <= 1.2 && 'cursor-crosshair',
+        canvasState.isDragging && 'cursor-move',
         className
       )}
       style={{ height: '600px' }}
@@ -402,71 +372,43 @@ export function PinCanvas({
         </g>
       </svg>
 
-      {/* Toggle button for controls */}
-      <button
-        onClick={() => setShowControls(!showControls)}
-        className="absolute top-4 right-4 w-8 h-8 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors z-10"
-        title={showControls ? "Hide Controls" : "Show Controls"}
-      >
-        {showControls ? "👁️" : "⚙️"}
-      </button>
+      {/* Canvas controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2">
+        <button
+          onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.min(prev.zoom * 1.2, 5) }))}
+          className="p-2 bg-background border border-border rounded-md shadow-sm hover:bg-muted transition-colors"
+          title="Zoom In"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        </button>
+        
+        <button
+          onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.max(prev.zoom / 1.2, 0.1) }))}
+          className="p-2 bg-background border border-border rounded-md shadow-sm hover:bg-muted transition-colors"
+          title="Zoom Out"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
+          </svg>
+        </button>
+        
+        <button
+          onClick={() => setCanvasState({ zoom: 1, panX: 0, panY: 0, isDragging: false, dragStart: { x: 0, y: 0 }, hasMoved: false })}
+          className="p-2 bg-background border border-border rounded-md shadow-sm hover:bg-muted transition-colors"
+          title="Reset View"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
 
-      {/* Canvas controls - Map Controls - moved to bottom right */}
-      {showControls && (
-        <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm rounded-lg p-2 space-y-1">
-          <h4 className="text-white text-xs font-semibold mb-1 text-center">Map Controls</h4>
-          <button
-            onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.min(prev.zoom * 1.2, 5) }))}
-            className="w-full p-1.5 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-xs"
-            title="Zoom In"
-          >
-            🔍+ Zoom In
-          </button>
-          
-          <button
-            onClick={() => setCanvasState(prev => ({ ...prev, zoom: Math.max(prev.zoom / 1.2, 0.1) }))}
-            className="w-full p-1.5 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-xs"
-            title="Zoom Out"
-          >
-            🔍- Zoom Out
-          </button>
-          
-          <button
-            onClick={() => setCanvasState({ zoom: 1, panX: 0, panY: 0, isDragging: false, dragStart: { x: 0, y: 0 }, hasMoved: false })}
-            className="w-full p-1.5 bg-white/20 border border-white/30 rounded-md shadow-sm hover:bg-white/30 transition-colors text-white text-xs"
-            title="Reset View"
-          >
-            🏠 Reset
-          </button>
-          
-          {editable && (
-            <div className="text-xs text-white/70 mt-1 pt-1 border-t border-white/20 text-center">
-              Click: Add Pin
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Pin Status Legend - smaller and moved to top left */}
-      {showControls && (
-        <div className="absolute top-4 left-4">
-          <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 text-white">
-            <h4 className="text-xs font-semibold mb-2">Pin Status</h4>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span>Open</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                <span>Review</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                <span>Closed</span>
-              </div>
-            </div>
-          </div>
+      {/* Status indicator */}
+      {editable && (
+        <div className="absolute bottom-4 left-4 text-xs text-muted-foreground bg-background/90 px-2 py-1 rounded border">
+          Click to add pin • Drag to pan • Scroll to zoom
         </div>
       )}
     </div>

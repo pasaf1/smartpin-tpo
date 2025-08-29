@@ -8,10 +8,12 @@ type PinInsert = Database['public']['Tables']['pins']['Insert']
 type PinUpdate = Database['public']['Tables']['pins']['Update']
 
 export interface PinWithRelations extends Pin {
-  // Optional UI-only fields previously used in legacy code
+  // Optional UI-only fields previously used in demo/legacy
   title?: string | null
   description?: string | null
   severity?: Severity | null
+  pin_children?: any[]
+  photos?: any[]
 }
 
 const QUERY_KEYS = {
@@ -26,7 +28,7 @@ export function usePins(roofId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.roofPins(roofId),
     queryFn: async (): Promise<PinWithRelations[]> => {
-      // Production mode - query from database
+      // Removed demo mode check
 
       const { data, error } = await supabase
         .from('pins')
@@ -103,7 +105,7 @@ export function useCreatePin() {
 
   return useMutation({
   mutationFn: async (pin: CreatePinInput): Promise<Pin> => {
-      // Production mode - create in database
+      // Removed demo mode creation logic
 
       // Get next sequence number for the roof
       const { data: lastPin } = await supabase

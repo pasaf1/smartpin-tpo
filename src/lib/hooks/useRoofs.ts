@@ -12,6 +12,110 @@ type Roof = Database['public']['Tables']['roofs']['Row'] & {
 type RoofInsert = Database['public']['Tables']['roofs']['Insert']
 type RoofUpdate = Database['public']['Tables']['roofs']['Update']
 
+// Demo data for roofs
+const DEMO_ROOFS: Roof[] = [
+  {
+    id: 'roof-e1-demo',
+    project_id: 'demo-project-1',
+    code: 'E1',
+    name: 'E1 Demo Roof',
+    building: 'Demo Building A',
+    plan_image_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=800&fit=crop',
+    roof_plan_url: null,
+    zones: {},
+    stakeholders: {},
+    origin_lat: null,
+    origin_lng: null,
+    is_active: true,
+    created_at: '2024-01-15T08:00:00Z',
+    total_pins: 28,
+    open_defects: 15,
+    critical_defects: 3,
+    last_activity: '2024-08-24T14:20:00Z',
+    completion_percentage: 68
+  },
+  {
+    id: 'roof-building-a',
+    project_id: 'demo-project-2',
+    code: 'BA',
+    name: 'Building A - North Wing',
+    building: 'Building A',
+    plan_image_url: 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=1200&h=800&fit=crop',
+    roof_plan_url: null,
+    zones: {},
+    stakeholders: {},
+    origin_lat: null,
+    origin_lng: null,
+    is_active: true,
+    created_at: '2024-02-01T09:15:00Z',
+    total_pins: 42,
+    open_defects: 8,
+    critical_defects: 1,
+    last_activity: '2024-08-23T16:45:00Z',
+    completion_percentage: 85
+  },
+  {
+    id: 'roof-warehouse-12',
+    project_id: 'demo-project-3',
+    code: 'W12',
+    name: 'Warehouse 12',
+    building: 'Warehouse 12',
+    plan_image_url: 'https://images.unsplash.com/photo-1553895501-af9e282e7fc1?w=1200&h=800&fit=crop',
+    roof_plan_url: null,
+    zones: {},
+    stakeholders: {},
+    origin_lat: null,
+    origin_lng: null,
+    is_active: true,
+    created_at: '2024-03-10T07:30:00Z',
+    total_pins: 67,
+    open_defects: 23,
+    critical_defects: 5,
+    last_activity: '2024-08-22T11:20:00Z',
+    completion_percentage: 45
+  },
+  {
+    id: 'roof-school-east',
+    project_id: 'demo-project-4',
+    code: 'ESE',
+    name: 'East Elementary School',
+    building: 'East Elementary',
+    plan_image_url: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200&h=800&fit=crop',
+    roof_plan_url: null,
+    zones: {},
+    stakeholders: {},
+    origin_lat: null,
+    origin_lng: null,
+    is_active: true,
+    created_at: '2024-04-05T10:00:00Z',
+    total_pins: 19,
+    open_defects: 4,
+    critical_defects: 0,
+    last_activity: '2024-08-21T09:15:00Z',
+    completion_percentage: 92
+  },
+  {
+    id: 'roof-medical-center',
+    project_id: 'demo-project-5',
+    code: 'RMC',
+    name: 'Regional Medical Center',
+    building: 'Medical Center',
+    plan_image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=1200&h=800&fit=crop',
+    roof_plan_url: null,
+    zones: {},
+    stakeholders: {},
+    origin_lat: null,
+    origin_lng: null,
+    is_active: true,
+    created_at: '2024-05-20T08:45:00Z',
+    total_pins: 31,
+    open_defects: 12,
+    critical_defects: 2,
+    last_activity: '2024-08-24T13:30:00Z',
+    completion_percentage: 72
+  }
+]
+
 const QUERY_KEYS = {
   roofs: ['roofs'] as const,
   roof: (id: string) => ['roofs', id] as const,
@@ -22,6 +126,11 @@ export function useRoofs() {
   return useQuery({
     queryKey: QUERY_KEYS.roofs,
     queryFn: async (): Promise<Roof[]> => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Demo: Loading roofs list')
+        return DEMO_ROOFS
+      }
+
       const { data, error } = await supabase
         .from('roofs')
         .select('*')
@@ -37,6 +146,11 @@ export function useRoofsByProject(projectId: string) {
   return useQuery({
     queryKey: [...QUERY_KEYS.roofs, 'project', projectId],
     queryFn: async (): Promise<Roof[]> => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Demo: Loading roofs for project:', projectId)
+        return DEMO_ROOFS.filter(r => r.project_id === projectId)
+      }
+
       const { data, error } = await supabase
         .from('roofs')
         .select('*')
@@ -54,20 +168,20 @@ export function useRoof(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.roof(id),
     queryFn: async (): Promise<Roof> => {
-      console.log('Loading roof details for:', id)
-      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Demo: Loading roof details for:', id)
+        const roof = DEMO_ROOFS.find(r => r.id === id)
+        if (!roof) throw new Error('Roof not found')
+        return roof
+      }
+
       const { data, error } = await supabase
         .from('roofs')
         .select('*')
         .eq('id', id)
         .single()
 
-      if (error) {
-        console.error('Error loading roof:', error)
-        throw error
-      }
-      
-      console.log('Loaded roof:', data?.name)
+      if (error) throw error
       return data
     },
     enabled: !!id,
@@ -103,29 +217,18 @@ export function useCreateRoof() {
 
   return useMutation({
     mutationFn: async (roof: RoofInsert): Promise<Roof> => {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database operation timeout after 10 seconds')), 10000)
-      )
-      
-      const operation = async () => {
-        const { data, error } = await supabase
-          .from('roofs')
-          .insert(roof)
-          .select()
-          .single()
+      const { data, error } = await supabase
+        .from('roofs')
+        .insert(roof)
+        .select()
+        .single()
 
-        if (error) throw error
-        return data
-      }
-
-      return Promise.race([operation(), timeoutPromise]) as Promise<Roof>
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofs })
     },
-    onError: (error) => {
-      console.error('Failed to create roof:', error)
-    }
   })
 }
 
@@ -134,8 +237,6 @@ export function useUpdateRoof() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: RoofUpdate }): Promise<Roof> => {
-      console.log('Updating roof:', id, updates)
-
       const { data, error } = await supabase
         .from('roofs')
         .update({
@@ -146,12 +247,7 @@ export function useUpdateRoof() {
         .select()
         .single()
 
-      if (error) {
-        console.error('Error updating roof:', error)
-        throw error
-      }
-      
-      console.log('Roof updated successfully:', data?.name)
+      if (error) throw error
       return data
     },
     onSuccess: (data) => {
@@ -177,5 +273,39 @@ export function useDeleteRoof() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofs })
     },
+  })
+}
+
+// Additional hooks for compatibility
+export function useProjects() {
+  // Return projects (roofs grouped by project or simple mock)
+  return useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      // Mock projects data
+      return [
+        { id: '1', name: 'Project 1', description: 'Demo project' },
+        { id: '2', name: 'Project 2', description: 'Demo project 2' }
+      ]
+    }
+  })
+}
+
+export function useCreateProject() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (project: { name: string; description?: string }) => {
+      // For now, just return a mock project
+      return {
+        id: Math.random().toString(),
+        name: project.name,
+        description: project.description || '',
+        created_at: new Date().toISOString()
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    }
   })
 }

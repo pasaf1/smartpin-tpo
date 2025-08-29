@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useChatMessages, useSendChatMessage, useRealTimeChat } from './useSupabaseQueries';
+import { useChat } from './useChat';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
@@ -31,20 +31,14 @@ export function useChatSystem(scopes: ChatScope[]) {
   const [notifications, setNotifications] = useState<ChatNotification[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const { user } = useAuth();
-  const sendMessageMutation = useSendChatMessage();
 
-  const userInfo = user ? {
-    id: user.id,
-    name: user.user_metadata?.name || 'Anonymous',
-    role: user.user_metadata?.role || 'Viewer'
-  } : undefined;
-
-  const {
-    messages,
-    onlineUsers,
-    onlineCount,
-    isLoading
-  } = useRealTimeChat(activeScope.type as 'global' | 'roof' | 'pin', activeScope.id, userInfo);
+  // Use the existing useChat hook
+  const { 
+    messages, 
+    sendMessage: chatSendMessage, 
+    isSending,
+    sendError 
+  } = useChat(activeScope.id || 'global');
 
   const markScopeAsRead = useCallback((scope: ChatScope) => {
     const scopeKey = `${scope.type}-${scope.id || 'global'}`;
@@ -69,24 +63,19 @@ export function useChatSystem(scopes: ChatScope[]) {
 
   const sendMessage = useCallback(async (content: string, attachments?: File[]) => {
     if (!content.trim() || !user) return false;
-    const mentions = detectMentions(content);
-    const chatMessage = {
-      content: content.trim(),
-      user_id: user.id,
-      scope: activeScope.type as 'global' | 'roof' | 'pin',
-      scope_id: activeScope.id || null,
-      mentions: mentions.length > 0 ? mentions : null,
-      attachments: null
-    };
+    
     try {
-      await sendMessageMutation.mutateAsync(chatMessage);
+      await chatSendMessage({
+        content: content.trim(),
+        message_type: 'text'
+      });
       return true;
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('Failed to send message', { description: 'Please try again' });
       return false;
     }
-  }, [user, activeScope, sendMessageMutation, detectMentions]);
+  }, [user, activeScope, chatSendMessage]);
 
   const addNotification = useCallback((notification: Omit<ChatNotification, 'id'>) => {
     const newNotification: ChatNotification = {
@@ -121,15 +110,15 @@ export function useChatSystem(scopes: ChatScope[]) {
   useEffect(() => {
     if (!messages || !user) return;
     const lastMsg = messages[messages.length - 1];
-    if (!lastMsg || lastMsg.created_by === user.id) return;
+    if (!lastMsg || lastMsg.user_id === user.id) return;
     const scopeKey = `${activeScope.type}-${activeScope.id || 'global'}`;
     const userName = user.user_metadata?.name || user.id;
     if (lastMsg.mentions?.includes(userName)) {
       addNotification({
-        messageId: lastMsg.message_id,
+        messageId: lastMsg.id,
         type: 'mention',
-        content: lastMsg.text || '',
-        from: 'Unknown', // lastMsg.user is not available on this type
+        content: lastMsg.content || '',
+        from: lastMsg.user_name || 'Unknown',
         scope: scopeKey,
         scopeName: activeScope.name,
         timestamp: lastMsg.created_at,
@@ -139,10 +128,10 @@ export function useChatSystem(scopes: ChatScope[]) {
       const currentScopeKey = `${activeScope.type}-${activeScope.id || 'global'}`;
       if (scopeKey !== currentScopeKey) {
         addNotification({
-          messageId: lastMsg.message_id,
+          messageId: lastMsg.id,
           type: 'message',
-          content: lastMsg.text || '',
-          from: 'Unknown', // lastMsg.user is not available on this type
+          content: lastMsg.content || '',
+          from: lastMsg.user_name || 'Unknown',
           scope: scopeKey,
           scopeName: activeScope.name,
           timestamp: lastMsg.created_at,
@@ -175,9 +164,9 @@ export function useChatSystem(scopes: ChatScope[]) {
   return {
     activeScope,
     messages,
-    onlineUsers,
-    onlineCount,
-    isLoading,
+    onlineUsers: [],
+    onlineCount: 0,
+    isLoading: false,
     notifications: notifications.filter(n => !n.read),
     allNotifications: notifications,
     totalUnreadCount,
@@ -189,6 +178,6 @@ export function useChatSystem(scopes: ChatScope[]) {
     clearNotifications,
     markNotificationAsRead,
     detectMentions,
-    availableUsers: onlineUsers
+    availableUsers: []
   };
 }

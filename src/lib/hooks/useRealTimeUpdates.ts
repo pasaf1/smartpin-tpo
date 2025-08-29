@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { db } from '../supabase-production'
-import { queryKeys } from './useSupabaseQueries'
 import { toast } from 'sonner'
 
 // Real-time notification types
@@ -83,14 +82,14 @@ export function useRealTimeProjectDashboard() {
       console.log('Dashboard real-time update:', payload)
       
       // Invalidate project list to refresh dashboard stats
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
       
       // Handle specific events that affect dashboard
       if (payload.table === 'projects') {
-        queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+        queryClient.invalidateQueries({ queryKey: ['projects'] })
       } else if (payload.table === 'pins') {
         // Pin status changes affect project completion percentages
-        queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+        queryClient.invalidateQueries({ queryKey: ['projects'] })
       }
       
       setConnectionStatus('connected')

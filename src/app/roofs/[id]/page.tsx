@@ -7,38 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PinCanvas } from '@/components/canvas/PinCanvas'
-import { EnhancedPinCanvas } from '@/components/canvas/EnhancedPinCanvas'
-import dynamic from 'next/dynamic'
-
-// Dynamic import for Enhanced Pin Canvas to avoid SSR issues
-const DynamicEnhancedPinCanvas = dynamic(
-  () => import('@/components/canvas/EnhancedPinCanvas').then(mod => ({ default: mod.EnhancedPinCanvas })),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
-        <div className="text-muted-foreground">Loading canvas...</div>
-      </div>
-    )
-  }
-)
-import { IncrDetailsCard } from '@/components/pins/IncrDetailsCard'
+import { PinDetailsCard } from '@/components/pins/PinDetailsCard'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import ExportDialog from '@/components/export/ExportDialog'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useRoof } from '@/lib/hooks/useRoofs'
-import { useCreatePin, usePinsForRoof } from '@/lib/hooks/useEnhancedPins'
+import { useCreatePin, usePins } from '@/lib/hooks/usePins'
 import { useAllPinItems } from '@/lib/hooks/usePinItems'
 import { useChat } from '@/lib/hooks/useChat'
 import { useUsers, withAuth } from '@/lib/hooks/useAuth'
 import ChatInterface from '@/components/chat/ChatInterface'
-import { useRealTimeRoof, usePresence } from '@/lib/hooks/useSupabaseQueries'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
 import { RealtimeStatus } from '@/components/realtime/ConnectionStatus'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations } from '@/lib/types/relations'
+import type { PinWithRelations } from '@/lib/hooks/usePins'
 import { DockedChat } from '@/components/chat/DockedChat'
 
 function RoofDashboardPage() {
@@ -51,37 +35,16 @@ function RoofDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Open' | 'ReadyForInspection' | 'Closed'>('all')
   
   // Real-time roof data with live updates
-  const { roof, isLoading: roofLoading, error: roofError } = useRealTimeRoof(roofId)
-  const { data: pins = [], isLoading: pinsLoading } = usePinsForRoof(roofId)
-  
-  // Debug: Log roof data to see plan_image_url
-  console.log('Roof page roof data:', {
-    roofId,
-    roof,
-    plan_image_url: roof?.plan_image_url,
-    roof_plan_url: roof?.roof_plan_url,
-    hasRoof: !!roof
-  })
-  
+  const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
+  const { data: pins = [] } = usePins(roofId)
   const { data: pinItems = [] } = useAllPinItems(roofId)
   const { messages } = useChat(roofId, selectedPin?.id)
   const { data: users = [] } = useUsers()
   const createPinMutation = useCreatePin()
   
-  // Presence tracking for collaborative features
-  const { users: onlineUsers, onlineCount } = usePresence(
-    `roof:${roofId}`,
-    { id: 'current-user', name: 'Current User', role: 'Inspector' } // Replace with actual user data
-  )
-
-  // Calculate real issues count: parent pins + all children
-  const totalIssues = pins.length + pins.reduce((total, pin) => total + (pin.children_total || 0), 0)
-  const openIssues = pins.filter(pin => pin.status === 'Open').length + 
-                     pins.filter(pin => pin.status === 'Open').reduce((total, pin) => total + (pin.children_open || 0), 0)
-  const readyIssues = pins.filter(pin => pin.status === 'ReadyForInspection').length + 
-                      pins.filter(pin => pin.status === 'ReadyForInspection').reduce((total, pin) => total + (pin.children_ready || 0), 0)
-  const closedIssues = pins.filter(pin => pin.status === 'Closed').length + 
-                       pins.filter(pin => pin.status === 'Closed').reduce((total, pin) => total + (pin.children_closed || 0), 0)
+  // Presence tracking for collaborative features (simplified)
+  const onlineUsers: any[] = []
+  const onlineCount = 0
 
   const handlePinCreate = async (x: number, y: number) => {
     try {
@@ -97,7 +60,6 @@ function RoofDashboardPage() {
   }
 
   const handlePinClick = (pin: PinWithRelations) => {
-    console.log('Pin clicked:', pin) // Debug log
     setSelectedPin(pin)
     setClosurePhotoItemId(null)
     setShowPinPopup(false) // Don't show popup anymore, use pin card directly
@@ -224,7 +186,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-red-700 mb-1">
-                  {openIssues}
+                  {pinItems.filter(item => item.status === 'Open').length}
                 </div>
                 <div className="text-sm font-semibold text-red-600">Open Issues</div>
                 {statusFilter === 'Open' && <div className="text-xs text-red-500 mt-1 font-medium">● Active Filter</div>}
@@ -247,7 +209,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-amber-700 mb-1">
-                  {readyIssues}
+                  {pinItems.filter(item => item.status === 'ReadyForInspection').length}
                 </div>
                 <div className="text-sm font-semibold text-amber-600">Ready for Inspection</div>
                 {statusFilter === 'ReadyForInspection' && <div className="text-xs text-amber-500 mt-1 font-medium">● Active Filter</div>}
@@ -270,7 +232,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-emerald-700 mb-1">
-                  {closedIssues}
+                  {pinItems.filter(item => item.status === 'Closed').length}
                 </div>
                 <div className="text-sm font-semibold text-emerald-600">Closed</div>
                 {statusFilter === 'Closed' && <div className="text-xs text-emerald-500 mt-1 font-medium">● Active Filter</div>}
@@ -293,7 +255,7 @@ function RoofDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-blue-700 mb-1">
-                  {totalIssues}
+                  {pinItems.length}
                 </div>
                 <div className="text-sm font-semibold text-blue-600">All Issues</div>
                 {statusFilter === 'all' && <div className="text-xs text-blue-500 mt-1 font-medium">● Active Filter</div>}
@@ -383,17 +345,32 @@ function RoofDashboardPage() {
               
               {/* Roof Plan Container */}
               <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden relative">
-                <DynamicEnhancedPinCanvas
+                <PinCanvas
                   roofId={roofId}
                   onPinCreate={handlePinCreate}
-                  onPinSelect={(pin) => {
-                    console.log('EnhancedPinCanvas onPinSelect called with:', pin) // Debug log
-                    if (pin) handlePinClick(pin)
-                  }}
+                  onPinSelect={(pin) => pin && handlePinClick(pin)}
                   selectedPinId={selectedPin?.id}
                   className="w-full h-full"
                   backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
                 />
+                
+                {/* Interactive Pin Legend */}
+                <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span>Open Issues</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                      <span>Ready for Inspection</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                      <span>Closed</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -401,8 +378,8 @@ function RoofDashboardPage() {
         
         {/* Bottom Panel - Defects Table */}
         <div className="mt-8">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-50 to-gray-50 p-6 border-b border-gray-200">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-900/50 to-gray-800/50 p-6 border-b border-white/20">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-gradient-to-br from-slate-600 to-gray-700 rounded-xl shadow-lg">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -410,12 +387,12 @@ function RoofDashboardPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">Quality Control Center</h3>
-                  <p className="text-gray-600 mt-1">Defects, inspections & resolution tracking</p>
+                  <h3 className="text-xl font-bold text-white">Quality Control Center</h3>
+                  <p className="text-white/80 mt-1">Defects, inspections & resolution tracking</p>
                 </div>
               </div>
             </div>
-            <div className="h-96 bg-white">
+            <div className="h-96">
               <PinItemsTable
                 roofId={roofId}
                 maxHeight="100%"
@@ -436,7 +413,7 @@ function RoofDashboardPage() {
                     }
                   }
                 }}
-                className="border-0 rounded-none h-full bg-white"
+                className="border-0 rounded-none h-full bg-transparent"
               />
             </div>
           </div>
@@ -491,10 +468,10 @@ function RoofDashboardPage() {
                       <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                         Pin #{selectedPin.seq_number}
                       </h2>
-                      <p className="text-lg text-gray-600 mt-1 font-medium">Pin #{selectedPin.seq_number}</p>
+                      <p className="text-lg text-gray-600 mt-1 font-medium">{selectedPin.title}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <StatusBadge status={selectedPin.status} />
-                        <StatusBadge status={selectedPin.status} />
+                        {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                       </div>
                     </div>
                   </div>
@@ -513,20 +490,19 @@ function RoofDashboardPage() {
               
               {/* Content Area */}
               <div className="h-[calc(90vh-200px)] bg-gradient-to-br from-gray-50/50 to-white/50">
-                <IncrDetailsCard
+                <PinDetailsCard
                   pin={selectedPin}
                   roofId={roofId}
                   backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
-                  onClosurePhoto={async (pinId, file) => {
-                    console.log('Closure photo uploaded for pin:', pinId, 'File:', file.name)
+                  onClosurePhoto={(pinId) => {
                     setShowPinPopup(true)
                     setClosurePhotoItemId(null)
                   }}
-                  onStatusChange={async (pinId, status) => {
+                  onStatusChange={(pinId, status) => {
                     console.log('Status change:', pinId, status)
                     // TODO: Implement status update
                   }}
-                  onSeverityChange={async (pinId, severity) => {
+                  onSeverityChange={(pinId, severity) => {
                     console.log('Severity change:', pinId, severity)
                     // TODO: Implement severity update
                   }}
@@ -569,11 +545,11 @@ function RoofDashboardPage() {
               <CardContent className="p-8 space-y-6 bg-gradient-to-br from-gray-50/50 to-white/50">
                 {/* Pin Details Summary */}
                 <div className="bg-white/80 rounded-2xl p-6 shadow-lg border border-gray-200/50">
-                  <div className="font-semibold text-lg text-gray-800">Pin #{selectedPin.seq_number}</div>
-                  <div className="text-gray-600 mt-2">Position: ({selectedPin.x}, {selectedPin.y})</div>
+                  <div className="font-semibold text-lg text-gray-800">{selectedPin.title}</div>
+                  <div className="text-gray-600 mt-2">{selectedPin.description}</div>
                   <div className="flex items-center gap-3 mt-4">
                     <StatusBadge status={selectedPin.status} />
-                    <StatusBadge status={selectedPin.status} />
+                    {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                   </div>
                 </div>
 

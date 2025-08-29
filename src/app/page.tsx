@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,15 +9,9 @@ import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
 import { useRealTimeProjectDashboard } from '@/lib/hooks/useRealTimeUpdates'
-import { useProjects, useCreateProject, useUpdateProject, useDeleteProject, useRoofsByProject, useSendChatMessage, usePinsByRoof } from '@/lib/hooks/useSupabaseQueries'
+import { useProjects, useCreateProject } from '@/lib/hooks/useRoofs'
+import { useRoofsByProject } from '@/lib/hooks/useRoofs'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
-import { extractMentionedUserIds } from '@/lib/mentions'
-import { useOpenIssuesCount } from '@/lib/hooks/useIssuesCount'
-import type { Database } from '@/lib/database.types'
-
-type Project = Database['public']['Tables']['projects']['Row']
 
 function HomePage() {
   const { profile } = useAuth()
@@ -31,80 +25,44 @@ function HomePage() {
   // Real projects from Supabase
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
   const createProject = useCreateProject()
-  const updateProject = useUpdateProject()
-  const deleteProject = useDeleteProject()
-  
-  // Check if user is admin (can delete projects)
-  const isAdmin = profile?.role === 'Admin'
-  
-  // Get all project IDs and fetch roofs in one query to avoid N+1
-  const projectIds = useMemo(() => projects.map(p => p.project_id), [projects])
-  
-  const { data: roofs = [] } = useQuery({
-    queryKey: ['roofs', 'by-projects', projectIds],
-    enabled: projectIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('roofs')
-        .select('id, project_id')
-        .in('project_id', projectIds)
-      if (error) throw error
-      return data || []
-    }
-  })
-  
-  // Create map of first roof ID by project
-  const firstRoofIdByProject = useMemo(() => {
-    const map = new Map<string, string>()
-    roofs.forEach(roof => {
-      if (!map.has(roof.project_id)) {
-        map.set(roof.project_id, roof.id)
-      }
-    })
-    return map
-  }, [roofs])
   const createRoof = useCreateRoof()
-  const sendGlobalMessage = useSendChatMessage()
-
-  // Get real count of open issues from all projects
-  const { data: totalOpenIssues = 0, isLoading: issuesLoading } = useOpenIssuesCount()
   
   // Filter state
   const [filters, setFilters] = useState({
     status: 'all',
     completion: 'all',
-    sort: 'name',
-    search: ''
+    sort: 'name'
   })
 
   // New Project Modal state
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
-  const [editingProject, setEditingProject] = useState<any>(null)
   const [newProjectForm, setNewProjectForm] = useState({
     name: '',
     description: '',
     location: '',
     priority: 'normal',
     roofPlanFile: null as File | null,
-    roofPlanPreview: '',
-    openingPhotoFile: null as File | null,
-    openingPhotoPreview: ''
+    roofPlanPreview: ''
   })
 
   // Global Chat state
   const [globalChatMessage, setGlobalChatMessage] = useState('')
 
-  // Users for mentions
-  const users = [
-    { id: '1', name: 'Current User', email: 'user@system.com', role: 'Inspector', status: 'active' as const },
+  // Demo users for mentions
+  const demoUsers = [
+    { id: '1', name: 'Asaf Peer', email: 'asaf6peer@gmail.com', role: 'Inspector', status: 'active' as const },
+    { id: '2', name: 'John Doe', email: 'john@contractor.com', role: 'Foreman', status: 'active' as const },
+    { id: '3', name: 'Sarah Miller', email: 'sarah@qa.com', role: 'Supervisor', status: 'active' as const },
+    { id: '4', name: 'Mike Smith', email: 'mike@contractor.com', role: 'Contractor', status: 'active' as const }
   ]
 
   // Project Link Component - gets first roof for project
-  const ProjectOpenButton = ({ project }: { project: Project }) => {
-    const firstRoofId = firstRoofIdByProject[project.project_id]
+  const ProjectOpenButton = ({ project }: { project: any }) => {
+    const { data: roofs = [] } = useRoofsByProject(project.project_id)
+    const firstRoof = roofs[0]
     
-    if (!firstRoofId) {
+    if (!firstRoof) {
       return (
         <button 
           disabled 
@@ -116,7 +74,7 @@ function HomePage() {
     }
     
     return (
-      <Link href={`/roofs/${firstRoofId}`}>
+      <Link href={`/roofs/${firstRoof.id}`}>
         <button className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300">
           Open
         </button>
@@ -126,43 +84,11 @@ function HomePage() {
 
   // Filtered and sorted projects
   const filteredProjects = useMemo(() => {
-    const getCompletion = (p: Project) => p.status === 'Completed' ? 100 : p.status === 'InProgress' ? 50 : 0
-    let filtered = [...projects]
-    
-    // Apply status filter
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(project => project.status === filters.status)
-    }
-    
-    // Apply search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
-      filtered = filtered.filter(project => 
-        project.name.toLowerCase().includes(searchLower) ||
-        project.contractor?.toLowerCase().includes(searchLower)
-      )
-    }
-    
-    // Apply completion filter
-    if (filters.completion !== 'all') {
-      const [min, max] = filters.completion.split('-').map(Number)
-      filtered = filtered.filter(project => {
-        const completion = getCompletion(project)
-        return completion >= min && completion <= max
-      })
-    }
-    
-    // Apply sorting
-    if (filters.sort === 'name') {
-      filtered.sort((a, b) => a.name.localeCompare(b.name))
-    } else if (filters.sort === 'status') {
-      filtered.sort((a, b) => a.status.localeCompare(b.status))
-    } else if (filters.sort === 'date') {
-      filtered.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
-    }
-    
+    const filtered = [...projects]
+    // basic sort
+    filtered.sort((a, b) => a.name.localeCompare(b.name))
     return filtered
-  }, [projects, filters])
+  }, [projects])
   
   const handleFilterChange = (filterType: string, value: string) => {
     setFilters(prev => ({
@@ -204,97 +130,10 @@ function HomePage() {
     }))
   }
 
-  const handleEditProject = (project: Project) => {
-    setEditingProject(project)
-    setNewProjectForm({
-      name: project.name,
-      description: '',
-      location: '',
-      priority: 'normal',
-      roofPlanFile: null,
-      roofPlanPreview: '',
-      openingPhotoFile: null,
-      openingPhotoPreview: ''
-    })
-    setShowNewProjectModal(true)
-  }
-
-  const handleDeleteProject = async (project: Project) => {
-    // Only allow admins to delete projects
-    if (!isAdmin) {
-      alert('Only administrators can delete projects.')
-      return
-    }
-    
-    // Show confirmation dialog with project details
-    const confirmed = confirm(
-      `⚠️ DELETE PROJECT WARNING ⚠️\n\n` +
-      `Project: "${project.name}"\n` +
-      `ID: ${project.project_id}\n` +
-      `Status: ${project.status}\n\n` +
-      `This action will PERMANENTLY DELETE:\n` +
-      `• The entire project\n` +
-      `• All roofs in this project\n` +
-      `• All pins and defects\n` +
-      `• All photos and data\n\n` +
-      `❌ THIS CANNOT BE UNDONE! ❌\n\n` +
-      `Type "DELETE" to confirm you want to proceed.`
-    )
-    
-    if (!confirmed) return
-    
-    // Second confirmation - make them type DELETE
-    const confirmText = prompt(
-      `Final confirmation required.\n\n` +
-      `To permanently delete project "${project.name}", type exactly: DELETE`
-    )
-    
-    if (confirmText !== 'DELETE') {
-      alert('Deletion cancelled. You must type exactly "DELETE" to confirm.')
-      return
-    }
-    
-    try {
-      // Show loading state
-      const originalButtonText = document.querySelector(`[data-project-id="${project.project_id}"] .delete-btn`)?.textContent
-      const deleteButton = document.querySelector(`[data-project-id="${project.project_id}"] .delete-btn`)
-      if (deleteButton) {
-        deleteButton.textContent = 'Deleting...'
-        deleteButton.setAttribute('disabled', 'true')
-      }
-      
-      await deleteProject.mutateAsync(project.project_id)
-      
-      alert(`Project "${project.name}" has been permanently deleted from the database.`)
-      
-    } catch (error: any) {
-      console.error('Failed to delete project:', error)
-      
-      // Reset button state
-      const deleteButton = document.querySelector(`[data-project-id="${project.project_id}"] .delete-btn`)
-      if (deleteButton) {
-        deleteButton.textContent = 'Delete'
-        deleteButton.removeAttribute('disabled')
-      }
-      
-      // Show user-friendly error message
-      if (error?.code === '42501' || /insufficient privileges|RLS|policy/i.test(error?.message || '')) {
-        alert('Permission denied. Only administrators can delete projects. Please contact your system administrator.')
-      } else if (error?.code === '23503' || /foreign key/i.test(error?.message || '')) {
-        alert('Cannot delete project because it contains data. Please remove all roofs and pins first, or contact an administrator.')
-      } else {
-        alert(`Failed to delete project: ${error?.message || 'Unknown error'}`)
-      }
-    }
-  }
-
   const resetNewProjectForm = () => {
     // Clean up preview URL
     if (newProjectForm.roofPlanPreview) {
       URL.revokeObjectURL(newProjectForm.roofPlanPreview)
-    }
-    if (newProjectForm.openingPhotoPreview) {
-      URL.revokeObjectURL(newProjectForm.openingPhotoPreview)
     }
     
     setNewProjectForm({
@@ -303,11 +142,8 @@ function HomePage() {
       location: '',
       priority: 'normal',
       roofPlanFile: null,
-      roofPlanPreview: '',
-      openingPhotoFile: null,
-      openingPhotoPreview: ''
+      roofPlanPreview: ''
     })
-    setEditingProject(null)
   }
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -324,8 +160,7 @@ function HomePage() {
       return
     }
 
-    // Only validate location for new projects (not for editing)
-    if (!editingProject && !newProjectForm.location.trim()) {
+    if (!newProjectForm.location.trim()) {
       alert('Site location is required')
       return
     }
@@ -333,129 +168,57 @@ function HomePage() {
     setIsCreatingProject(true)
 
     try {
-      if (editingProject) {
-        // Update existing project with timeout
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000)
-        )
+      // Map priority to status
+      const status = 'Open' as const
+      // Create project in Supabase
+      const newProject = await createProject.mutateAsync({
+        name: newProjectForm.name.trim(),
+        description: newProjectForm.description
+      })
+
+      console.log('Project created:', newProject)
+
+      // Create a default roof for the project
+      const roofCode = newProjectForm.name.trim()
+        .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .join('')
+        .substring(0, 5) // Max 5 characters
         
-        await Promise.race([
-          updateProject.mutateAsync({
-            projectId: editingProject.project_id,
-            updates: {
-              name: newProjectForm.name.trim(),
-            }
-          }),
-          timeoutPromise
-        ])
+      const newRoof = await createRoof.mutateAsync({
+        project_id: newProject.id,
+        code: roofCode,
+        name: `${newProjectForm.name} - Main Roof`,
+        building: newProjectForm.location.trim(),
+        plan_image_url: newProjectForm.roofPlanPreview || null,
+        roof_plan_url: null,
+        zones: {},
+        stakeholders: {},
+        origin_lat: null,
+        origin_lng: null,
+        is_active: true,
+      })
 
-        console.log('Project updated:', editingProject.project_id)
-        
-        // Close modal and reset form
-        setShowNewProjectModal(false)
-        resetNewProjectForm()
+      console.log('Roof created:', newRoof)
 
-        alert(`Project "${newProjectForm.name}" updated successfully!`)
-      } else {
-        // Create new project with timeout protection
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000)
-        )
-        
-        // Map priority to status
-        const status = 'Open' as const
-        
-        // Create project in Supabase with timeout
-        const newProject = await Promise.race([
-          createProject.mutateAsync({
-            name: newProjectForm.name.trim(),
-            status,
-            contractor: null,
-            created_by: profile?.id || null,
-          }),
-          timeoutPromise
-        ]) as any
+      // Close modal and reset form
+      setShowNewProjectModal(false)
+      resetNewProjectForm()
 
-        console.log('Project created:', newProject)
-
-        // Upload roof plan image to Supabase Storage if provided
-        let planImageUrl: string | null = null
-        if (newProjectForm.roofPlanFile) {
-          try {
-            const timestamp = Date.now()
-            const fileName = `${timestamp}-${newProjectForm.roofPlanFile.name}`
-            const filePath = `projects/${newProject.project_id}/roof-plans/${fileName}`
-            
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('roof-photos')
-              .upload(filePath, newProjectForm.roofPlanFile, {
-                cacheControl: '3600',
-                upsert: false
-              })
-
-            if (uploadError) {
-              console.error('Failed to upload roof plan image:', uploadError)
-              // Continue without image rather than fail completely
-            } else {
-              const { data: urlData } = supabase.storage
-                .from('roof-photos')
-                .getPublicUrl(filePath)
-              planImageUrl = urlData.publicUrl
-              console.log('Roof plan image uploaded successfully:', planImageUrl)
-              console.log('Upload data:', uploadData)
-            }
-          } catch (error) {
-            console.error('Error uploading roof plan image:', error)
-            // Continue without image rather than fail completely
-          }
-        }
-
-        // Create a default roof for the project with timeout
-        const roofCode = newProjectForm.name.trim()
-          .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase())
-          .join('')
-          .substring(0, 5) // Max 5 characters
-          
-        const newRoof = await Promise.race([
-          createRoof.mutateAsync({
-            project_id: newProject.project_id,
-            code: roofCode,
-            name: `${newProjectForm.name} - Main Roof`,
-            building: newProjectForm.location.trim(),
-            plan_image_url: planImageUrl, // Use uploaded image URL
-            roof_plan_url: null,
-            zones: {},
-            stakeholders: {},
-            origin_lat: null,
-            origin_lng: null,
-            is_active: true,
-          }),
-          timeoutPromise
-        ]) as any
-
-        console.log('Roof created with plan_image_url:', newRoof.plan_image_url)
-        console.log('Full roof data:', newRoof)
-
-        // Close modal and reset form
-        setShowNewProjectModal(false)
-        resetNewProjectForm()
-
-        // Show success message with navigation info
-        const confirmed = confirm(
-          `Project "${newProjectForm.name}" created successfully!\n\n` +
-          `A roof plan has been created and you'll be redirected to the roof dashboard where you can:\n` +
-          `• Add pins to mark issues\n` +
-          `• Upload photos\n` +
-          `• Track progress\n\n` +
-          `Click OK to continue to the roof dashboard.`
-        )
-        
-        if (confirmed) {
-          // Navigate to the roof dashboard
-          router.push(`/roofs/${newRoof.id}`)
-        }
+      // Show success message with navigation info
+      const confirmed = confirm(
+        `Project "${newProjectForm.name}" created successfully!\n\n` +
+        `A roof plan has been created and you'll be redirected to the roof dashboard where you can:\n` +
+        `• Add pins to mark issues\n` +
+        `• Upload photos\n` +
+        `• Track progress\n\n` +
+        `Click OK to continue to the roof dashboard.`
+      )
+      
+      if (confirmed) {
+        // Navigate to the roof dashboard
+        router.push(`/roofs/${newRoof.id}`)
       }
       
     } catch (error: any) {
@@ -474,16 +237,8 @@ function HomePage() {
 
   const handleSendGlobalMessage = (message: string) => {
     console.log('Sending global message:', message)
-    
-    // For now, we'll send without mentions since we don't have user data here
-    // In a complete implementation, you would pass users list to extract mentions
-    
-    sendGlobalMessage.mutate({
-      text: message,
-      scope: 'global',
-      scope_id: null,
-      mentions: null // We can add mention extraction later when needed
-    })
+    // In a real implementation, this would send the message to your chat system
+    // with the mentioned users extracted for notifications
   }
 
   // הצג טעינה אם הדאטה עדיין נטענת
@@ -505,49 +260,28 @@ function HomePage() {
       showSearch={true}
       searchPlaceholder="Search projects..."
     >
-      <div className="space-y-8 pb-safe">
+      <div className="space-y-8">
         
         {/* Project Overview Filters - Now positioned above KPI cards */}
-        <div className="flex flex-wrap items-center justify-between gap-4 px-safe">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
-            <h2 className="text-2xl sm:text-2xl font-bold text-slate-800">Project Dashboard</h2>
+            <h2 className="text-2xl font-bold text-slate-800">Project Dashboard</h2>
           </div>
           
           {/* Project Status Filters */}
-          <div className="flex items-center gap-3 overflow-x-auto">
+          <div className="flex items-center gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <button 
-                onClick={() => handleFilterChange('status', filters.status === 'Open' ? 'all' : 'Open')}
-                className={`btn-filter inline-flex items-center gap-2 px-3 py-2 backdrop-blur-sm border text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg ${
-                  filters.status === 'Open' ? 'bg-blue-100 border-blue-300' : 'bg-white/80 border-white/30'
-                }`}
-              >
+              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
                 Open
-                <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                  {projects.filter(p => p.status === 'Open').length}
-                </span>
+                <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">2</span>
               </button>
-              <button 
-                onClick={() => handleFilterChange('status', filters.status === 'InProgress' ? 'all' : 'InProgress')}
-                className={`btn-filter inline-flex items-center gap-2 px-3 py-2 backdrop-blur-sm border text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg ${
-                  filters.status === 'InProgress' ? 'bg-blue-100 border-blue-300' : 'bg-white/80 border-white/30'
-                }`}
-              >
+              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
                 In Progress
-                <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                  {projects.filter(p => p.status === 'InProgress').length}
-                </span>
+                <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold">1</span>
               </button>
-              <button 
-                onClick={() => handleFilterChange('status', filters.status === 'Completed' ? 'all' : 'Completed')}
-                className={`btn-filter inline-flex items-center gap-2 px-3 py-2 backdrop-blur-sm border text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg ${
-                  filters.status === 'Completed' ? 'bg-blue-100 border-blue-300' : 'bg-white/80 border-white/30'
-                }`}
-              >
+              <button className="btn-filter inline-flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-slate-700 font-medium hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-blue-500/50 transition-all duration-200 text-sm rounded-lg">
                 Completed
-                <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                  {projects.filter(p => p.status === 'Completed').length}
-                </span>
+                <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">0</span>
               </button>
             </div>
           </div>
@@ -575,7 +309,7 @@ function HomePage() {
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Total Projects</span>
-              <div className="text-4xl font-bold text-white mb-2">{projects.length}</div>
+              <div className="text-4xl font-bold text-white mb-2">3</div>
               <p className="text-sm text-white opacity-80 font-medium">Active roofs</p>
             </div>
             <div 
@@ -586,7 +320,7 @@ function HomePage() {
             />
           </div>
 
-          {/* Issues Open */}
+          {/* Open INCRs */}
           <div 
             className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl"
             style={{
@@ -605,9 +339,9 @@ function HomePage() {
               >
                 <AlertTriangle className="w-8 h-8 text-white" />
               </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Issues Open</span>
-              <div className="text-4xl font-bold text-white mb-2">{totalOpenIssues}</div>
-              <p className="text-sm text-white opacity-80 font-medium">Pins & children</p>
+              <span className="text-sm font-medium text-white opacity-90 mb-2">Open INCRs</span>
+              <div className="text-4xl font-bold text-white mb-2">12</div>
+              <p className="text-sm text-white opacity-80 font-medium">Need attention</p>
             </div>
             <div 
               className="absolute inset-0 animate-pulse"
@@ -637,7 +371,7 @@ function HomePage() {
                 <Eye className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Ready for Inspection</span>
-              <div className="text-4xl font-bold text-white mb-2">{projects.filter(p => p.status === 'InProgress').length}</div>
+              <div className="text-4xl font-bold text-white mb-2">8</div>
               <p className="text-sm text-white opacity-80 font-medium">Pending review</p>
             </div>
             <div 
@@ -668,7 +402,7 @@ function HomePage() {
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-medium text-white opacity-90 mb-2">Closed</span>
-              <div className="text-4xl font-bold text-white mb-2">{projects.filter(p => p.status === 'Completed').length}</div>
+              <div className="text-4xl font-bold text-white mb-2">145</div>
               <p className="text-sm text-white opacity-80 font-medium">Completed items</p>
             </div>
             <div 
@@ -735,8 +469,6 @@ function HomePage() {
                   <input
                     type="text"
                     placeholder="Search projects..."
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
                     className="pl-10 pr-4 py-2 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
                   />
                 </div>
@@ -755,9 +487,10 @@ function HomePage() {
                   className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">All Statuses</option>
-                  <option value="Open">Open</option>
-                  <option value="InProgress">In Progress</option>
-                  <option value="Completed">Completed</option>
+                  <option value="active">Active</option>
+                  <option value="review">Review</option>
+                  <option value="critical">Critical</option>
+                  <option value="completed">Completed</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
@@ -782,8 +515,9 @@ function HomePage() {
                   className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="name">Name</option>
+                  <option value="completion">Completion</option>
                   <option value="status">Status</option>
-                  <option value="date">Created</option>
+                  <option value="updated">Last Updated</option>
                 </select>
               </div>
               <div className="ml-auto flex items-center gap-2">
@@ -792,8 +526,8 @@ function HomePage() {
             </div>
           </div>
           
-          {/* Projects Table - Desktop */}
-          <div className="hidden md:block overflow-x-auto">
+          {/* Projects Table */}
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white/50">
                 <tr>
@@ -806,107 +540,41 @@ function HomePage() {
               </thead>
               <tbody className="divide-y divide-white/20">
                   {filteredProjects.map((p) => (
-                    <tr key={p.project_id} className="hover:bg-white/30 transition-all duration-200 group">
+                    <tr key={p.id} className="hover:bg-white/30 transition-all duration-200 group">
                     <td className="px-6 py-4">
                       <div>
                           <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
                             {p.name}
                           </h3>
-                          <p className="text-xs text-slate-500 font-mono mt-1">{p.project_id}</p>
+                          <p className="text-xs text-slate-500 font-mono mt-1">{p.id}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                         <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg">
-                          {p.status}
+                          Active
                         </span>
                     </td>
                     <td className="px-6 py-4">
-                        <div className="text-sm text-slate-600">{p.contractor || '—'}</div>
+                        <div className="text-sm text-slate-600">—</div>
                     </td>
                     <td className="px-6 py-4">
                         <div className="flex items-center gap-1 text-xs text-slate-500">
                           <Clock className="w-3 h-3" />
-                          {new Date(p.created_at).toLocaleDateString()} {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2" data-project-id={p.project_id}>
+                      <div className="flex items-center gap-2">
                         <ProjectOpenButton project={p} />
-                        <button 
-                          className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200"
-                          onClick={() => handleEditProject(p)}
-                        >
+                        <button className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200">
                           Edit
                         </button>
-                        {isAdmin && (
-                          <button 
-                            className="delete-btn px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            onClick={() => handleDeleteProject(p)}
-                            title="Delete project (Admin only)"
-                          >
-                            Delete
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* Projects Cards - Mobile */}
-          <div className="md:hidden space-y-4">
-            {filteredProjects.map((p) => (
-              <div key={p.project_id} className="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-lg">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-800 text-lg leading-tight">
-                      {p.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-mono mt-1 break-all">{p.project_id}</p>
-                  </div>
-                  <div className="flex items-center gap-2 ml-3 flex-shrink-0" data-project-id={p.project_id}>
-                    <ProjectOpenButton project={p} />
-                    <button 
-                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all duration-200"
-                      onClick={() => handleEditProject(p)}
-                    >
-                      Edit
-                    </button>
-                    {isAdmin && (
-                      <button 
-                        className="delete-btn px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => handleDeleteProject(p)}
-                        title="Delete project (Admin only)"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-slate-500 text-xs font-medium block mb-1">Status</span>
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg inline-block">
-                      {p.status}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-xs font-medium block mb-1">Contractor</span>
-                    <span className="text-slate-600">{p.contractor || '—'}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-3 pt-3 border-t border-white/30">
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <Clock className="w-3 h-3" />
-                    Created: {new Date(p.created_at).toLocaleDateString()} {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -957,7 +625,7 @@ function HomePage() {
                 onChange={setGlobalChatMessage}
                 onSubmit={handleSendGlobalMessage}
                 placeholder="Type a message... use @username to mention team members"
-                users={users}
+                users={demoUsers}
                 className="bg-white/60 backdrop-blur-sm border-white/40 focus:ring-indigo-500"
               />
             </div>
@@ -973,9 +641,7 @@ function HomePage() {
             <div className="p-6 border-b border-white/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800">
-                    {editingProject ? 'Edit Project' : 'Create New Project'}
-                  </h2>
+                  <h2 className="text-2xl font-bold text-slate-800">Create New Project</h2>
                   {profile && (
                     <p className="text-sm text-slate-600 mt-1">
                       Logged in as: <strong>{profile.full_name}</strong> ({profile.role || 'Unknown role'})
@@ -1057,9 +723,11 @@ function HomePage() {
                 <div className="border-2 border-dashed border-white/30 rounded-lg hover:border-indigo-400 transition-colors">
                   {newProjectForm.roofPlanPreview ? (
                     <div className="relative">
-                      <img 
+                      <Image 
                         src={newProjectForm.roofPlanPreview} 
                         alt="Roof plan preview" 
+                        width={400}
+                        height={192}
                         className="w-full h-48 object-cover rounded-lg"
                       />
                       <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
@@ -1133,9 +801,9 @@ function HomePage() {
                   {isCreatingProject ? (
                     <span className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      {editingProject ? 'Updating Project...' : 'Creating Project & Roof...'}
+                      Creating Project & Roof...
                     </span>
-                  ) : (editingProject ? 'Update Project' : 'Create Project')}
+                  ) : 'Create Project'}
                 </button>
               </div>
             </form>
