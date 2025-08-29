@@ -2,9 +2,9 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { usePins } from '@/lib/hooks/usePins'
-import { PinMarker } from './PinMarker'
-import type { PinWithRelations } from '@/lib/hooks/usePins'
+import { usePinsForRoof, useCreatePin, useServiceError } from '@/lib/hooks/useEnhancedPins'
+import { PinMarker } from './PinMarkerNew'
+import type { PinWithRelations } from '@/lib/types/relations'
 
 interface PinCanvasProps {
   roofId: string
@@ -104,8 +104,10 @@ export function PinCanvas({
     return () => resizeObserver.disconnect()
   }, [calculateScaleFactors])
 
-  // Fetch pins for this roof
-  const { data: pins = [], isLoading } = usePins(roofId)
+  // Fetch pins for this roof with enhanced error handling
+  const { data: pins = [], isLoading, error } = usePinsForRoof(roofId)
+  const createPinMutation = useCreatePin()
+  const { handleError } = useServiceError()
 
   // Convert screen coordinates to SVG coordinates - OPTIMIZED VERSION with cache
   const screenToSvgCoords = useCallback((clientX: number, clientY: number) => {
@@ -136,16 +138,36 @@ export function PinCanvas({
     }
   }, [canvasState.panX, canvasState.panY, canvasState.zoom, calculateScaleFactors])
 
+  // Enhanced pin creation with error handling
+  const handleCreatePin = useCallback(async (x: number, y: number) => {
+    try {
+      await createPinMutation.mutateAsync({
+        roof_id: roofId,
+        x,
+        y
+      })
+    } catch (error) {
+      const errorInfo = handleError(error, 'CreatePin')
+      console.error('Failed to create pin:', errorInfo)
+      // Could show toast notification here
+    }
+  }, [roofId, createPinMutation, handleError])
+
   // Handle canvas click for pin creation (only if not dragging)
   const handleCanvasClick = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     // Don't create pin if we were dragging or clicking on existing pin
     if (canvasState.hasMoved || (event.target as Element).closest('.pin-marker')) return
     
-    if (editable && onPinCreate) {
+    if (editable) {
       const coords = screenToSvgCoords(event.clientX, event.clientY)
-      onPinCreate(coords.x, coords.y)
+      if (onPinCreate) {
+        onPinCreate(coords.x, coords.y)
+      } else {
+        // Use internal enhanced pin creation
+        handleCreatePin(coords.x, coords.y)
+      }
     }
-  }, [editable, onPinCreate, screenToSvgCoords, canvasState.hasMoved])
+  }, [editable, onPinCreate, screenToSvgCoords, canvasState.hasMoved, handleCreatePin])
 
   // Handle mouse down for panning (only when zoomed in)
   const handleMouseDown = useCallback((event: React.MouseEvent<SVGSVGElement>) => {

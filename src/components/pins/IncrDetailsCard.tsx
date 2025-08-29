@@ -52,7 +52,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { toast } from 'sonner'
-import type { PinWithRelations } from '@/lib/hooks/usePins'
+import type { PinWithRelations } from '@/lib/types/relations'
 import type { PinStatus, Severity as PinSeverity } from '@/lib/database.types'
 
 interface IncrDetailsCardProps {

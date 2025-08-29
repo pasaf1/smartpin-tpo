@@ -29,7 +29,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useRoof } from '@/lib/hooks/useRoofs'
-import { useCreatePin, usePins } from '@/lib/hooks/usePins'
+import { useCreatePin, usePinsForRoof } from '@/lib/hooks/useEnhancedPins'
 import { useAllPinItems } from '@/lib/hooks/usePinItems'
 import { useChat } from '@/lib/hooks/useChat'
 import { useUsers, withAuth } from '@/lib/hooks/useAuth'
@@ -38,7 +38,7 @@ import { useRealTimeRoof, usePresence } from '@/lib/hooks/useSupabaseQueries'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
 import { RealtimeStatus } from '@/components/realtime/ConnectionStatus'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations } from '@/lib/hooks/usePins'
+import type { PinWithRelations } from '@/lib/types/relations'
 import { DockedChat } from '@/components/chat/DockedChat'
 
 function RoofDashboardPage() {
@@ -51,7 +51,8 @@ function RoofDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Open' | 'ReadyForInspection' | 'Closed'>('all')
   
   // Real-time roof data with live updates
-  const { roof, pins, isLoading: roofLoading, error: roofError } = useRealTimeRoof(roofId)
+  const { roof, isLoading: roofLoading, error: roofError } = useRealTimeRoof(roofId)
+  const { data: pins = [], isLoading: pinsLoading } = usePinsForRoof(roofId)
   
   // Debug: Log roof data to see plan_image_url
   console.log('Roof page roof data:', {
@@ -490,10 +491,10 @@ function RoofDashboardPage() {
                       <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                         Pin #{selectedPin.seq_number}
                       </h2>
-                      <p className="text-lg text-gray-600 mt-1 font-medium">{selectedPin.title}</p>
+                      <p className="text-lg text-gray-600 mt-1 font-medium">Pin #{selectedPin.seq_number}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <StatusBadge status={selectedPin.status} />
-                        {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
+                        <StatusBadge status={selectedPin.status} />
                       </div>
                     </div>
                   </div>
@@ -568,11 +569,11 @@ function RoofDashboardPage() {
               <CardContent className="p-8 space-y-6 bg-gradient-to-br from-gray-50/50 to-white/50">
                 {/* Pin Details Summary */}
                 <div className="bg-white/80 rounded-2xl p-6 shadow-lg border border-gray-200/50">
-                  <div className="font-semibold text-lg text-gray-800">{selectedPin.title}</div>
-                  <div className="text-gray-600 mt-2">{selectedPin.description}</div>
+                  <div className="font-semibold text-lg text-gray-800">Pin #{selectedPin.seq_number}</div>
+                  <div className="text-gray-600 mt-2">Position: ({selectedPin.x}, {selectedPin.y})</div>
                   <div className="flex items-center gap-3 mt-4">
                     <StatusBadge status={selectedPin.status} />
-                    {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
+                    <StatusBadge status={selectedPin.status} />
                   </div>
                 </div>
 

@@ -3,13 +3,13 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils'
-import { usePins } from '@/lib/hooks/usePins'
+import { usePinsForRoof } from '@/lib/hooks/useEnhancedPins'
 import { useCanvasStore } from '@/lib/stores/canvas-store'
 import { useCanvasCore } from '@/lib/services/canvas-core'
 import { PerformanceService } from '@/lib/services/performance-service'
 import { EnhancedPin } from '@/lib/layer-types'
 import DEFAULT_LAYER_CONFIGS from '@/lib/layer-constants'
-import type { PinWithRelations } from '@/lib/hooks/usePins'
+import type { PinWithRelations } from '@/lib/types/relations'
 
 // Dynamic imports for Konva components to avoid SSR issues
 const Stage = dynamic(() => import('react-konva').then(mod => ({ default: mod.Stage })), { ssr: false })
@@ -183,7 +183,7 @@ export function EnhancedPinCanvas({
   const [isDraggingEnabled, setIsDraggingEnabled] = useState(false)
   
   // Fetch pins for this roof
-  const { data: pins = [], isLoading } = usePins(roofId)
+  const { data: pins = [], isLoading } = usePinsForRoof(roofId)
 
   // הוודא שאנחנו בצד לקוח
   useEffect(() => {
