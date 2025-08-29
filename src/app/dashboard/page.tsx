@@ -2,14 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Home } from 'lucide-react'
+import { ArrowLeft, Home, X } from 'lucide-react'
 import { LuxuryHeader } from '@/components/dashboard/LuxuryHeader'
 import { KPICards } from '@/components/dashboard/KPICards'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import { RoofCard } from '@/components/dashboard/RoofCard'
 import { FilterPanel } from '@/components/dashboard/FilterPanel'
-import { PinDetailsModal } from '@/components/dashboard/PinDetailsModal'
+import { IncrDetailsCard } from '@/components/pins/IncrDetailsCard'
 import { PinDetailsModalV2 } from '@/components/dashboard/PinDetailsModalV2'
 
 interface FilterState {
@@ -100,22 +100,35 @@ export default function DashboardPage() {
   }
 
   const handlePinClick = (pin: Pin) => {
-    // Convert Pin to PinDetails format
-    const pinDetails: PinDetails = {
+    // Convert Pin to format expected by IncrDetailsCard
+    const pinForIncr = {
       id: pin.id,
-      title: pin.title || `Pin ${pin.id}`,
-      issueType: pin.issueType,
-      status: pin.status,
-      severity: pin.severity,
+      incr_id: `INCR-2025-${pin.id.substring(4, 7)}`,
+      x: pin.x,
+      y: pin.y,
+      status: pin.status === 'open' ? 'Open' as const : 
+               pin.status === 'ready' ? 'Ready for Inspection' as const : 
+               'Closed' as const,
+      defect_type: pin.issueType,
       description: `Quality issue found at coordinates (${pin.x.toFixed(1)}, ${pin.y.toFixed(1)})`,
-      assignedTo: 'John Supervisor',
-      createdAt: 'Today 10:30 AM',
-      updatedAt: 'Today 2:15 PM',
-      images: [],
-      coordinates: { x: pin.x, y: pin.y }
+      severity: pin.severity === 'critical' ? 'Critical' as const :
+                pin.severity === 'high' ? 'High' as const :
+                pin.severity === 'medium' ? 'Medium' as const :
+                'Low' as const,
+      inspector: 'Asaf Peer',
+      contractor: 'Rafed Ltd.',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      photos: [],
+      children: [],
+      seq_number: parseInt(pin.id.substring(4)) || 1,
+      x_position: pin.x / 100, // Convert to 0-1 range if needed
+      y_position: pin.y / 100, // Convert to 0-1 range if needed
+      title: pin.title || `Pin ${pin.id}`
     }
-  setSelectedPin(pinDetails)
-  setSelectedPinIdV2(pin.id)
+    
+    setSelectedPin(pinForIncr as any)
+    setSelectedPinIdV2(pin.id)
   }
 
   const handleAddPin = (x: number, y: number) => {
@@ -220,14 +233,43 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Pin Details Modal */}
-      {/* Legacy modal kept for now; new hierarchical modal below */}
-      <PinDetailsModal
-        pin={selectedPin}
-        isOpen={!!selectedPin}
-        onClose={() => setSelectedPin(null)}
-        onUpdatePin={handleUpdatePin}
-      />
+      {/* Pin Details - New Enhanced Component */}
+      {selectedPin && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedPin(null)}
+              className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <IncrDetailsCard
+              pin={selectedPin as any}
+              roofId="current-roof"
+              roofName="Main Roof"
+              backgroundImageUrl="/api/placeholder/800/600"
+              onClosurePhoto={async (pinId: string, file: File) => {
+                console.log('Closure photo uploaded for pin:', pinId)
+              }}
+              onStatusChange={async (pinId: string, status: string) => {
+                console.log('Status changed for pin:', pinId, 'to:', status)
+              }}
+              onSeverityChange={async (pinId: string, severity: string) => {
+                console.log('Severity changed for pin:', pinId, 'to:', severity)
+              }}
+              onUpdate={async (updatedPin: any) => {
+                console.log('Pin updated:', updatedPin)
+                setSelectedPin(null)
+              }}
+              onDelete={async (pinId: string) => {
+                console.log('Pin deleted:', pinId)
+                setSelectedPin(null)
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <PinDetailsModalV2
         pinId={selectedPinIdV2}

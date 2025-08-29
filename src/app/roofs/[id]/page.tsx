@@ -22,7 +22,7 @@ const DynamicEnhancedPinCanvas = dynamic(
     )
   }
 )
-import { PinDetailsCard } from '@/components/pins/PinDetailsCard'
+import { IncrDetailsCard } from '@/components/pins/IncrDetailsCard'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import ExportDialog from '@/components/export/ExportDialog'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -512,19 +512,20 @@ function RoofDashboardPage() {
               
               {/* Content Area */}
               <div className="h-[calc(90vh-200px)] bg-gradient-to-br from-gray-50/50 to-white/50">
-                <PinDetailsCard
+                <IncrDetailsCard
                   pin={selectedPin}
                   roofId={roofId}
                   backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
-                  onClosurePhoto={(pinId) => {
+                  onClosurePhoto={async (pinId, file) => {
+                    console.log('Closure photo uploaded for pin:', pinId, 'File:', file.name)
                     setShowPinPopup(true)
                     setClosurePhotoItemId(null)
                   }}
-                  onStatusChange={(pinId, status) => {
+                  onStatusChange={async (pinId, status) => {
                     console.log('Status change:', pinId, status)
                     // TODO: Implement status update
                   }}
-                  onSeverityChange={(pinId, severity) => {
+                  onSeverityChange={async (pinId, severity) => {
                     console.log('Severity change:', pinId, severity)
                     // TODO: Implement severity update
                   }}

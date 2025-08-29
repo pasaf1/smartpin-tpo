@@ -42,6 +42,9 @@ export function PageLayout({
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   
+  // Check if user is Admin
+  const isAdmin = profile?.role === 'Admin'
+  
   // Close profile menu on outside click or escape key
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -130,15 +133,17 @@ export function PageLayout({
                 <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               </button>
 
-              {/* Settings - hidden on mobile */}
-              <Link href="/settings" className="hidden sm:inline-flex">
-                <button 
-                  aria-label="Settings"
-                  className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow shadow-slate-500/10 transition-all duration-300 hover:scale-105"
-                >
-                  <Settings className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                </button>
-              </Link>
+              {/* Settings - Admin only */}
+              {isAdmin && (
+                <Link href="/settings" className="hidden sm:inline-flex">
+                  <button 
+                    aria-label="Settings"
+                    className="p-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white/70 dark:hover:bg-slate-700/70 backdrop-blur-sm border border-white/30 dark:border-slate-700/50 rounded-lg shadow shadow-slate-500/10 transition-all duration-300 hover:scale-105"
+                  >
+                    <Settings className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                  </button>
+                </Link>
+              )}
 
               {/* Profile Button with Click (not hover) */}
               <div className="relative" ref={profileMenuRef}>
