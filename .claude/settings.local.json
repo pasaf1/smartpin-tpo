@@ -15,7 +15,9 @@
       "Bash(cat:*)",
       "Bash(npm run build:*)",
       "Bash(git rm:*)",
-      "Bash(timeout 30 npm run build)"
+      "Bash(timeout 30 npm run build)",
+      "Read(C:\\Users\\asaf6\\.claude/**)",
+      "Read(C:\\Users\\asaf6/**)"
     ],
     "deny": [],
     "ask": []

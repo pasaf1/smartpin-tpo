@@ -9,10 +9,17 @@ import { Label } from '@/components/ui/label'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useAuth } from '@/lib/auth/AuthContext'
 import Link from 'next/link'
+// Enhanced UI Components
+import { LoadingButton } from '@/components/ui/loading-states'
+import { SmartCard, IconContainer } from '@/components/ui/design-system'
+import { AccessibleField, SkipLink } from '@/components/ui/accessibility'
+import { ResponsiveContainer, useBreakpoint, TouchButton } from '@/components/ui/responsive'
+import { User, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const { signIn, signInWithGoogle, session, loading } = useAuth()
+  const { isMobile, isTablet } = useBreakpoint()
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -84,74 +91,105 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
-      {/* Theme Toggle - Top Right */}
-      <div className="fixed top-4 right-4 z-10">
-        <ThemeToggle />
-      </div>
+    <>
+      {/* Skip Navigation Link for Accessibility */}
+      <SkipLink href="#login-form">
+        Skip to login form
+      </SkipLink>
       
-      <div className="w-full max-w-md">
-        {/* Login Form */}
-        <Card className="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-500/10">
-          <CardHeader className="text-center pb-8">
-            {/* Company Logo */}
-            <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-blue-700 dark:from-indigo-500 dark:to-blue-600 rounded-2xl shadow-lg shadow-indigo-500/30 flex items-center justify-center mx-auto mb-4 transform hover:scale-105 transition-transform duration-300">
-              <div className="w-12 h-12 bg-white rounded-lg opacity-90"></div>
-            </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              SmartPin TPO
-            </CardTitle>
-            <CardDescription className="text-lg text-slate-600 dark:text-slate-400 font-medium">
-              Quality Management Platform
-            </CardDescription>
-            <div className="text-sm text-slate-500 dark:text-slate-500 mt-2">
-              Roofing Quality Control & Inspection System
-            </div>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <div className="mb-4 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-                <div className="text-red-700 dark:text-red-300 text-sm">
-                  {error}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+        {/* Theme Toggle - Top Right */}
+        <div className="fixed top-4 right-4 z-10">
+          <ThemeToggle />
+        </div>
+        
+        <ResponsiveContainer 
+          size="sm" 
+          padding={{ mobile: 'px-4 py-8', tablet: 'px-6 py-12', desktop: 'px-8 py-16' }}
+        >
+          {/* Enhanced Login Form */}
+          <SmartCard 
+            variant="glass" 
+            size="lg" 
+            className="w-full max-w-md mx-auto"
+          >
+            <CardHeader className="text-center pb-8">
+              {/* Enhanced Company Logo */}
+              <IconContainer
+                icon={User}
+                size={isMobile ? "lg" : "xl"}
+                variant="rounded"
+                background="primary"
+                className="mx-auto mb-6 transform hover:scale-105 transition-transform duration-300"
+              />
+              
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                SmartPin TPO
+              </CardTitle>
+              <CardDescription className="text-lg text-slate-600 dark:text-slate-400 font-medium">
+                Quality Management Platform
+              </CardDescription>
+              <div className="text-sm text-slate-500 dark:text-slate-500 mt-2">
+                Roofing Quality Control & Inspection System
+              </div>
+            </CardHeader>
+            <CardContent id="login-form">
+              {/* Enhanced Error Display */}
+              {error && (
+                <div className="mb-6 flex items-start gap-3 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg" role="alert">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-red-700 dark:text-red-300 text-sm">
+                    {error}
+                  </div>
                 </div>
-              </div>
-            )}
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@smartpin.com"
-                  required
-                  disabled={isSigningIn}
-                  className="mt-1"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  disabled={isSigningIn}
-                  className="mt-1"
-                />
-              </div>
-              
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 text-white shadow-lg shadow-indigo-500/30 disabled:opacity-50"
-                disabled={isSigningIn || loading}
-              >
-                {isSigningIn ? 'Signing in...' : 'Sign In'}
-              </Button>
+              )}
+
+              <form onSubmit={handleLogin} className="space-y-6">
+                <AccessibleField
+                  label="Email"
+                  required={true}
+                  hint="Enter your registered email address"
+                >
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="user@smartpin.com"
+                    required
+                    disabled={isSigningIn}
+                    className="text-slate-900 dark:text-slate-100"
+                  />
+                </AccessibleField>
+                
+                <AccessibleField
+                  label="Password"
+                  required={true}
+                  hint="Enter your account password"
+                >
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    disabled={isSigningIn}
+                    className="text-slate-900 dark:text-slate-100"
+                  />
+                </AccessibleField>
+                
+                <LoadingButton
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  isLoading={isSigningIn || loading}
+                  loadingText="Signing in..."
+                  disabled={isSigningIn || loading}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 shadow-lg shadow-indigo-500/30"
+                >
+                  Sign In
+                </LoadingButton>
               
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -185,22 +223,25 @@ export default function LoginPage() {
                 </div>
               )}
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </SmartCard>
+
+          {/* Enhanced Footer */}
+          <div className="text-center mt-8 space-y-3">
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Need help? <Link href="/support" className="text-indigo-600 dark:text-indigo-400 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded">Contact Support</Link>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <CheckCircle className="w-4 h-4 text-emerald-500" />
+              <span>SmartPin TPO Quality Management System v2.0</span>
+            </div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">
+              Enhanced with accessibility and mobile-first design
+            </div>
+          </div>
+        </ResponsiveContainer>
       </div>
-      
-      {/* Company Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4">
-        <div className="text-center">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            © 2024 SmartPin TPO - Quality Management Platform
-          </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-            Professional Roofing Inspection & Quality Control System
-          </p>
-        </div>
-      </div>
-    </div>
+    </>
   )
 }

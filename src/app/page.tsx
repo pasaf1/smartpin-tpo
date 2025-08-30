@@ -14,10 +14,17 @@ import { useRoofsByProject } from '@/lib/hooks/useRoofs'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
 import { supabase } from '@/lib/supabase'
 import { uploadRoofPlanImage } from '@/lib/utils/roofPlanUpload'
+// Enhanced UI Components
+import { LoadingPage, LoadingError } from '@/components/ui/loading-states'
+import { SmartCard, KPICard, ResponsiveGrid, SmartContainer } from '@/components/ui/design-system'
+import { AccessibleModal, SkipLink, AccessibleField, AccessibleTable } from '@/components/ui/accessibility'
+import { ResponsiveContainer, useBreakpoint, ResponsiveModal, TouchButton } from '@/components/ui/responsive'
 
 function HomePage() {
   const { profile } = useAuth()
   const router = useRouter()
+  const { isMobile, isTablet, isDesktop } = useBreakpoint()
+  
   // Allow all authenticated users to create projects (temporary fix)
   // Proper role-based access control should be implemented at the database level
   const canCreateProject = !!profile // Any authenticated user can create projects
@@ -402,290 +409,162 @@ function HomePage() {
   // Show enhanced loading state with timeout protection
   if (projectsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="relative mb-6">
-            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <div className="w-12 h-12 border-4 border-blue-400 border-b-transparent rounded-full animate-spin mx-auto absolute top-2 left-1/2 transform -translate-x-1/2" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-              Loading Dashboard
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              Fetching your projects and data...
-            </p>
-            <div className="text-xs text-slate-500 dark:text-slate-500 mt-4">
-              If this takes longer than expected, please check your connection
-            </div>
-          </div>
-          
-          {/* Progress dots animation */}
-          <div className="flex justify-center space-x-2 mt-6">
-            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-          </div>
-        </div>
-      </div>
+      <LoadingPage 
+        title="Loading Dashboard" 
+        message="Fetching your projects and data..."
+        showLogo={true}
+        variant="fullscreen"
+      />
     )
   }
 
   // Show error state if projects failed to load
   if (projectsError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
-          </div>
-          
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200">
-              Failed to Load Projects
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              We couldn't load your projects. This might be a temporary connection issue.
-            </p>
-            
-            <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4">
-              <p className="text-sm text-red-700 dark:text-red-400">
-                Error: {projectsError instanceof Error ? projectsError.message : 'Unknown error'}
-              </p>
-            </div>
-            
-            <div className="flex gap-3 justify-center pt-4">
-              <button
-                onClick={() => refetchProjects()}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Try Again
-              </button>
-              
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Reload Page
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LoadingError
+        title="Failed to Load Projects"
+        message="We couldn't load your projects. This might be a temporary connection issue."
+        error={projectsError}
+        onRetry={() => refetchProjects()}
+        onReload={() => window.location.reload()}
+      />
     )
   }
 
   return (
-    <PageLayout
-      title="Dashboard"
-      subtitle="Quality Management Overview"
-      showSearch={true}
-      searchPlaceholder="Search projects..."
-    >
-      <div className="space-y-8">
-        
-        {/* Project Overview Filters - Now positioned above KPI cards */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <h2 className="text-2xl font-bold text-slate-800">Project Dashboard</h2>
-          </div>
-          
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Projects */}
-          <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #4338ca 100%)',
-              boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.4)'
-            }}
-            onClick={() => handleKpiClick('projects')}
-          >
-            <div className="relative z-10 flex flex-col items-center">
-              <div 
-                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
-                style={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(4px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <TrendingUp className="w-8 h-8 text-white" />
+    <>
+      {/* Skip Navigation Link for Accessibility */}
+      <SkipLink href="#main-content">
+        Skip to main content
+      </SkipLink>
+      
+      <PageLayout
+        title="Dashboard"
+        subtitle="Quality Management Overview"
+        showSearch={true}
+        searchPlaceholder="Search projects..."
+      >
+        <SmartContainer size="xl" padding="lg">
+          <main id="main-content" className="space-y-8">
+            
+            {/* Project Overview Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Project Dashboard</h2>
               </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Total Projects</span>
-              <div className="text-4xl font-bold text-white mb-2">{projects.length}</div>
-              <p className="text-sm text-white opacity-80 font-medium">Active projects</p>
             </div>
-            <div 
-              className="absolute inset-0 animate-pulse"
-              style={{
-                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
-              }}
-            />
-          </div>
 
-          {/* Open Issues */}
-          <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, #fb923c 0%, #ef4444 50%, #dc2626 100%)',
-              boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.4)'
-            }}
-            onClick={() => handleKpiClick('open')}
-          >
-            <div className="relative z-10 flex flex-col items-center">
-              <div 
-                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
-                style={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(4px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
+            {/* Enhanced KPI Cards with Responsive Grid */}
+            <ResponsiveGrid
+              columns={{ 
+                mobile: 1, 
+                tablet: 2, 
+                desktop: 4 
+              }}
+              gap="lg"
+            >
+              <KPICard
+                title="Total Projects"
+                value={projects.length}
+                subtitle="Active projects"
+                icon={TrendingUp}
+                color="primary"
+                onClick={() => handleKpiClick('projects')}
+              />
+              
+              <KPICard
+                title="Open Issues"
+                value={issueStats.openIssues}
+                subtitle="Need attention"
+                icon={AlertTriangle}
+                color="error"
+                onClick={() => handleKpiClick('open')}
+              />
+              
+              <KPICard
+                title="Ready for Inspection"
+                value={issueStats.readyForInspection}
+                subtitle="Pending review"
+                icon={Eye}
+                color="warning"
+                onClick={() => handleKpiClick('ready')}
+              />
+              
+              <KPICard
+                title="Closed Issues"
+                value={issueStats.closedIssues}
+                subtitle="Completed items"
+                icon={CheckCircle}
+                color="success"
+                onClick={() => handleKpiClick('closed')}
+              />
+            </ResponsiveGrid>
+
+            {/* Enhanced New Project Button */}
+            <div className="flex justify-center py-8">
+              <TouchButton
+                size={isMobile ? "lg" : "lg"}
+                variant="primary"
+                onClick={() => {
+                  if (!canCreateProject) {
+                    alert('Please log in to create projects.')
+                    return
+                  }
+                  if (!isHighPrivilegeUser) {
+                    const confirmed = confirm(
+                      `You are logged in as a ${profile?.role || 'user'}. ` +
+                      'Typically only Admin, QA_Manager, or Supervisor roles create projects. ' +
+                      'Do you want to continue?'
+                    )
+                    if (!confirmed) return
+                  }
+                  setShowNewProjectModal(true)
                 }}
+                disabled={!canCreateProject}
+                className={`group relative shadow-2xl transition-all duration-500 ${
+                  canCreateProject 
+                    ? 'bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 hover:from-emerald-700 hover:to-green-800 shadow-emerald-500/50 hover:shadow-emerald-500/60' 
+                    : 'bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 shadow-gray-500/50 opacity-75'
+                }`}
               >
-                <AlertTriangle className="w-8 h-8 text-white" />
-              </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Open Issues</span>
-              <div className="text-4xl font-bold text-white mb-2">{issueStats.openIssues}</div>
-              <p className="text-sm text-white opacity-80 font-medium">Need attention</p>
+                <div className="flex items-center gap-4">
+                  <Plus className="w-6 h-6" />
+                  <span className="font-bold text-lg">
+                    {canCreateProject ? 'New Project' : 'Login Required'}
+                  </span>
+                  {!isHighPrivilegeUser && canCreateProject && (
+                    <span className="text-xs bg-orange-500 px-2 py-1 rounded-full">
+                      {profile?.role || 'Limited'}
+                    </span>
+                  )}
+                </div>
+              </TouchButton>
             </div>
-            <div 
-              className="absolute inset-0 animate-pulse"
-              style={{
-                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
-              }}
-            />
-          </div>
 
-          {/* Ready for Inspection */}
-          <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, #818cf8 0%, #8b5cf6 50%, #a855f7 100%)',
-              boxShadow: '0 25px 50px -12px rgba(139, 92, 246, 0.4)'
-            }}
-            onClick={() => handleKpiClick('ready')}
-          >
-            <div className="relative z-10 flex flex-col items-center">
-              <div 
-                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
-                style={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(4px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <Eye className="w-8 h-8 text-white" />
-              </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Ready for Inspection</span>
-              <div className="text-4xl font-bold text-white mb-2">{issueStats.readyForInspection}</div>
-              <p className="text-sm text-white opacity-80 font-medium">Pending review</p>
-            </div>
-            <div 
-              className="absolute inset-0 animate-pulse"
-              style={{
-                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
-              }}
-            />
-          </div>
-
-          {/* Closed */}
-          <div 
-            className="relative overflow-hidden rounded-2xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-2xl cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%)',
-              boxShadow: '0 25px 50px -12px rgba(16, 185, 129, 0.4)'
-            }}
-            onClick={() => handleKpiClick('closed')}
-          >
-            <div className="relative z-10 flex flex-col items-center">
-              <div 
-                className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center mb-4"
-                style={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(4px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <CheckCircle className="w-8 h-8 text-white" />
-              </div>
-              <span className="text-sm font-medium text-white opacity-90 mb-2">Closed Issues</span>
-              <div className="text-4xl font-bold text-white mb-2">{issueStats.closedIssues}</div>
-              <p className="text-sm text-white opacity-80 font-medium">Completed items</p>
-            </div>
-            <div 
-              className="absolute inset-0 animate-pulse"
-              style={{
-                background: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.2) 100%)'
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Central New Project Button */}
-        <div className="flex justify-center py-8">
-          <button 
-            onClick={() => {
-              if (!canCreateProject) {
-                alert('Please log in to create projects.')
-                return
-              }
-              if (!isHighPrivilegeUser) {
-                const confirmed = confirm(
-                  `You are logged in as a ${profile?.role || 'user'}. ` +
-                  'Typically only Admin, QA_Manager, or Supervisor roles create projects. ' +
-                  'Do you want to continue?'
-                )
-                if (!confirmed) return
-              }
-              setShowNewProjectModal(true)
-            }}
-            className={`group relative px-12 py-6 text-white text-lg font-bold rounded-2xl shadow-2xl transition-all duration-500 transform ${
-              canCreateProject 
-                ? 'bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 shadow-emerald-500/50 hover:shadow-3xl hover:shadow-emerald-500/60 hover:scale-105 cursor-pointer' 
-                : 'bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 shadow-gray-500/50 cursor-not-allowed opacity-75'
-            }`}
-            disabled={!canCreateProject}
-          >
-            <div className={`absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 ${
-              canCreateProject ? 'bg-gradient-to-r from-emerald-400 to-green-500 group-hover:opacity-20' : ''
-            }`}></div>
-            <div className="relative flex items-center gap-4">
-              <Plus className="w-8 h-8" />
-              <span>{canCreateProject ? 'New Project' : 'Login Required'}</span>
-              {!isHighPrivilegeUser && canCreateProject && (
-                <span className="text-xs bg-orange-500 px-2 py-1 rounded-full">
-                  {profile?.role || 'Limited'}
-                </span>
-              )}
-            </div>
-            {canCreateProject && (
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse opacity-75"></div>
-            )}
-          </button>
-        </div>
-
-        {/* Project Management Section - Now positioned at bottom */}
-        <div className="bg-white/70 backdrop-blur-sm border border-white/40 rounded-2xl shadow-xl shadow-slate-500/10">
-          <div className="p-6 border-b border-white/30">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-800">Projects Table</h2>
-              <div className="flex items-center gap-4">
-                {/* Quick filter/search above the table */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    className="pl-10 pr-4 py-2 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
-                  />
+            {/* Enhanced Projects Management Section */}
+            <SmartCard variant="glass" size="lg" className="w-full">
+              <div className="border-b border-white/30 pb-6 mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Projects Table</h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      Manage and monitor all your roof projects
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    {/* Quick filter/search above the table */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Search projects..."
+                        className="pl-10 pr-4 py-2 w-full sm:w-72 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                        aria-label="Search projects"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
           {/* Project Filters */}
           <div className="p-6 border-b border-white/30">
@@ -737,92 +616,91 @@ function HomePage() {
             </div>
           </div>
           
-          {/* Projects Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-white/50">
-                <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Project</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Contractor</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Created</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/20">
-                  {filteredProjects.map((p) => (
-                    <tr 
-                      key={p.project_id} 
-                      className="hover:bg-white/30 transition-all duration-200 group cursor-pointer"
-                      onClick={() => handleProjectRowClick(p)}
-                    >
-                    <td className="px-6 py-4">
-                      <div>
-                          <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">
-                            {p.name}
-                          </h3>
-                          <p className="text-xs text-slate-500 font-mono mt-1">{p.project_id}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-lg ${
-                          p.status === 'Open' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' :
-                          p.status === 'InProgress' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' :
-                          p.status === 'Completed' ? 'bg-gradient-to-r from-gray-500 to-slate-600 text-white' :
-                          'bg-gradient-to-r from-indigo-500 to-blue-600 text-white'
-                        }`}>
-                          {p.status || 'Open'}
-                        </span>
-                    </td>
-                    <td className="px-6 py-4">
-                        <div className="text-sm text-slate-600">{p.contractor || '—'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                        <div className="flex items-center gap-1 text-xs text-slate-500">
-                          <Clock className="w-3 h-3" />
-                          {p.created_at ? new Date(p.created_at).toLocaleDateString() : new Date().toLocaleDateString()}
-                        </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button 
+              {/* Enhanced Accessible Projects Table */}
+              <AccessibleTable
+                caption="Project Management Dashboard - All active roof projects"
+                headers={[
+                  { key: 'project', label: 'Project', scope: 'col' },
+                  { key: 'status', label: 'Status', scope: 'col' },
+                  { key: 'contractor', label: 'Contractor', scope: 'col' },
+                  { key: 'created', label: 'Created', scope: 'col' },
+                  { key: 'actions', label: 'Actions', scope: 'col' }
+                ]}
+                rows={filteredProjects.map((p) => ({
+                  project: (
+                    <div className="cursor-pointer" onClick={() => handleProjectRowClick(p)}>
+                      <h3 className="font-semibold text-slate-800 dark:text-slate-200 hover:text-indigo-700 transition-colors">
+                        {p.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">{p.project_id}</p>
+                    </div>
+                  ),
+                  status: (
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-lg ${
+                      p.status === 'Open' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' :
+                      p.status === 'InProgress' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' :
+                      p.status === 'Completed' ? 'bg-gradient-to-r from-gray-500 to-slate-600 text-white' :
+                      'bg-gradient-to-r from-indigo-500 to-blue-600 text-white'
+                    }`}>
+                      {p.status || 'Open'}
+                    </span>
+                  ),
+                  contractor: (
+                    <div className="text-sm text-slate-600 dark:text-slate-300">
+                      {p.contractor || '—'}
+                    </div>
+                  ),
+                  created: (
+                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <Clock className="w-3 h-3" />
+                      {p.created_at ? new Date(p.created_at).toLocaleDateString() : new Date().toLocaleDateString()}
+                    </div>
+                  ),
+                  actions: (
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <TouchButton 
+                        size="sm"
+                        variant="primary"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleProjectRowClick(p)
+                        }}
+                        className="text-xs"
+                      >
+                        Open
+                      </TouchButton>
+                      {isHighPrivilegeUser && (
+                        <TouchButton 
+                          size="sm"
+                          variant="outline"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleProjectRowClick(p)
+                            handleDeleteProject(p)
                           }}
-                          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-all duration-200"
+                          className="text-xs text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
                         >
-                          Open
-                        </button>
-                        {isHighPrivilegeUser && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteProject(p)
-                            }}
-                            className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-all duration-200"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                          Delete
+                        </TouchButton>
+                      )}
+                    </div>
+                  )
+                }))}
+                className="w-full"
+                rowClassName={(row, index) => `hover:bg-white/30 dark:hover:bg-slate-800/30 transition-all duration-200 ${index % 2 === 0 ? 'bg-white/10 dark:bg-slate-800/10' : ''}`}
+              />
+            </SmartCard>
 
-        {/* Global Chat Section - For all projects */}
-        <div className="bg-white/70 backdrop-blur-sm border border-white/40 rounded-2xl shadow-xl shadow-slate-500/10">
-          <div className="p-6 border-b border-white/30">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Project Communications
-            </h2>
-            <p className="text-sm text-slate-600 mt-1">Global chat for all projects - stay connected with your team</p>
-          </div>
+            {/* Enhanced Global Chat Section */}
+            <SmartCard variant="glass" size="lg" className="w-full">
+              <div className="border-b border-white/30 pb-6 mb-6">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Project Communications
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  Global chat for all projects - stay connected with your team
+                </p>
+              </div>
           <div className="p-6">
             <div className="space-y-4 max-h-64 overflow-y-auto">
               {/* Sample messages - in real implementation this would be from your chat system */}
@@ -865,93 +743,99 @@ function HomePage() {
                 className="bg-white/60 backdrop-blur-sm border-white/40 focus:ring-indigo-500"
               />
             </div>
-          </div>
-        </div>
+            </SmartCard>
 
-      </div>
+          </main>
+        </SmartContainer>
+      </PageLayout>
 
-      {/* New Project Modal */}
+      {/* Enhanced New Project Modal with Accessibility */}
       {showNewProjectModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white/90 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-white/30">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Create New Project</h2>
-                  {profile && (
-                    <p className="text-sm text-slate-600 mt-1">
-                      Logged in as: <strong>{profile.full_name}</strong> ({profile.role || 'Unknown role'})
-                    </p>
-                  )}
+        <ResponsiveModal
+          isOpen={showNewProjectModal}
+          onClose={() => {
+            setShowNewProjectModal(false)
+            resetNewProjectForm()
+          }}
+          title="Create New Project"
+        >
+          <div className="space-y-6">
+            {/* User Info and Warning */}
+            <div className="space-y-4">
+              {profile && (
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Logged in as: <strong className="text-slate-900 dark:text-slate-100">{profile.full_name}</strong> ({profile.role || 'Unknown role'})
+                  </p>
                 </div>
-                <button 
-                  onClick={() => {
-                    setShowNewProjectModal(false)
-                    resetNewProjectForm()
-                  }}
-                  className="p-2 hover:bg-white/50 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-slate-600" />
-                </button>
-              </div>
+              )}
+              
               {!isHighPrivilegeUser && canCreateProject && (
-                <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 text-sm text-amber-700 dark:text-amber-300">
                   <strong>Note:</strong> You are logged in as a {profile?.role || 'user'}. Typically only Admin, QA Manager, or Supervisor roles create projects. If you encounter database permission errors, please contact your administrator.
                 </div>
               )}
             </div>
             
-            <form onSubmit={handleCreateProject} className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Project Name *</label>
+            <form onSubmit={handleCreateProject} className="space-y-6">
+              <AccessibleField
+                label="Project Name"
+                required={true}
+                hint="Enter a descriptive name for your roofing project"
+              >
                 <input 
                   type="text" 
                   placeholder="Enter project name..."
                   value={newProjectForm.name}
                   onChange={(e) => handleNewProjectFormChange('name', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/30 dark:border-slate-700/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-slate-100"
                   required
                 />
-              </div>
+              </AccessibleField>
               
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+              <AccessibleField
+                label="Description"
+                hint="A roof plan will be automatically created for this project"
+              >
                 <textarea 
                   placeholder="Brief description of the project..."
                   rows={3}
                   value={newProjectForm.description}
                   onChange={(e) => handleNewProjectFormChange('description', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none"
-                ></textarea>
-                <p className="text-xs text-slate-500 mt-1">
-                  A roof plan will be automatically created for this project.
-                </p>
-              </div>
+                  className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/30 dark:border-slate-700/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none text-slate-900 dark:text-slate-100"
+                />
+              </AccessibleField>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Site Location *</label>
+                <AccessibleField
+                  label="Site Location"
+                  required={true}
+                  hint="Enter the physical address or location of the roofing project"
+                >
                   <input 
                     type="text" 
                     placeholder="Site address..."
                     value={newProjectForm.location}
                     onChange={(e) => handleNewProjectFormChange('location', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/30 dark:border-slate-700/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-slate-100"
                     required
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
+                </AccessibleField>
+                
+                <AccessibleField
+                  label="Priority"
+                  hint="Set the project priority level for resource allocation"
+                >
                   <select 
                     value={newProjectForm.priority}
                     onChange={(e) => handleNewProjectFormChange('priority', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/30 dark:border-slate-700/30 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-slate-100"
                   >
                     <option value="normal">Normal</option>
                     <option value="high">High</option>
                     <option value="critical">Critical</option>
                   </select>
-                </div>
+                </AccessibleField>
               </div>
               
               <div>
@@ -1017,34 +901,40 @@ function HomePage() {
                 )}
               </div>
               
-              <div className="flex items-center justify-end gap-4 pt-4">
-                <button 
-                  type="button" 
+              {/* Form Actions */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 pt-6">
+                <TouchButton
+                  type="button"
+                  variant="ghost"
                   onClick={() => {
                     setShowNewProjectModal(false)
                     resetNewProjectForm()
                   }}
-                  className="px-6 py-3 text-slate-700 font-semibold hover:bg-white/50 rounded-lg transition-colors"
                   disabled={isCreatingProject}
+                  className="order-2 sm:order-1"
                 >
                   Cancel
-                </button>
-                <button 
-                  type="submit" 
+                </TouchButton>
+                
+                <TouchButton
+                  type="submit"
+                  variant="primary"
                   disabled={isCreatingProject || !canCreateProject}
-                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="order-1 sm:order-2 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isCreatingProject ? (
-                    <span className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      {newProjectForm.roofPlanFile ? 'Uploading Image & Creating...' : 'Creating Project & Roof...'}
-                    </span>
-                  ) : 'Create Project'}
-                </button>
+                      <span>{newProjectForm.roofPlanFile ? 'Uploading & Creating...' : 'Creating Project...'}</span>
+                    </div>
+                  ) : (
+                    'Create Project'
+                  )}
+                </TouchButton>
               </div>
             </form>
           </div>
-        </div>
+        </ResponsiveModal>
       )}
 
       {/* KPI Detail Modals */}
@@ -1138,7 +1028,7 @@ function HomePage() {
           </div>
         </div>
       )}
-    </PageLayout>
+    </>
   )
 }
 

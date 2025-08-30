@@ -19,6 +19,12 @@ import {
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+// Enhanced UI Components
+import { LoadingPage, LoadingSpinner } from '@/components/ui/loading-states';
+import { SmartCard, KPICard, ResponsiveGrid, SmartContainer } from '@/components/ui/design-system';
+import { SkipLink, AccessibleField, AccessibleTable } from '@/components/ui/accessibility';
+import { ResponsiveContainer, useBreakpoint, TouchButton } from '@/components/ui/responsive';
+import { Users, Crown, Calendar, Plus, Search, Edit2, Trash2 } from 'lucide-react';
 
 /** ===== Types (minimal “dry” user shape) ===== */
 type UserRole = 'Admin' | 'QA_Manager' | 'Supervisor' | 'Foreman' | 'Inspector' | 'Viewer' | 'Contractor';
@@ -61,6 +67,7 @@ const toUiUser = (u: DbUser): UiUser => ({
 /** ===== Page ===== */
 export default function UserManagementPage() {
   const { loading, profile } = useAuth();
+  const { isMobile, isTablet } = useBreakpoint();
   const canManageUsers = profile?.role === 'Admin' || profile?.role === 'QA_Manager';
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,109 +119,143 @@ export default function UserManagementPage() {
   // Guards
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-      </div>
+      <LoadingPage
+        title="Loading User Management"
+        message="Preparing user administration interface..."
+        showLogo={true}
+        variant="fullscreen"
+      />
     );
   }
 
   if (!canManageUsers) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-[420px]">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>You do not have permission to manage users.</CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <SmartCard variant="elevated" size="lg" className="max-w-md w-full text-center">
+          <div className="space-y-4">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto">
+              <Users className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Access Denied</h1>
+              <p className="text-slate-600 dark:text-slate-400 mt-2">
+                You do not have permission to manage users. This feature requires Admin or QA Manager privileges.
+              </p>
+            </div>
+            <div className="pt-4">
+              <Link href="/">
+                <TouchButton variant="primary">
+                  Return to Dashboard
+                </TouchButton>
+              </Link>
+            </div>
+          </div>
+        </SmartCard>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">User Management</h1>
-              <p className="text-muted-foreground">Manage user accounts and permissions</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="destructive">Admin Only</Badge>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                  <p className="text-2xl font-bold">{isUsersLoading ? '—' : totalUsers}</p>
-                </div>
-                <div className="text-2xl">👥</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Admin Users</p>
-                  <p className="text-2xl font-bold text-blue-600">{isUsersLoading ? '—' : adminUsers}</p>
-                </div>
-                <div className="text-2xl">👑</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-                  <p className="text-2xl font-bold">{new Date().toLocaleDateString()}</p>
-                </div>
-                <div className="text-2xl">📅</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Table */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+    <>
+      {/* Skip Navigation Link for Accessibility */}
+      <SkipLink href="#main-content">
+        Skip to main content
+      </SkipLink>
+      
+      <div className="min-h-screen bg-background">
+        {/* Enhanced Header */}
+        <header className="border-b bg-card shadow-sm">
+          <ResponsiveContainer>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-6">
               <div>
-                <CardTitle>All Users</CardTitle>
-                <CardDescription>Basic info: full name, role, email</CardDescription>
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <Users className="w-7 h-7 text-indigo-600" />
+                  User Management
+                </h1>
+                <p className="text-muted-foreground mt-1">Manage user accounts and permissions</p>
               </div>
-                <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="Search users…"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-72 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {/* Use a simple styled Link instead of Button to avoid type issues */}
-                <Link
-                  href="/admin/users/create"
-                  className={cn(
-                  'inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium',
-                  'bg-primary text-primary-foreground hover:opacity-90'
-                  )}
-                >
-                  New User
+              <div className="flex items-center gap-3">
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  Admin Only
+                </Badge>
+                <Link href="/">
+                  <TouchButton variant="ghost" size="sm">
+                    ← Back to Dashboard
+                  </TouchButton>
                 </Link>
-                </div>
+              </div>
             </div>
-          </CardHeader>
+          </ResponsiveContainer>
+        </header>
+
+        <ResponsiveContainer>
+          <main id="main-content" className="py-8 space-y-8">
+            {/* Enhanced Stats with KPI Cards */}
+            <ResponsiveGrid
+              columns={{ mobile: 1, tablet: 2, desktop: 3 }}
+              gap="lg"
+            >
+              <KPICard
+                title="Total Users"
+                value={isUsersLoading ? '—' : totalUsers}
+                subtitle="Registered accounts"
+                icon={Users}
+                color="primary"
+              />
+              
+              <KPICard
+                title="Admin Users"
+                value={isUsersLoading ? '—' : adminUsers}
+                subtitle="Administrative privileges"
+                icon={Crown}
+                color="warning"
+              />
+              
+              <KPICard
+                title="Last Updated"
+                value={new Date().toLocaleDateString()}
+                subtitle="System data refresh"
+                icon={Calendar}
+                color="info"
+              />
+            </ResponsiveGrid>
+
+            {/* Enhanced Users Table */}
+            <SmartCard variant="elevated" size="lg">
+              <div className="border-b border-slate-200 dark:border-slate-700 pb-6 mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">All Users</h2>
+                    <p className="text-slate-600 dark:text-slate-400 mt-1">
+                      Basic info: full name, role, email
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Search users…"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 w-full sm:w-72 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-label="Search users"
+                      />
+                    </div>
+                    <Link href="/admin/users/create">
+                      <TouchButton
+                        variant="primary"
+                        size="md"
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        New User
+                      </TouchButton>
+                    </Link>
+                  </div>
+                </div>
+              </div>
           <CardContent>
             <Table>
               <TableHeader>
@@ -279,10 +320,10 @@ export default function UserManagementPage() {
                   ))
                 )}
               </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            </SmartCard>
+          </main>
+        </ResponsiveContainer>
       </div>
-    </div>
+    </>
   );
 }
