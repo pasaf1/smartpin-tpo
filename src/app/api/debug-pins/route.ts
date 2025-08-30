@@ -31,17 +31,12 @@ export async function GET(request: NextRequest) {
       .eq('id', roofId)
       .single()
     
-    // Get child pins if any
-    const { data: childPins, error: childError } = await supabase
-      .from('child_pins')
-      .select('*')
-      .in('parent_id', pins?.map(p => p.id) || [])
-    
-    // Get layers
-    const { data: layers, error: layersError } = await supabase
-      .from('layers')
-      .select('*')
-      .eq('roof_id', roofId)
+    // Skip child_pins and layers queries since tables don't exist in types yet
+    // This debug endpoint will be updated after BLUEBIN migration is applied
+    const childPins: any[] = []
+    const layers: any[] = []
+    const childError = null
+    const layersError = null
     
     const debugInfo = {
       timestamp: new Date().toISOString(),
