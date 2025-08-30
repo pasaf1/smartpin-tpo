@@ -5,7 +5,7 @@ import QueryProvider from "@/lib/query/QueryProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth/AuthContext";
-import RLSErrorBoundary from "@/components/error/RLSErrorBoundary";
+import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -97,21 +97,21 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <QueryProvider>
-              <RLSErrorBoundary>
+        <ErrorBoundary>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AuthProvider>
+              <QueryProvider>
                 {children}
-              </RLSErrorBoundary>
-              <Toaster />
-            </QueryProvider>
-          </AuthProvider>
-        </ThemeProvider>
+                <Toaster />
+              </QueryProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
         <script
           dangerouslySetInnerHTML={{
             __html: `

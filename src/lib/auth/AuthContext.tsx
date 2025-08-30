@@ -37,17 +37,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+    
+    // Add timeout to prevent infinite loading
+    const authTimeout = setTimeout(() => {
+      console.warn('⚠️ Auth initialization timeout, proceeding without auth')
+      setLoading(false)
+      setUser(null)
+      setProfile(null)
+      setSession(null)
+    }, 10000) // 10 second timeout
+    
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-      } else {
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        clearTimeout(authTimeout)
+        setSession(session)
+        setUser(session?.user ?? null)
+        
+        if (session?.user) {
+          fetchUserProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Failed to get initial session:', error)
+        clearTimeout(authTimeout)
         setLoading(false)
-      }
-    })
+        setUser(null)
+        setProfile(null)
+        setSession(null)
+      })
 
     // Listen for auth changes
     const {
@@ -60,7 +81,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user) {
         console.log('👤 User authenticated, fetching profile...')
-        await fetchUserProfile(session.user.id)
+        try {
+          await fetchUserProfile(session.user.id)
+        } catch (error) {
+          console.error('❌ Failed to fetch profile in auth change:', error)
+          // Don't block the auth flow, just log the error
+          setLoading(false)
+        }
       } else {
         console.log('👻 No user session, clearing profile')
         setProfile(null)
@@ -75,11 +102,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('🔍 Fetching user profile for userId:', userId)
       
-      const { data, error } = await supabase
+      // Add timeout to profile fetch using Promise.race
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+      })
+      
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any
 
       if (error) {
         console.error('❌ Profile fetch error:', error)
@@ -103,8 +137,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('💥 Critical error fetching user profile:', error)
-      // Don't block login entirely, but user won't have profile
-      setProfile(null)
+      
+      // If it's a timeout, create a minimal fallback profile
+      if (error instanceof Error && error.message.includes('timeout')) {
+        console.log('⏰ Profile fetch timed out, creating fallback profile')
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        
+        if (currentUser) {
+          setProfile({
+            id: userId,
+            auth_user_id: userId,
+            email: currentUser.email || '',
+            full_name: currentUser.email?.split('@')[0] || 'Unknown User',
+            role: 'Viewer',
+            address: null,
+            birth_date: null,
+            created_at: new Date().toISOString(),
+          })
+        }
+      } else {
+        // Don't block login entirely, but user won't have profile
+        setProfile(null)
+      }
     } finally {
       setLoading(false)
     }

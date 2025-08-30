@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useChatMessages, useSendChatMessage, useRealTimeChat, useEditChatMessage, useDeleteChatMessage } from '@/lib/hooks/usePhotosAndChat';
+import { useChatMessages, useSendChatMessage, useRealTimeChat, useEditChatMessage, useDeleteChatMessage } from '@/lib/hooks/useSupabaseQueries';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,22 +57,16 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
   const scopeType = ['global', 'roof', 'pin'].includes(activeScope?.type) 
     ? (activeScope.type as 'global' | 'roof' | 'pin') 
     : 'global';
-  const editMessageMutation = useEditChatMessage();
-  const deleteMessageMutation = useDeleteChatMessage();
+  // Scope-aware mutations so cache invalidation targets the active chat feed
+  const editMessageMutation = useEditChatMessage(scopeType, activeScope?.id);
+  const deleteMessageMutation = useDeleteChatMessage(scopeType, activeScope?.id);
   
-  const messagesQuery = useChatMessages({
-    scope: scopeType,
-    scopeId: activeScope?.id
-  });
-  const { isConnected } = useRealTimeChat({
-    scope: scopeType,
-    scopeId: activeScope?.id
-  });
-
-  const messages = messagesQuery.data || [];
-  const isLoading = messagesQuery.isLoading;
-  const onlineUsers: any[] = []; // Placeholder since we don't have online users data
-  const onlineCount = isConnected ? 1 : 0;
+  const {
+    messages,
+    onlineUsers,
+    onlineCount,
+    isLoading
+  } = useRealTimeChat(scopeType, activeScope?.id, userInfo);
 
   // סנן הודעות אם הסקופ לא תקין
   const filteredMessages = ['global', 'roof', 'pin'].includes(activeScope?.type) ? messages : [];
@@ -97,11 +91,12 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
     const chatMessage = {
       text: message.trim(),
       scope: activeScope.type as 'global' | 'roof' | 'pin',
-      scopeId: activeScope.id,
-      mentions: mentions.length > 0 ? mentions : undefined,
+      scope_id: activeScope.id || null,
+      mentions: mentions.length > 0 ? mentions : null,
+      created_by: user.id, // Ensure created_by is set
     };
     try {
-      await sendMessageMutation.mutateAsync(chatMessage);
+      await sendMessageMutation.mutateAsync(chatMessage as any); // Cast to any to bypass local type check if needed
       setMessage('');
       setShowMentions(false);
     } catch (error) {
@@ -166,7 +161,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
   const saveEdit = async () => {
     if (!editingId) return;
     try {
-      await editMessageMutation.mutateAsync({ messageId: editingId, newText: editingText.trim() });
+      await editMessageMutation.mutateAsync({ messageId: editingId, text: editingText.trim() });
       setEditingId(null);
       setEditingText('');
     } catch (e) {
@@ -222,7 +217,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
       <CardContent className="flex-1 flex flex-col p-0">
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.map(msg => (
+            {filteredMessages.map(msg => (
               <div key={msg.message_id} className="flex gap-3 group">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                   {((msg as any).creator?.full_name?.charAt(0).toUpperCase() || '?')}
@@ -309,7 +304,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
                 </div>
               </div>
             ))}
-            {messages.length === 0 && !isLoading && (
+            {filteredMessages.length === 0 && !isLoading && (
               <div className="text-center py-8 text-muted-foreground">
                 <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">No messages yet</p>

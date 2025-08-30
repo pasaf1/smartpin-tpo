@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, Eye, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react'
+import { Search, Eye, Users, Plus, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, X, RefreshCw } from 'lucide-react'
 import { MentionInput } from '@/components/ui/mention-input'
 import { PageLayout } from '@/components/layout'
 import { withAuth, useAuth } from '@/lib/hooks/useAuth'
@@ -26,7 +26,12 @@ function HomePage() {
   // const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
   // Real projects from Supabase
-  const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects()
+  const { 
+    data: projects = [], 
+    isLoading: projectsLoading, 
+    error: projectsError, 
+    refetch: refetchProjects 
+  } = useProjects()
   const createProject = useCreateProject()
   const createRoof = useCreateRoof()
   const deleteProject = useDeleteProject()
@@ -394,13 +399,79 @@ function HomePage() {
     }
   }, [fetchIssueStats, projectsLoading])
 
-  // הצג טעינה אם הדאטה עדיין נטענת
+  // Show enhanced loading state with timeout protection
   if (projectsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 dark:text-slate-300 font-medium">Loading projects...</p>
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="relative mb-6">
+            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <div className="w-12 h-12 border-4 border-blue-400 border-b-transparent rounded-full animate-spin mx-auto absolute top-2 left-1/2 transform -translate-x-1/2" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+              Loading Dashboard
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400">
+              Fetching your projects and data...
+            </p>
+            <div className="text-xs text-slate-500 dark:text-slate-500 mt-4">
+              If this takes longer than expected, please check your connection
+            </div>
+          </div>
+          
+          {/* Progress dots animation */}
+          <div className="flex justify-center space-x-2 mt-6">
+            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state if projects failed to load
+  if (projectsError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200">
+              Failed to Load Projects
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400">
+              We couldn't load your projects. This might be a temporary connection issue.
+            </p>
+            
+            <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <p className="text-sm text-red-700 dark:text-red-400">
+                Error: {projectsError instanceof Error ? projectsError.message : 'Unknown error'}
+              </p>
+            </div>
+            
+            <div className="flex gap-3 justify-center pt-4">
+              <button
+                onClick={() => refetchProjects()}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Try Again
+              </button>
+              
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Reload Page
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     )

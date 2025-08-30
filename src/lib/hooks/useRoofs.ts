@@ -286,14 +286,31 @@ export function useProjects() {
     queryKey: ['projects'],
     queryFn: async (): Promise<Project[]> => {
       console.log('🔄 Fetching projects from database...')
-      const { data, error } = await supabase
+      
+      // Add timeout to prevent hanging
+      const projectsPromise = supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false })
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Projects fetch timeout after 15 seconds')), 15000)
+      })
+      
+      const { data, error } = await Promise.race([projectsPromise, timeoutPromise]) as any
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Failed to fetch projects:', error)
+        throw error
+      }
+      
+      console.log('✅ Projects fetched successfully:', data?.length || 0)
       return data || []
-    }
+    },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
   })
 }
 

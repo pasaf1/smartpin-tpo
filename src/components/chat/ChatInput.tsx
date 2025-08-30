@@ -27,12 +27,12 @@ interface MentionSuggestion {
   avatar?: string
 }
 
-// User mention suggestions
-const USER_MENTIONS: MentionSuggestion[] = [
-  { id: 'user-1', name: 'mike.rodriguez', avatar: '👷‍♂️' },
-  { id: 'user-2', name: 'sarah.chen', avatar: '👩‍🔬' },
-  { id: 'user-3', name: 'david.kim', avatar: '🔧' },
-  { id: 'user-4', name: 'lisa.thompson', avatar: '📊' }
+// Demo mention suggestions
+const DEMO_MENTIONS: MentionSuggestion[] = [
+  { id: 'demo-user-1', name: 'mike.rodriguez', avatar: '👷‍♂️' },
+  { id: 'demo-user-2', name: 'sarah.chen', avatar: '👩‍🔬' },
+  { id: 'demo-user-3', name: 'david.kim', avatar: '🔧' },
+  { id: 'demo-user-4', name: 'lisa.thompson', avatar: '📊' }
 ]
 
 export function ChatInput({
@@ -139,7 +139,7 @@ export function ChatInput({
       const mentionMatches = content.match(/@(\w+(?:\.\w+)*)/g)
       const mentions = mentionMatches?.map(match => {
         const username = match.slice(1)
-        const user = USER_MENTIONS.find(m => m.name === username)
+        const user = DEMO_MENTIONS.find(m => m.name === username)
         return user?.id
       }).filter(Boolean) as string[]
 
@@ -176,7 +176,7 @@ export function ChatInput({
   }
 
   // Filter mentions based on query
-  const filteredMentions = USER_MENTIONS.filter(mention =>
+  const filteredMentions = DEMO_MENTIONS.filter(mention =>
     mention.name.toLowerCase().includes(mentionQuery)
   ).slice(0, 5)
 

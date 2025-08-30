@@ -2,9 +2,7 @@
 const path = require('path')
 
 const nextConfig = {
-  // Output file tracing root to fix workspace detection warning
-  outputFileTracingRoot: path.join(__dirname),
-  
+  // Note: Avoid setting outputFileTracingRoot here to prevent Vercel packaging issues
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', '@tanstack/react-query', 'date-fns'],
@@ -52,13 +50,6 @@ const nextConfig = {
         tls: false,
       }
     }
-
-    // Handle Konva for client-side only
-    config.externals = config.externals || []
-    config.externals.push({
-      'canvas': 'canvas',
-      'jsdom': 'jsdom'
-    })
 
     // Optimize bundle splitting
     config.optimization = {

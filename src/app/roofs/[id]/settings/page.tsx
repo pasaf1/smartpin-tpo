@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useRoof, useUpdateRoof } from '@/lib/hooks/useRoofs'
-import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
 interface BaseMapUploadProps {
@@ -49,7 +48,7 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
     }
   }
   
-  const handleFiles = async (files: FileList) => {
+  const handleFiles = (files: FileList) => {
     const file = files[0]
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (JPG, PNG, WebP)')
@@ -61,46 +60,19 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
       return
     }
     
-    try {
-      // Upload to Supabase Storage
-      const fileName = `roof-${Date.now()}-${file.name}`
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('roof-photos')
-        .upload(fileName, file)
-      
-      if (uploadError) {
-        console.error('Upload error:', uploadError)
-        // Fallback to base64 for development
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const img = new Image()
-          img.onload = () => {
-            const imageUrl = e.target?.result as string
-            onImageUpdate(imageUrl, img.width, img.height)
-          }
-          img.src = e.target?.result as string
-        }
-        reader.readAsDataURL(file)
-        return
+    // Create preview URL and get image dimensions
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // For demo purposes, use the file URL directly
+        // In production, this would upload to Supabase Storage
+        const imageUrl = e.target?.result as string
+        onImageUpdate(imageUrl, img.width, img.height)
       }
-      
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('roof-photos')
-        .getPublicUrl(fileName)
-      
-      if (urlData?.publicUrl) {
-        // Get image dimensions
-        const img = new Image()
-        img.onload = () => {
-          onImageUpdate(urlData.publicUrl, img.width, img.height)
-        }
-        img.src = urlData.publicUrl
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error)
-      alert('Error uploading file. Please try again.')
+      img.src = e.target?.result as string
     }
+    reader.readAsDataURL(file)
   }
   
   return (
@@ -168,11 +140,11 @@ export default function RoofSettingsPage() {
   const router = useRouter()
   const roofId = params.id as string
   
-  const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-  const updateRoof = useUpdateRoof()
-  
-  // Editing disabled - project details can only be set during creation
-  const handleRedirectToProjects = () => {
+const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
+// Removed edit capabilities - roof details can only be set during project creation
+
+// Editing disabled - project details can only be set during creation
+const handleRedirectToProjects = () => {
     router.push('/')
   }
   
@@ -294,41 +266,41 @@ export default function RoofSettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Base Map - Editable */}
+            {/* Base Map - Read Only */}
             <Card>
               <CardHeader>
                 <CardTitle>Plan Image</CardTitle>
                 <CardDescription>
-                  Upload or update the roof plan image for better pin placement
+                  Roof plan image (set during project creation - cannot be changed)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <BaseMapUpload
-                  currentImageUrl={roof?.plan_image_url || undefined}
-                  onImageUpdate={(url, width, height) => {
-                    // Update the roof with new image URL
-                    updateRoof.mutate({
-                      id: roofId,
-                      updates: { plan_image_url: url }
-                    }, {
-                      onSuccess: () => {
-                        alert('Image updated successfully! The new image will appear in the dashboard.')
-                      },
-                      onError: (error) => {
-                        console.error('Failed to update image:', error)
-                        alert('Failed to update image. Please try again.')
-                      }
-                    })
-                  }}
-                  isUploading={updateRoof.isPending}
-                />
-                
-                {roof?.plan_image_url && (
-                  <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                    <div className="text-sm font-medium mb-1">Current Image</div>
-                    <div className="text-sm text-muted-foreground">
-                      Image successfully configured and visible in dashboard
+                {roof?.plan_image_url ? (
+                  <div>
+                    <div className="relative border rounded-lg overflow-hidden">
+                      <img
+                        src={roof.plan_image_url}
+                        alt="Plan image preview"
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-black/50 text-white">Read Only</Badge>
+                      </div>
                     </div>
+                    
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <div className="text-sm font-medium mb-1">Image Details</div>
+                      <div className="text-sm text-muted-foreground">
+                        Plan image URL configured for this roof
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                    <svg className="w-12 h-12 mx-auto mb-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-muted-foreground">No plan image was uploaded during project creation</p>
                   </div>
                 )}
               </CardContent>

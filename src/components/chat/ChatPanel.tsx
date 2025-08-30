@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChatMessages, useSendChatMessage, useRealTimeChat } from '@/lib/hooks/usePhotosAndChat';
+import { useChatMessages, useSendChatMessage, useRealTimeChat } from '@/lib/hooks/useSupabaseQueries';
 // import { ExportDialog } from '@/components/ExportDialog';
 // If ExportDialog is located elsewhere, update the path accordingly:
 // import { ExportDialog } from './ExportDialog';
@@ -34,18 +34,13 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
   const [pinItem, setPinItem] = useState<string | null>(null);
   const { data: users = [] } = useUsers();
 
-  const messagesQuery = useChatMessages({ 
-    scope: 'roof', 
-    scopeId: roofId 
-  });
-  const { isConnected } = useRealTimeChat({ 
-    scope: 'roof', 
-    scopeId: roofId 
-  });
+  const {
+    messages,
+    onlineUsers,
+    onlineCount,
+    isLoading,
+  } = useRealTimeChat('roof', roofId, undefined);
   const sendMessageMutation = useSendChatMessage();
-
-  const messages = messagesQuery.data || [];
-  const isLoading = messagesQuery.isLoading;
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
@@ -54,8 +49,8 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
       await sendMessageMutation.mutateAsync({
         text: content,
         scope: 'roof',
-        scopeId: roofId,
-        mentions: undefined,
+        scope_id: roofId,
+        mentions: null,
       });
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -74,9 +69,9 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
               <Badge variant="secondary" className="text-xs">
                 {messages.length} messages
               </Badge>
-              {isConnected && (
+              {onlineCount > 0 && (
                 <Badge variant="outline" className="text-xs">
-                  Connected
+                  {onlineCount} online
                 </Badge>
               )}
             </div>
@@ -108,9 +103,14 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
         <div className="border-t bg-muted/25 p-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="flex -space-x-1">
-              <Badge variant="outline">Online Users</Badge>
+              {onlineUsers.slice(0, 5).map((user) => (
+                <Badge key={user.id} variant="outline">{user.name}</Badge>
+              ))}
+              {onlineUsers.length > 5 && (
+                <Badge variant="outline">+{onlineUsers.length - 5}</Badge>
+              )}
             </div>
-            <span>Connection: {isConnected ? 'Connected' : 'Disconnected'}</span>
+            <span>{onlineUsers.length} online</span>
           </div>
         </div>
       )}
@@ -129,16 +129,16 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
             ) : (
               messages.map((message) => {
                 const chatMessage = {
-                  id: message.message_id || '',
-                  content: message.text || '',
-                  user_id: message.created_by || 'unknown',
+                  id: message.message_id,
+                  content: message.text ?? '',
+                  user_id: message.created_by ?? 'unknown', // Ensure user_id is always a string
                   user_name: users.find(u => u.id === message.created_by)?.name || 'Unknown',
-                  scope: message.scope || 'roof',
-                  scope_id: message.scope_id || roofId,
-                  mentions: message.mentions || undefined,
-                  created_at: message.created_at || '',
-                  roof_id: roofId,
-                  message_type: "text" as const,
+                  scope: message.scope,
+                  scope_id: message.scope_id,
+                  mentions: message.mentions ?? undefined,
+                  created_at: message.created_at,
+                  roof_id: roofId, // Use roofId directly since message does not have roof_id
+                  message_type: "text" as const, // Set as string literal type
                 };
                 return (
                   <ChatMessageComponent key={chatMessage.id} message={chatMessage} />

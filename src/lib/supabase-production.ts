@@ -1,12 +1,14 @@
 // Production Supabase integration utilities
 import { supabase } from './supabase'
-import type {
-  Project,
-  Roof,
-  Pin,
-  PinChild,
-  Photo,
-  Chat,
+import type { 
+  Database, 
+  Project, 
+  Roof, 
+  Pin, 
+  PinChild, 
+  Photo, 
+  Chat, 
+  User,
   ProjectInsert,
   RoofInsert,
   PinInsert,
@@ -15,17 +17,14 @@ import type {
   ChatInsert
 } from './database.types'
 
-// Optional analytics type
-type PhotoAnalytics = {
-  total: number
-  byType: Record<string, number>
-}
+// Production-ready database operations with proper error handling and types
 
 export class SupabaseService {
   constructor(private client = supabase) {}
 
-  // -------- Projects --------
+  // Project operations
   async getProjects(): Promise<Project[]> {
+
     const { data, error } = await this.client
       .from('projects')
       .select('*')
@@ -35,10 +34,12 @@ export class SupabaseService {
       console.error('Error fetching projects:', error)
       throw error
     }
+
     return data || []
   }
 
   async getProjectById(projectId: string): Promise<Project | null> {
+
     const { data, error } = await this.client
       .from('projects')
       .select('*')
@@ -46,14 +47,16 @@ export class SupabaseService {
       .single()
 
     if (error) {
-      if ((error as any).code === 'PGRST116') return null
+      if (error.code === 'PGRST116') return null // Not found
       console.error('Error fetching project:', error)
       throw error
     }
+
     return data
   }
 
   async createProject(project: ProjectInsert): Promise<Project> {
+
     const { data, error } = await this.client
       .from('projects')
       .insert(project)
@@ -64,26 +67,13 @@ export class SupabaseService {
       console.error('Error creating project:', error)
       throw error
     }
+
     return data
   }
 
-  async updateProject(projectId: string, updates: Partial<Project>): Promise<Project> {
-    const { data, error } = await this.client
-      .from('projects')
-      .update(updates)
-      .eq('project_id', projectId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating project:', error)
-      throw error
-    }
-    return data
-  }
-
-  // -------- Roofs --------
+  // Roof operations
   async getRoofsByProject(projectId: string): Promise<Roof[]> {
+
     const { data, error } = await this.client
       .from('roofs')
       .select('*')
@@ -95,10 +85,12 @@ export class SupabaseService {
       console.error('Error fetching roofs:', error)
       throw error
     }
+
     return data || []
   }
 
   async getRoofById(roofId: string): Promise<Roof | null> {
+
     const { data, error } = await this.client
       .from('roofs')
       .select('*')
@@ -106,15 +98,17 @@ export class SupabaseService {
       .single()
 
     if (error) {
-      if ((error as any).code === 'PGRST116') return null
+      if (error.code === 'PGRST116') return null
       console.error('Error fetching roof:', error)
       throw error
     }
+
     return data
   }
 
-  // -------- Pins --------
+  // Pin operations with advanced aggregation
   async getPinsByRoof(roofId: string): Promise<Pin[]> {
+
     const { data, error } = await this.client
       .from('pins')
       .select('*')
@@ -125,10 +119,12 @@ export class SupabaseService {
       console.error('Error fetching pins:', error)
       throw error
     }
+
     return data || []
   }
 
   async getPinWithChildren(pinId: string): Promise<Pin & { children: PinChild[] } | null> {
+
     const { data: pin, error: pinError } = await this.client
       .from('pins')
       .select('*')
@@ -136,7 +132,7 @@ export class SupabaseService {
       .single()
 
     if (pinError) {
-      if ((pinError as any).code === 'PGRST116') return null
+      if (pinError.code === 'PGRST116') return null
       console.error('Error fetching pin:', pinError)
       throw pinError
     }
@@ -156,6 +152,7 @@ export class SupabaseService {
   }
 
   async createPin(pin: PinInsert): Promise<Pin> {
+
     const { data, error } = await this.client
       .from('pins')
       .insert(pin)
@@ -166,11 +163,13 @@ export class SupabaseService {
       console.error('Error creating pin:', error)
       throw error
     }
+
     return data
   }
 
-  // -------- Pin Children --------
+  // Pin children operations
   async createPinChild(pinChild: PinChildInsert): Promise<PinChild> {
+
     const { data, error } = await this.client
       .from('pin_children')
       .insert(pinChild)
@@ -182,14 +181,17 @@ export class SupabaseService {
       throw error
     }
 
+    // Trigger parent aggregation recompute
     await this.recomputeParentAggregates(pinChild.pin_id)
+
     return data
   }
 
   async updatePinChildStatus(childId: string, status: PinChild['status_child']): Promise<PinChild> {
+
     const { data, error } = await this.client
       .from('pin_children')
-      .update({
+      .update({ 
         status_child: status,
         closed_date: status === 'Closed' ? new Date().toISOString() : null
       })
@@ -202,12 +204,15 @@ export class SupabaseService {
       throw error
     }
 
+    // Trigger parent aggregation recompute
     await this.recomputeParentAggregates(data.pin_id)
+
     return data
   }
 
-  // -------- Photos --------
+  // Photo operations
   async uploadPhoto(photo: PhotoInsert): Promise<Photo> {
+
     const { data, error } = await this.client
       .from('photos')
       .insert(photo)
@@ -218,10 +223,12 @@ export class SupabaseService {
       console.error('Error uploading photo:', error)
       throw error
     }
+
     return data
   }
 
   async getPhotosByPin(pinId: string): Promise<Photo[]> {
+    
     const { data, error } = await this.client
       .from('photos')
       .select('*')
@@ -235,56 +242,45 @@ export class SupabaseService {
     return data || []
   }
 
-  async getPhotosByChild(childId: string): Promise<Photo[]> {
-    const { data, error } = await this.client
+  async getPhotoAnalytics(pinId?: string): Promise<any> {
+    // Simple aggregate analytics derived from photos table
+    const query = this.client
       .from('photos')
-      .select('*')
-      .eq('child_id', childId)
-      .order('uploaded_at', { ascending: false })
+      .select('type', { count: 'exact', head: true })
 
-    if (error) {
-      console.error('Error fetching photos:', error)
-      throw error
+    if (pinId) {
+      query.eq('pin_id', pinId)
     }
-    return data || []
+
+    // Total count
+    const { count: totalCount, error: countError } = await query
+    if (countError) {
+      console.error('Error fetching photo analytics:', countError)
+      throw countError
+    }
+
+    // Counts by type
+    const { data: byTypeData, error: byTypeError } = await this.client
+      .from('photos')
+      .select('type')
+      .maybeSingle()
+
+    // Fallback simple structure; detailed breakdown can be added with a proper RPC later
+    if (byTypeError && byTypeError.code !== 'PGRST116') {
+      console.error('Error fetching photo types:', byTypeError)
+    }
+
+    return {
+      total: totalCount || 0,
+    }
   }
 
-  async getPhotoAnalytics(pinId?: string): Promise<PhotoAnalytics> {
-    // total (head:true gives only count)
-    const base = this.client.from('photos')
-    const totalQuery = pinId ? base.select('id', { count: 'exact', head: true }).eq('pin_id', pinId)
-                             : base.select('id', { count: 'exact', head: true })
-
-    const { count: total, error: totalErr } = await totalQuery
-    if (totalErr) {
-      console.error('Error fetching photo analytics (total):', totalErr)
-      throw totalErr
-    }
-
-    // byType (fetch types and aggregate client-side; safe & portable)
-    const typeQuery = pinId ? this.client.from('photos').select('type').eq('pin_id', pinId)
-                            : this.client.from('photos').select('type')
-
-    const { data: typeRows, error: typeErr } = await typeQuery
-    if (typeErr) {
-      console.error('Error fetching photo analytics (by type):', typeErr)
-      throw typeErr
-    }
-
-    const byType = (typeRows || []).reduce<Record<string, number>>((acc, row: any) => {
-      const t = row.type ?? 'Unknown'
-      acc[t] = (acc[t] || 0) + 1
-      return acc
-    }, {})
-
-    return { total: total || 0, byType }
-  }
-
-  async getGlobalAnalytics(): Promise<PhotoAnalytics> {
+  async getGlobalAnalytics(): Promise<any> {
     return this.getPhotoAnalytics()
   }
 
   async deletePhoto(photoId: string): Promise<boolean> {
+
     const { data: photo, error: fetchError } = await this.client
       .from('photos')
       .select('file_url_public, thumbnail_url')
@@ -306,14 +302,20 @@ export class SupabaseService {
 
     const filePath = fromPublicUrlToPath(photo.file_url_public)
     if (filePath) {
-      const { error: storageError } = await this.client.storage.from('pin-photos').remove([filePath])
-      if (storageError) console.error('Error deleting file from storage:', storageError)
+      const { error: storageError } = await this.client.storage
+        .from('pin-photos')
+        .remove([filePath])
+
+      if (storageError) {
+        console.error('Error deleting file from storage:', storageError)
+      }
     }
 
     const thumbPath = fromPublicUrlToPath(photo.thumbnail_url as unknown as string)
     if (thumbPath) {
-      const { error: storageError2 } = await this.client.storage.from('pin-photos').remove([thumbPath])
-      if (storageError2) console.error('Error deleting thumbnail from storage:', storageError2)
+      await this.client.storage
+        .from('pin-photos')
+        .remove([thumbPath])
     }
 
     const { error: deleteError } = await this.client
@@ -325,29 +327,53 @@ export class SupabaseService {
       console.error('Error deleting photo record:', deleteError)
       throw deleteError
     }
+
     return true
   }
 
-  // -------- Chat --------
+  async getPhotosByChild(childId: string): Promise<Photo[]> {
+
+    const { data, error } = await this.client
+      .from('photos')
+      .select('*')
+      .eq('child_id', childId)
+      .order('uploaded_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching photos:', error)
+      throw error
+    }
+
+    return data || []
+  }
+
+  // Chat operations (multi-scope)
   async getChatMessages(scope: Chat['scope'], scopeId?: string): Promise<Chat[]> {
+
     const query = this.client
       .from('chats')
-      .select('*')
+  .select(`*, creator:users(full_name, email)`) // keep created_by as id; joined user in 'creator'
       .eq('scope', scope)
       .order('created_at', { ascending: true })
 
-    if (scopeId) query.eq('scope_id', scopeId)
-    else query.is('scope_id', null)
+    if (scopeId) {
+      query.eq('scope_id', scopeId)
+    } else {
+      query.is('scope_id', null)
+    }
 
     const { data, error } = await query
+
     if (error) {
       console.error('Error fetching chat messages:', error)
       throw error
     }
+
     return data || []
   }
 
   async sendChatMessage(chat: ChatInsert): Promise<Chat> {
+
     const { data, error } = await this.client
       .from('chats')
       .insert(chat)
@@ -358,6 +384,7 @@ export class SupabaseService {
       console.error('Error sending chat message:', error)
       throw error
     }
+
     return data
   }
 
@@ -388,9 +415,11 @@ export class SupabaseService {
     }
   }
 
-  // -------- RPCs --------
+  // Advanced database functions
   async recomputeParentAggregates(pinId: string): Promise<void> {
+
     const { error } = await this.client.rpc('recompute_parent_aggregates', { p_pin: pinId })
+
     if (error) {
       console.error('Error recomputing parent aggregates:', error)
       throw error
@@ -398,96 +427,124 @@ export class SupabaseService {
   }
 
   async validatePinClosure(pinId: string): Promise<{ canClose: boolean; reason?: string }> {
-    const { data, error } = await this.client.rpc('validate_pin_closure', { pin_uuid: pinId })
+
+  const { data, error } = await this.client.rpc('validate_pin_closure', { pin_uuid: pinId })
+
     if (error) {
       console.error('Error validating pin closure:', error)
       throw error
     }
-    const canClose = (data as any)?.canClose ?? false
-    const reason = (data as any)?.reason
-    return { canClose, reason }
+
+  const canClose = (data as any)?.canClose ?? false
+  const reason = (data as any)?.reason
+  return { canClose, reason }
   }
 
-  // -------- Realtime --------
+  // Real-time subscriptions
   subscribeToProjectUpdates(projectId: string, callback: (payload: any) => void) {
+
     return this.client
       .channel(`project:${projectId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects', filter: `project_id=eq.${projectId}` },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects',
+          filter: `project_id=eq.${projectId}`
+        },
         callback
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'roofs', filter: `project_id=eq.${projectId}` },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'roofs',
+          filter: `project_id=eq.${projectId}`
+        },
         callback
       )
       .subscribe()
   }
 
   subscribeToRoofUpdates(roofId: string, callback: (payload: any) => void) {
+
     return this.client
       .channel(`roof:${roofId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'pins', filter: `roof_id=eq.${roofId}` },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pins',
+          filter: `roof_id=eq.${roofId}`
+        },
         callback
       )
-      // NOTE: אם תרצה לסנן pin_children לפי roof יש צורך ב-FK/VIEW או טריגר שמעתיק roof_id לטבלה זו.
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'pin_children' },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pin_children'
+        },
         callback
       )
       .subscribe()
   }
 
   subscribeToChatUpdates(scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) {
-    const filter = scopeId
-      ? `scope=eq.${scope},scope_id=eq.${scopeId}`
-      : `scope=eq.${scope},scope_id=is.null`
+
+    const filter = scopeId 
+      ? `scope=eq.${scope}.and.scope_id=eq.${scopeId}`
+      : `scope=eq.${scope}.and.scope_id=is.null`
 
     return this.client
       .channel(`chat:${scope}:${scopeId || 'global'}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chats', filter },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chats',
+          filter
+        },
         callback
       )
       .subscribe()
   }
+
 }
 
-// Singleton
+// Export singleton instance
 export const supabaseService = new SupabaseService()
 
-// Facade
+// Utility functions for common operations
 export const db = {
   projects: {
     list: () => supabaseService.getProjects(),
     getById: (id: string) => supabaseService.getProjectById(id),
-    create: (project: ProjectInsert) => supabaseService.createProject(project),
-    update: (projectId: string, updates: Partial<Project>) =>
-      supabaseService.updateProject(projectId, updates)
+    create: (project: ProjectInsert) => supabaseService.createProject(project)
   },
-
+  
   roofs: {
     listByProject: (projectId: string) => supabaseService.getRoofsByProject(projectId),
     getById: (id: string) => supabaseService.getRoofById(id)
   },
-
+  
   pins: {
     listByRoof: (roofId: string) => supabaseService.getPinsByRoof(roofId),
     getWithChildren: (pinId: string) => supabaseService.getPinWithChildren(pinId),
     create: (pin: PinInsert) => supabaseService.createPin(pin)
   },
-
+  
   pinChildren: {
     create: (pinChild: PinChildInsert) => supabaseService.createPinChild(pinChild),
-    updateStatus: (childId: string, status: PinChild['status_child']) =>
+    updateStatus: (childId: string, status: PinChild['status_child']) => 
       supabaseService.updatePinChildStatus(childId, status)
   },
-
+  
   photos: {
     upload: (photo: PhotoInsert) => supabaseService.uploadPhoto(photo),
     getByPin: (pinId: string) => supabaseService.getPhotosByPin(pinId),
@@ -496,17 +553,17 @@ export const db = {
     getGlobalAnalytics: () => supabaseService.getGlobalAnalytics(),
     delete: (photoId: string) => supabaseService.deletePhoto(photoId)
   },
-
+  
   chat: {
-    getMessages: (scope: Chat['scope'], scopeId?: string) =>
+    getMessages: (scope: Chat['scope'], scopeId?: string) => 
       supabaseService.getChatMessages(scope, scopeId),
     send: (chat: ChatInsert) => supabaseService.sendChatMessage(chat),
-    update: (messageId: string, text: string) => supabaseService.updateChatMessage(messageId, text),
-    remove: (messageId: string) => supabaseService.deleteChatMessage(messageId),
+  update: (messageId: string, text: string) => supabaseService.updateChatMessage(messageId, text),
+  remove: (messageId: string) => supabaseService.deleteChatMessage(messageId),
     subscribe: (scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) =>
       supabaseService.subscribeToChatUpdates(scope, scopeId, callback)
   },
-
+  
   realtime: {
     subscribeToProject: (projectId: string, callback: (payload: any) => void) =>
       supabaseService.subscribeToProjectUpdates(projectId, callback),

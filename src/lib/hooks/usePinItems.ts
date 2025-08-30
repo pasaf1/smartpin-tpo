@@ -6,7 +6,7 @@ type PinItem = Database['public']['Tables']['pin_items']['Row']
 type PinItemInsert = Database['public']['Tables']['pin_items']['Insert']
 type PinItemUpdate = Database['public']['Tables']['pin_items']['Update']
 
-// Production mode only
+// Demo mode removed
 
 const QUERY_KEYS = {
   pinItems: (pinId: string) => ['pin-items', pinId] as const,

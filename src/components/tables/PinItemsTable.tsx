@@ -15,7 +15,7 @@ import {
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useAllPinItems, useUpdatePinItemStatus } from '@/lib/hooks/usePinItems'
-import { usePinsForRoof } from '@/lib/hooks/useEnhancedPins'
+import { usePins } from '@/lib/hooks/usePins'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { Button } from '@/components/ui/button'
@@ -80,7 +80,7 @@ export function PinItemsTable({
   const [useSemanticSearch, setUseSemanticSearch] = useState(false)
 
   const { data: pinItems = [], isLoading, error } = useAllPinItems(roofId)
-  const { data: pins = [] } = usePinsForRoof(roofId || '')
+  const { data: pins = [] } = usePins(roofId || '')
   const updateStatusMutation = useUpdatePinItemStatus()
 
   // Helper function to determine zone based on pin coordinates

@@ -39,22 +39,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/lib/hooks/useAuth'
 
 export default function SettingsPage() {
-  const { profile } = useAuth()
-  
-  // Check if user is Admin
-  const isAdmin = profile?.role === 'Admin'
-  
-  // Redirect non-admin users
-  useEffect(() => {
-    if (profile && !isAdmin) {
-      window.location.href = '/'
-      return
-    }
-  }, [profile, isAdmin])
-
   const [settings, setSettings] = useState({
     // General Settings
     companyName: 'SmartPin TPO',
@@ -108,9 +94,6 @@ export default function SettingsPage() {
 
   const [isSaving, setIsSaving] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
-  const [editingStatus, setEditingStatus] = useState<string | null>(null)
-  const [editingDefect, setEditingDefect] = useState<string | null>(null)
-  const [editingUser, setEditingUser] = useState<string | null>(null)
 
   // Hydrate from localStorage if available
   useEffect(() => {
@@ -154,31 +137,6 @@ export default function SettingsPage() {
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }))
-    
-    // Apply theme changes immediately
-    if (key === 'theme') {
-      applyThemeChange(value)
-    }
-  }
-
-  const applyThemeChange = (theme: string) => {
-    const html = document.documentElement
-    
-    if (theme === 'dark') {
-      html.classList.add('dark')
-      localStorage.setItem('smartpin:theme', 'dark')
-    } else if (theme === 'light') {
-      html.classList.remove('dark')
-      localStorage.setItem('smartpin:theme', 'light')
-    } else if (theme === 'auto') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      if (prefersDark) {
-        html.classList.add('dark')
-      } else {
-        html.classList.remove('dark')
-      }
-      localStorage.setItem('smartpin:theme', 'auto')
-    }
   }
 
   const handleSave = async () => {
@@ -266,10 +224,10 @@ export default function SettingsPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/" prefetch onClick={() => setIsNavigating(true)}>
+              <Link href="/dashboard" prefetch onClick={() => setIsNavigating(true)}>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <ArrowLeft className="w-4 h-4" />
-                  Back to Projects
+                  Back to Dashboard
                 </Button>
               </Link>
               <div>
@@ -278,12 +236,11 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                onClick={handleSave} 
-                disabled={isSaving} 
-                aria-busy={isSaving}
-                className="bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2"
-              >
+              <Button variant="outline" onClick={handleExportSettings} className="gap-2">
+                <Download className="w-4 h-4" />
+                Export
+              </Button>
+              <Button onClick={handleSave} className="gap-2" disabled={isSaving} aria-busy={isSaving}>
                 <Save className="w-4 h-4" />
                 {isSaving ? 'Saving…' : 'Save Changes'}
               </Button>
@@ -540,35 +497,22 @@ export default function SettingsPage() {
                   <h4 className="font-semibold text-slate-800 mb-4">Status Categories</h4>
                   <div className="space-y-3">
                     {statusCategories.map((status) => (
-                      <div key={status.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                      <div key={status.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
                         <div className="flex items-center gap-3">
                           <div 
                             className="w-4 h-4 rounded-full"
                             style={{ backgroundColor: status.color }}
                           ></div>
                           <div>
-                            <h5 className="font-medium text-slate-900">{status.name}</h5>
-                            <p className="text-sm text-slate-700">{status.description}</p>
+                            <h5 className="font-medium text-slate-800">{status.name}</h5>
+                            <p className="text-sm text-slate-600">{status.description}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setEditingStatus(status.id)}
-                          >
+                          <Button size="sm" variant="outline">
                             <Edit2 className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => {
-                              if (confirm('Are you sure you want to delete this status?')) {
-                                setStatusCategories(prev => prev.filter(s => s.id !== status.id))
-                              }
-                            }}
-                          >
+                          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -654,42 +598,29 @@ export default function SettingsPage() {
               <CardContent>
                 <div className="space-y-4">
                   {defectTypes.map((defect) => (
-                    <div key={defect.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div key={defect.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-semibold text-slate-900">{defect.name}</h4>
-                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                          <h4 className="font-semibold text-slate-800">{defect.name}</h4>
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
                             {defect.category}
                           </span>
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                            defect.severity === 'Critical' ? 'bg-red-100 text-red-800' :
-                            defect.severity === 'High' ? 'bg-orange-100 text-orange-800' :
-                            defect.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            defect.severity === 'Critical' ? 'bg-red-100 text-red-700' :
+                            defect.severity === 'High' ? 'bg-orange-100 text-orange-700' :
+                            defect.severity === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
                           }`}>
                             {defect.severity}
                           </span>
                         </div>
-                        <p className="text-sm text-slate-700">{defect.description}</p>
+                        <p className="text-sm text-slate-600">{defect.description}</p>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => setEditingDefect(defect.id)}
-                        >
+                        <Button size="sm" variant="outline">
                           <Edit2 className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this defect type?')) {
-                              setDefectTypes(prev => prev.filter(d => d.id !== defect.id))
-                            }
-                          }}
-                        >
+                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -721,15 +652,15 @@ export default function SettingsPage() {
               <CardContent>
                 <div className="space-y-4">
                   {users.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div key={user.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
                           {user.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
-                          <h4 className="font-semibold text-slate-900">{user.name}</h4>
-                          <p className="text-sm text-slate-700">{user.email}</p>
-                          <p className="text-xs text-slate-600">Last login: {user.lastLogin}</p>
+                          <h4 className="font-semibold text-slate-800">{user.name}</h4>
+                          <p className="text-sm text-slate-600">{user.email}</p>
+                          <p className="text-xs text-slate-500">Last login: {user.lastLogin}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -747,23 +678,10 @@ export default function SettingsPage() {
                           {user.status}
                         </span>
                         <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setEditingUser(user.id)}
-                          >
+                          <Button size="sm" variant="outline">
                             <Edit2 className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => {
-                              if (confirm('Are you sure you want to delete this user?')) {
-                                setUsers(prev => prev.filter(u => u.id !== user.id))
-                              }
-                            }}
-                          >
+                          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -1013,6 +931,17 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Show Coordinates</p>
+                    <p className="text-sm text-muted-foreground">Display pin coordinates in INCR cards</p>
+                  </div>
+                  <Switch 
+                    checked={settings.showCoordinates}
+                    onCheckedChange={(checked) => handleSettingChange('showCoordinates', checked)}
+                  />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">

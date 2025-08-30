@@ -84,7 +84,8 @@ async function main() {
   const { error: updateError } = await admin
     .from('users')
     .update({ 
-      role
+      role,
+      updated_at: new Date().toISOString()
     })
     .eq('id', user.id)
 

@@ -20,11 +20,11 @@ interface PinMarkerProps {
 export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMarkerProps) {
   // For now, treat all pins as standalone (not hierarchical) since we don't have hierarchy data
   const isParent = true // All pins are standalone
-  const hasChildren = pin.pin_children && pin.pin_children.length > 0
+  const hasChildren = false // No children for now
   
   // Use seq_number from the database
   const displaySequence = pin.seq_number
-  const displayTitle = `Pin ${displaySequence}`
+  const displayTitle = pin.title || `Pin ${displaySequence}`
   
   // Pin configuration based on parent/child status
   const pinConfig = {
@@ -54,8 +54,13 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
 
   const colors = statusColors[pin.status as keyof typeof statusColors] || statusColors.Open
 
-  // Status-based styling (removed severity since it's not in current schema)
-  const strokeWidth = isSelected ? 3 : 2
+  // Severity indicator (small dot on the pin)
+    const severityColors: Record<NonNullable<ExtendedPin['severity']>, string> = {
+    Low: '#10b981',
+    Medium: '#f59e0b', 
+    High: '#ef4444',
+    Critical: '#dc2626'
+  }
 
   const handleClick = (event: React.MouseEvent) => {
     event.stopPropagation()
@@ -125,6 +130,19 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
         {pin.seq_number}
       </text>
 
+      {/* Severity indicator (small dot) */}
+      {pin.severity && (
+        <circle
+          cx={pinConfig.size / 2 - 3}
+          cy={-pinConfig.size / 2 + 3}
+          r="3"
+          fill={severityColors[pin.severity]}
+          stroke="white"
+          strokeWidth="1"
+          className="pointer-events-none"
+        />
+      )}
+
       {/* Child count indicator for parent pins */}
       {isParent && hasChildren && (
         <g transform={`translate(${pinConfig.size / 2 + 2}, ${-pinConfig.size / 2 - 2})`}>
@@ -140,13 +158,13 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
             x="0"
             y="0"
             textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="10"
+            dominantBaseline="central"
+            fontSize="8"
+            fontWeight="600"
             fill="white"
-            fontWeight="bold"
-            className="pointer-events-none"
+            className="pointer-events-none select-none"
           >
-            {pin.pin_children?.length || 0}
+            {0} {/* No children count for now */}
           </text>
         </g>
       )}
@@ -179,7 +197,7 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
       />
 
       {/* Title tooltip (only visible on hover) */}
-      {pin.seq_number && (
+      {pin.title && (
         <g className="opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none">
           <rect
             x="-40"
@@ -200,7 +218,7 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
             fill="white"
             className="select-none"
           >
-            {pin.seq_number.toString().length > 12 ? `${pin.seq_number.toString().slice(0, 12)}...` : pin.seq_number}
+            {pin.title.length > 12 ? `${pin.title.slice(0, 12)}...` : pin.title}
           </text>
         </g>
       )}
