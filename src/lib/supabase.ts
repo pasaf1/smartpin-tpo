@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 
 let sharedClient: SupabaseClient<Database> | null = null
@@ -19,11 +20,16 @@ export function getSupabase(): SupabaseClient<Database> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !anon) return buildSafeProxy()
-  sharedClient = createClient<Database>(url, anon, {
-    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
-    realtime: { params: { eventsPerSecond: 10 } },
-  })
-  if (typeof window === 'undefined') {
+  
+  // Use SSR-compatible browser client
+  if (typeof window !== 'undefined') {
+    sharedClient = createBrowserClient<Database>(url, anon)
+  } else {
+    // Fallback for server-side (should use createServerClient in actual server contexts)
+    sharedClient = createClient<Database>(url, anon, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+      realtime: { params: { eventsPerSecond: 10 } },
+    })
     console.log('🚀 SmartPin TPO connected to Supabase:', url)
   }
   return sharedClient

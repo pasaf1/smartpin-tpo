@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   try {
     // Hybrid approach: Validate user session but use service role for storage operations
     console.log('🔍 Roof plan upload request received at', new Date().toISOString())
     
-    // First, validate the user has a valid session
-    const authSupabase = createRouteHandlerClient({ cookies })
+    // First, validate the user has a valid session using SSR-compatible client
+    const authSupabase = await createSupabaseServerClient()
     const { data: { session }, error: sessionError } = await authSupabase.auth.getSession()
     
     if (sessionError) {
@@ -30,14 +29,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Session validated for user:', session.user.email)
     
     // Use service role client for storage operations (bypasses RLS issues)
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: { persistSession: false }
-      }
-    )
+    const supabase = createSupabaseServiceClient()
     
     console.log('🔧 Using service role for storage operations to avoid RLS policy issues')
 

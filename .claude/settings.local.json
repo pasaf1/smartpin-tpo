@@ -27,7 +27,8 @@
       "Read(C:\\Users\\asaf6\\Desktop\\APP/**)",
       "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
       "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
-      "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)"
+      "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
