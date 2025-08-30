@@ -17,7 +17,7 @@ const nextConfig = {
       'papaparse'
     ],
     webpackBuildWorker: true,
-    optimizeCss: true,
+    // optimizeCss: true, // Temporarily disabled - requires 'critters' package
     optimizeServerReact: true,
   },
 
