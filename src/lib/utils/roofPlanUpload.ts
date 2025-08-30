@@ -7,16 +7,30 @@ export interface RoofPlanUploadResult {
 
 export async function uploadRoofPlanImage(file: File): Promise<RoofPlanUploadResult> {
   try {
+    console.log('🔍 uploadRoofPlanImage: Starting upload for file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+    
     // Check if we have a valid session before attempting upload
     const { supabase } = await import('../supabase')
-    const { data: { session } } = await supabase.auth.getSession()
+    let { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {
-      return {
-        success: false,
-        error: 'No active session - please refresh the page and login again'
+      console.warn('⚠️ No session found, attempting session refresh...')
+      // Try to refresh the session
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+      
+      if (refreshError || !refreshData.session) {
+        console.error('❌ Session refresh failed:', refreshError?.message)
+        return {
+          success: false,
+          error: 'No active session - please refresh the page and login again'
+        }
       }
+      
+      session = refreshData.session
+      console.log('✅ Session refreshed successfully for user:', session.user.email)
     }
+    
+    console.log('✅ uploadRoofPlanImage: Valid session found for user:', session.user.email)
 
     const formData = new FormData()
     formData.append('image', file)

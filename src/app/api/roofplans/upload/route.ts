@@ -6,15 +6,36 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createRouteHandlerClient({ cookies })
     
-    console.log('🔍 Roof plan upload request received')
+    console.log('🔍 Roof plan upload request received at', new Date().toISOString())
     
-    // Simple session check - matching photos upload approach
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'No active session - please refresh the page and login again' }, { status: 401 })
+    // Enhanced session debugging
+    console.log('🔍 Checking session...')
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.error('❌ Session error:', sessionError)
+      return NextResponse.json({ 
+        error: `Session error: ${sessionError.message}`,
+        debug: {
+          timestamp: new Date().toISOString(),
+          sessionError: sessionError.message
+        }
+      }, { status: 401 })
     }
     
-    console.log('✅ Session found for user:', session.user.email)
+    if (!session) {
+      console.error('❌ No session found - headers:', Object.fromEntries(request.headers.entries()))
+      return NextResponse.json({ 
+        error: 'No active session - please refresh the page and login again',
+        debug: {
+          timestamp: new Date().toISOString(),
+          hasAuthHeader: !!request.headers.get('authorization'),
+          hasCookies: !!request.headers.get('cookie')
+        }
+      }, { status: 401 })
+    }
+    
+    console.log('✅ Session found for user:', session.user.email, 'expires at:', session.expires_at)
 
     const formData = await request.formData()
     const file = formData.get('image') as File

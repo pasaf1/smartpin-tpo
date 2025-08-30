@@ -240,17 +240,53 @@ function HomePage() {
     setIsCreatingProject(true)
 
     try {
+      console.log('🚀 Starting project creation...', { 
+        hasRoofPlan: !!newProjectForm.roofPlanFile,
+        userProfile: profile ? { id: profile.id, email: profile.email, role: profile.role } : 'No profile'
+      })
+
+      // Verify session before proceeding with upload
+      if (newProjectForm.roofPlanFile) {
+        console.log('🔍 Verifying session before roof plan upload...')
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error('❌ Session error during project creation:', sessionError)
+          alert(`Session error: ${sessionError.message}. Please refresh the page and try again.`)
+          return
+        }
+        
+        if (!session) {
+          console.error('❌ No session found during project creation')
+          // Try one refresh attempt
+          console.log('🔄 Attempting session refresh...')
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+          
+          if (refreshError || !refreshData.session) {
+            console.error('❌ Session refresh failed:', refreshError?.message)
+            alert('Session expired. Please refresh the page and login again.')
+            return
+          }
+          
+          console.log('✅ Session refreshed for user:', refreshData.session.user.email)
+        } else {
+          console.log('✅ Session verified for user:', session.user.email)
+        }
+      }
+
       // Map priority to status
       const status = 'Open' as const
       
       // Upload roof plan image if provided
       let roofPlanImageUrl: string | null = null
       if (newProjectForm.roofPlanFile) {
+        console.log('📤 Starting roof plan image upload...', newProjectForm.roofPlanFile.name)
         const uploadResult = await uploadRoofPlanImage(newProjectForm.roofPlanFile)
         if (uploadResult.success && uploadResult.url) {
           roofPlanImageUrl = uploadResult.url
+          console.log('✅ Roof plan image uploaded successfully:', roofPlanImageUrl)
         } else {
-          console.error('Failed to upload roof plan image:', uploadResult.error)
+          console.error('❌ Failed to upload roof plan image:', uploadResult.error)
           alert(`Failed to upload roof plan image: ${uploadResult.error || 'Unknown error'}`)
           return
         }
