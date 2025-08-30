@@ -4,54 +4,30 @@ import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
   try {
-    // TEMPORARY DEBUG: Try with service role to bypass RLS and test if it's a permissions issue
-    const useServiceRole = true // Set to false to use normal auth
+    console.log('🔍 Roof plan upload request received at', new Date().toISOString())
     
-    let supabase: any
-    let session: any = null
+    // Use authenticated client with proper RLS policies
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
-    if (useServiceRole) {
-      // Use service role to bypass RLS temporarily for debugging
-      console.log('🔍 TEMP DEBUG: Using service role to bypass RLS')
-      const { createClient } = await import('@supabase/supabase-js')
-      supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role bypasses RLS
-        {
-          auth: { persistSession: false }
-        }
-      )
-      
-      // Create a fake session for logging
-      session = { user: { email: 'service-role-bypass', id: 'service-role' } }
-      console.log('🔧 Using service role - bypassing all RLS policies')
-    } else {
-      // Normal user authentication
-      supabase = createRouteHandlerClient({ cookies })
-      
-      console.log('🔍 Roof plan upload request received at', new Date().toISOString())
-      
-      const { data: { session: userSession }, error: sessionError } = await supabase.auth.getSession()
-      
-      if (sessionError) {
-        console.error('❌ Session error:', sessionError)
-        return NextResponse.json({ 
-          error: `Session error: ${sessionError.message}`,
-          debug: { timestamp: new Date().toISOString(), sessionError: sessionError.message }
-        }, { status: 401 })
-      }
-      
-      if (!userSession) {
-        console.error('❌ No session found')
-        return NextResponse.json({ 
-          error: 'No active session - please refresh the page and login again',
-          debug: { timestamp: new Date().toISOString() }
-        }, { status: 401 })
-      }
-      
-      session = userSession
-      console.log('✅ Session found for user:', session.user.email)
+    if (sessionError) {
+      console.error('❌ Session error:', sessionError)
+      return NextResponse.json({ 
+        error: `Session error: ${sessionError.message}`,
+        debug: { timestamp: new Date().toISOString(), sessionError: sessionError.message }
+      }, { status: 401 })
     }
+    
+    if (!session) {
+      console.error('❌ No session found')
+      return NextResponse.json({ 
+        error: 'No active session - please refresh the page and login again',
+        debug: { timestamp: new Date().toISOString() }
+      }, { status: 401 })
+    }
+    
+    console.log('✅ Session validated for user:', session.user.email)
+    console.log('🔧 Using authenticated client with proper RLS policies')
 
     const formData = await request.formData()
     const file = formData.get('image') as File
