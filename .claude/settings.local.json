@@ -30,7 +30,9 @@
       "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
       "Bash(npm install:*)",
       "Bash(npm run lint)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "Bash(echo:*)",
+      "Bash(npx supabase:*)"
     ],
     "deny": [],
     "ask": []
