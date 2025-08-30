@@ -22,7 +22,8 @@ function HomePage() {
   // Proper role-based access control should be implemented at the database level
   const canCreateProject = !!profile // Any authenticated user can create projects
   const isHighPrivilegeUser = profile?.role === 'Admin' || profile?.role === 'QA_Manager' || profile?.role === 'Supervisor'
-  const { } = useRealTimeProjectDashboard() // connectionStatus not used
+  // Temporarily disable real-time updates to fix page loading
+  // const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
   // Real projects from Supabase
   const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects()

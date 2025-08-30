@@ -53,12 +53,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 Auth state changed:', event, { sessionExists: !!session, userExists: !!session?.user })
+      
       setSession(session)
       setUser(session?.user ?? null)
       
       if (session?.user) {
+        console.log('👤 User authenticated, fetching profile...')
         await fetchUserProfile(session.user.id)
       } else {
+        console.log('👻 No user session, clearing profile')
         setProfile(null)
         setLoading(false)
       }
@@ -69,18 +73,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('🔍 Fetching user profile for userId:', userId)
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
 
-      if (error) throw error
-      setProfile(data)
+      if (error) {
+        console.error('❌ Profile fetch error:', error)
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
+        
+        // If user doesn't exist in users table, create them
+        if (error.code === 'PGRST116') {
+          console.log('🆔 User not found in users table, attempting to create profile...')
+          await createUserProfile(userId)
+        } else {
+          throw error
+        }
+      } else {
+        console.log('✅ User profile found:', data)
+        setProfile(data)
+      }
     } catch (error) {
-      console.error('Error fetching user profile:', error)
+      console.error('💥 Critical error fetching user profile:', error)
+      // Don't block login entirely, but user won't have profile
+      setProfile(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const createUserProfile = async (userId: string) => {
+    try {
+      console.log('👤 Creating user profile for:', userId)
+      
+      // Get user metadata from auth
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No authenticated user found')
+
+      const userProfile = {
+        id: userId,
+        auth_user_id: userId,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
+        role: user.user_metadata?.role || 'Inspector',
+        address: null,
+        birth_date: null,
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .insert([userProfile])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      console.log('✅ User profile created successfully:', data)
+      setProfile(data)
+    } catch (error) {
+      console.error('❌ Failed to create user profile:', error)
+      // Get current user for fallback
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      
+      // Fallback to basic profile data
+      setProfile({
+        id: userId,
+        auth_user_id: userId,
+        email: currentUser?.email || '',
+        full_name: currentUser?.email?.split('@')[0] || 'Unknown User',
+        role: 'Inspector',
+        address: null,
+        birth_date: null,
+        created_at: new Date().toISOString(),
+      })
     }
   }
 

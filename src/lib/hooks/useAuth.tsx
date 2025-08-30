@@ -42,11 +42,14 @@ export function useUsers() {
 // HOC שמקיף קומפוננטה ומפנה ל-/login אם אין משתמש מחובר
 export function withAuth<P extends object>(Component: React.ComponentType<P>) {
   const Wrapped: React.FC<P> = (props) => {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
+      console.log('🔐 withAuth check:', { user: !!user, profile: !!profile, loading })
+      
       if (!loading && !user) {
+        console.log('🚪 No user found, redirecting to login...')
         router.replace('/login');
       }
     }, [loading, user, router]);
@@ -57,15 +60,18 @@ export function withAuth<P extends object>(Component: React.ComponentType<P>) {
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-slate-600 dark:text-slate-300 font-medium">Loading...</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Authenticating user...</p>
           </div>
         </div>
       );
     }
     
     if (!user) {
+      console.log('❌ No user authenticated, blocking access')
       return null; // or a fallback component, but router.replace should handle it
     }
 
+    console.log('✅ User authenticated, rendering component')
     return <Component {...props} />;
   };
 
