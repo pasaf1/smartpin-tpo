@@ -111,6 +111,7 @@ export function BluebinInteractiveRoofPlan({
   
   // Mobile touch handling
   const [lastTouchDistance, setLastTouchDistance] = useState(0)
+  const [lastTouchPosition, setLastTouchPosition] = useState<{x: number, y: number} | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   
   const stageRef = useRef<any>(null)
@@ -169,7 +170,7 @@ export function BluebinInteractiveRoofPlan({
   // Load roof plan image
   useEffect(() => {
     if (roofPlanImageUrl) {
-      const img = new Image()
+      const img = new window.Image()
       img.crossOrigin = 'anonymous'
       img.onload = () => setRoofImage(img)
       img.src = roofPlanImageUrl
@@ -222,6 +223,8 @@ export function BluebinInteractiveRoofPlan({
         Math.pow(touch2.clientY - touch1.clientY, 2)
       )
       setLastTouchDistance(distance)
+    } else if (touches.length === 1) {
+      setLastTouchPosition({ x: touches[0].clientX, y: touches[0].clientY })
     }
   }, [])
 
@@ -244,19 +247,23 @@ export function BluebinInteractiveRoofPlan({
         setScale(newScale)
       }
       setLastTouchDistance(distance)
-    } else if (touches.length === 1 && isDragging) {
+    } else if (touches.length === 1 && isDragging && lastTouchPosition) {
       // Pan gesture
+      const touch = touches[0]
       const stage = stageRef.current
       if (stage) {
+        const deltaX = touch.clientX - lastTouchPosition.x
+        const deltaY = touch.clientY - lastTouchPosition.y
         const newPosition = {
-          x: position.x + e.evt.movementX,
-          y: position.y + e.evt.movementY
+          x: position.x + deltaX,
+          y: position.y + deltaY
         }
         setPosition(newPosition)
         stage.position(newPosition)
+        setLastTouchPosition({ x: touch.clientX, y: touch.clientY })
       }
     }
-  }, [lastTouchDistance, scale, isDragging, position])
+  }, [lastTouchDistance, lastTouchPosition, scale, isDragging, position])
 
   // Desktop wheel zoom
   const handleWheel = useCallback((e: KonvaEventObject<WheelEvent>) => {

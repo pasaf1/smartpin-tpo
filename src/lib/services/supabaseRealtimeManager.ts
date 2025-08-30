@@ -141,7 +141,7 @@ class SupabaseRealtimeManager {
         },
         (payload) => {
           // Filter child pins that belong to this roof's pins
-          if (payload.new?.parent_id || payload.old?.parent_id) {
+          if ((payload as any).new?.parent_id || (payload as any).old?.parent_id) {
             callbacks.onChildPinChange?.(payload)
           }
         }

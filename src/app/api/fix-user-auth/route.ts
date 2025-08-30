@@ -19,6 +19,13 @@ export async function POST(request: NextRequest) {
     const authUserId = session.user.id
     const userEmail = session.user.email
     
+    if (!userEmail) {
+      return NextResponse.json({ 
+        error: 'User email not found in session. Cannot fix auth.',
+        instruction: 'User session must include email address.'
+      }, { status: 400 })
+    }
+    
     console.log('✅ Authenticated user:', { authUserId, userEmail })
     
     // Use service role to update the user record

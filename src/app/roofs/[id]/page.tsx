@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -83,8 +83,11 @@ function RoofDashboardPage() {
     }
   }
 
-  const handlePinClick = (pin: PinWithRelations) => {
-    setSelectedPin(pin)
+  const handlePinClick = (pin: any) => {
+    setSelectedPin({
+      ...pin,
+      layer_id: pin.layer_id || selectedLayerId || layers[0]?.id || '1'
+    } as PinWithRelations)
     setClosurePhotoItemId(null)
     setShowPinPopup(false)
     if (isMobile) {
@@ -448,13 +451,13 @@ function RoofDashboardPage() {
                   childPins={childPins}
                   layers={layers}
                   annotations={annotations}
-                  roofPlanImageUrl={roof.plan_image_url || roof.roof_plan_url}
+                  roofPlanImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
                   onPinClick={handlePinClick}
                   onChildPinClick={handleChildPinClick}
                   onAddPin={handleAddPin}
                   onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin, 0.5, 0.5)}
                   onAddAnnotation={handleAddAnnotation}
-                  selectedLayerId={selectedLayerId}
+                  selectedLayerId={selectedLayerId || undefined}
                   selectedTool={selectedTool}
                   className="w-full h-full"
                   isMobile={isMobile}
@@ -579,7 +582,7 @@ function RoofDashboardPage() {
               {/* Content Area */}
               <div className="h-[calc(90vh-200px)] bg-gradient-to-br from-gray-50/50 to-white/50">
                 <BluebinPinDetailsCard
-                  pin={selectedPin}
+                  pin={selectedPin as any}
                   childPins={childPins.filter(cp => cp.parent_id === selectedPin.id)}
                   onClose={() => setSelectedPin(null)}
                   onStatusChange={handleStatusChange}
@@ -693,7 +696,7 @@ function RoofDashboardPage() {
         <MobileFAB
           tools={defaultBluebinTools}
           selectedTool={selectedTool}
-          onToolSelect={setSelectedTool}
+          onToolSelect={(toolId: string) => setSelectedTool(toolId as any)}
           position="bottom-right"
         />
       )}
@@ -709,14 +712,14 @@ function RoofDashboardPage() {
         >
           {selectedPin && (
             <BluebinPinDetailsCard
-              pin={selectedPin}
+              pin={selectedPin as any}
               childPins={childPins.filter(cp => cp.parent_id === selectedPin.id)}
               onClose={() => {
                 setShowMobileDetails(false)
                 setSelectedPin(null)
               }}
               onStatusChange={handleStatusChange}
-              onAddChildPin={handleAddChildPin}
+              onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin, 0.5, 0.5)}
               onUpdateChildPin={handleUpdateChildPin}
               onDeleteChildPin={handleDeleteChildPin}
               className="border-0 bg-transparent"

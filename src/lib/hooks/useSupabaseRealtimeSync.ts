@@ -39,7 +39,7 @@ export function useSupabaseRealtimeSync({
     payload: any
   ): Promise<RealtimeChannelSendResponse> => {
     if (!channelRef.current) {
-      return { status: 'error', error: 'Channel not initialized' }
+      return { status: 'error', error: 'Channel not initialized' } as unknown as RealtimeChannelSendResponse
     }
 
     return channelRef.current.send({
@@ -181,7 +181,7 @@ export function useSupabaseRealtimeSync({
         const users: UserPresence[] = []
         
         Object.keys(state).forEach(userId => {
-          const userState = state[userId]?.[0] as UserPresence
+          const userState = state[userId]?.[0] as unknown as UserPresence
           if (userState && userId !== user.id) {
             users.push(userState)
           }
