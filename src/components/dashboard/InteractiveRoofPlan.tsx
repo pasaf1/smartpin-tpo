@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { uploadRoofPlanImage } from '@/lib/utils/roofPlanUpload'
 
 interface Pin {
   id: string
@@ -27,6 +28,8 @@ interface InteractiveRoofPlanProps {
   onAddPin?: (x: number, y: number) => void
   highlightedPinId?: string
   className?: string
+  roofPlanImageUrl?: string
+  onImageUpload?: (url: string) => void
 }
 
 export function InteractiveRoofPlan({ 
@@ -34,11 +37,16 @@ export function InteractiveRoofPlan({
   onPinClick, 
   onAddPin, 
   highlightedPinId, 
-  className 
+  className,
+  roofPlanImageUrl,
+  onImageUpload
 }: InteractiveRoofPlanProps) {
   const [hoveredPin, setHoveredPin] = useState<Pin | null>(null)
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 })
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const pinData: Record<string, PinPreview> = {
     '1': {
@@ -119,16 +127,97 @@ export function InteractiveRoofPlan({
     }
   }
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !onImageUpload) return
+
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      const result = await uploadRoofPlanImage(file)
+      
+      if (result.success && result.url) {
+        onImageUpload(result.url)
+      } else {
+        setUploadError(result.error || 'Upload failed')
+      }
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Upload failed')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click()
+  }
+
   return (
     <div className={cn("relative bg-gradient-to-br from-luxury-50 to-luxury-100 rounded-xl p-4", className)}>
+      {/* Upload Controls */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+        <button
+          onClick={triggerFileUpload}
+          disabled={isUploading}
+          className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {isUploading ? (
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="40" strokeDashoffset="40">
+                  <animateTransform attributeName="transform" type="rotate" dur="1s" repeatCount="indefinite" values="0 12 12;360 12 12"/>
+                </circle>
+              </svg>
+              <span>Uploading...</span>
+            </div>
+          ) : (
+            <>📷 Upload Image</>
+          )}
+        </button>
+      </div>
+
+      {/* Upload Error */}
+      {uploadError && (
+        <div className="absolute top-16 right-4 z-10 bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded-lg text-sm max-w-xs">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+            </svg>
+            <span>{uploadError}</span>
+            <button onClick={() => setUploadError(null)} className="ml-2 text-red-500 hover:text-red-700">×</button>
+          </div>
+        </div>
+      )}
+
       <svg
         ref={svgRef}
         className="w-full h-full cursor-crosshair"
         viewBox="0 0 600 400"
         onClick={handleSvgClick}
       >
+        {/* Background Image */}
+        {roofPlanImageUrl && (
+          <image 
+            href={roofPlanImageUrl} 
+            x="40" 
+            y="40" 
+            width="520" 
+            height="320" 
+            opacity="0.8"
+            preserveAspectRatio="xMidYMid slice"
+          />
+        )}
+
         {/* Roof Structure */}
-        <rect x="40" y="40" width="520" height="320" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="3" rx="12"/>
+        <rect x="40" y="40" width="520" height="320" fill={roofPlanImageUrl ? "transparent" : "#f8fafc"} stroke="#cbd5e1" strokeWidth="3" rx="12"/>
         <line x1="240" y1="40" x2="240" y2="360" stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,4" opacity="0.6"/>
         <line x1="400" y1="40" x2="400" y2="360" stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,4" opacity="0.6"/>
         

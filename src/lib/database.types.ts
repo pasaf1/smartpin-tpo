@@ -278,6 +278,13 @@ export interface Database {
           roof_id?: string | null
           pin_id?: string | null
           child_id?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          upload_type?: string | null
+          thumbnail_url?: string | null
+          mime_type?: string | null
+          uploader?: Json | null
+          metadata?: Json | null
         }
         Update: {
           photo_id?: string

@@ -81,7 +81,7 @@ async function getReactionsFor(scope: Scope, scopeId: string | null): Promise<Re
   try {
     // חזרה לטבלת pin_chat קיימת במקום chat_reactions שלא קיימת
     const { data, error } = await (supabase as any)
-      .from('pin_chat')
+      .from('chats')
       .select('id, user_id, message, created_at')
       .eq('scope', scope)
 

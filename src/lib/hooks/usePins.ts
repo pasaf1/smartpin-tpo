@@ -84,15 +84,15 @@ export function useParentPins(roofId: string) {
 export function usePinChildren(parentId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.pinChildren(parentId),
-    queryFn: async (): Promise<Pin[]> => {
+    queryFn: async (): Promise<any[]> => {
       const { data, error } = await supabase
-        .from('pins')
+        .from('pin_children')
         .select('*')
-        .eq('roof_id', parentId) // Fallback: no parent relation in production schema
-        .order('seq_number')
+        .eq('pin_id', parentId)
+        .order('child_code')
 
       if (error) throw error
-      return data
+      return data || []
     },
     enabled: !!parentId,
   })

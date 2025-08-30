@@ -8,16 +8,43 @@ export async function POST(request: NextRequest) {
     
     console.log('🔍 Roof plan upload request received')
     
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Try multiple methods to get session for better reliability
+    let session = null
+    let sessionError = null
+
+    // Method 1: Get session from cookies
+    try {
+      const result = await supabase.auth.getSession()
+      session = result.data.session
+      sessionError = result.error
+    } catch (error) {
+      console.warn('⚠️ Failed to get session from cookies, trying alternative method')
+      sessionError = error
+    }
+
+    // Method 2: If no session, try to get user directly (fallback)
+    if (!session && !sessionError) {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (user && !userError) {
+          // Create a minimal session-like object for backward compatibility
+          console.log('✅ Found user via getUser method:', user.email)
+          session = { user, access_token: 'fallback', refresh_token: 'fallback' }
+        }
+      } catch (error) {
+        console.warn('⚠️ Fallback user method also failed')
+      }
+    }
     
     if (sessionError) {
       console.error('❌ Session error:', sessionError)
-      return NextResponse.json({ error: 'Session error: ' + sessionError.message }, { status: 401 })
+      const errorMessage = sessionError instanceof Error ? sessionError.message : 'Unknown session error'
+      return NextResponse.json({ error: 'Session error: ' + errorMessage }, { status: 401 })
     }
     
     if (!session) {
-      console.error('❌ No session found')
-      return NextResponse.json({ error: 'No active session - please login again' }, { status: 401 })
+      console.error('❌ No session found with any method')
+      return NextResponse.json({ error: 'No active session - please refresh the page and login again' }, { status: 401 })
     }
     
     console.log('✅ Session found for user:', session.user.email)

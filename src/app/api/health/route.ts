@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     
     const healthChecks = await Promise.allSettled([
       // Database connectivity
-      supabase.from('user_profiles').select('count').limit(1).single(),
+      supabase.from('users').select('id').limit(1).single(),
       
       // Storage connectivity  
       supabase.storage.from('pin-photos').list('', { limit: 1 }),

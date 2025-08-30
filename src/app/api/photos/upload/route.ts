@@ -171,9 +171,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { data: userProfile } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('role')
-      .eq('id', session.user.id)
+      .eq('auth_user_id', session.user.id)
       .single()
 
     const canDelete = userProfile?.role && ['Foreman', 'Supervisor', 'QA_Manager', 'Admin'].includes(userProfile.role)

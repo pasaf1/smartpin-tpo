@@ -22,7 +22,8 @@
       "Bash(npx next build:*)",
       "WebFetch(domain:localhost)",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []
