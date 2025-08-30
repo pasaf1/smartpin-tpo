@@ -12,7 +12,7 @@ import Link from 'next/link'
 // Enhanced UI Components
 import { LoadingButton } from '@/components/ui/loading-states'
 import { SmartCard, IconContainer } from '@/components/ui/design-system'
-import { AccessibleField, SkipLink } from '@/components/ui/accessibility'
+import { AccessibleField } from '@/components/ui/accessibility'
 import { ResponsiveContainer, useBreakpoint, TouchButton } from '@/components/ui/responsive'
 import { User, AlertCircle, CheckCircle } from 'lucide-react'
 
@@ -91,13 +91,7 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      {/* Skip Navigation Link for Accessibility */}
-      <SkipLink href="#login-form">
-        Skip to login form
-      </SkipLink>
-      
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         {/* Theme Toggle - Top Right */}
         <div className="fixed top-4 right-4 z-10">
           <ThemeToggle />
@@ -133,7 +127,7 @@ export default function LoginPage() {
                 Roofing Quality Control & Inspection System
               </div>
             </CardHeader>
-            <CardContent id="login-form">
+            <CardContent id="login-content">
               {/* Enhanced Error Display */}
               {error && (
                 <div className="mb-6 flex items-start gap-3 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg" role="alert">
@@ -241,7 +235,6 @@ export default function LoginPage() {
             </div>
           </div>
         </ResponsiveContainer>
-      </div>
-    </>
+    </div>
   )
 }
