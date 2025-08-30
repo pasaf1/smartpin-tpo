@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('pin-photos') // Reuse the existing bucket
+      .from('roof-plans') // Use the correct bucket name
       .upload(storagePath, file, {
         cacheControl: '3600',
         upsert: false
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     // Get the public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('pin-photos')
+      .from('roof-plans')
       .getPublicUrl(storagePath)
 
     return NextResponse.json({
