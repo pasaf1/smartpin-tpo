@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { supabase } from '../supabase'
 import type { Database, Severity } from '../database.types'
 import type { PinStatus } from '../database.types'
@@ -16,7 +17,7 @@ export interface PinWithRelations extends Pin {
   photos?: any[]
 }
 
-const QUERY_KEYS = {
+export const QUERY_KEYS = {
   pins: ['pins'] as const,
   pin: (id: string) => ['pins', id] as const,
   roofPins: (roofId: string) => ['pins', 'roof', roofId] as const,
@@ -44,37 +45,6 @@ export function usePins(roofId: string) {
       })) as PinWithRelations[]
     },
     enabled: !!roofId,
-    // 2025 Enhancement: Real-time subscription integration
-    onSuccess: () => {
-      if (!roofId) return
-
-      // Set up real-time subscription for this roof's pins
-      const subscription = supabase
-        .channel(`pins-${roofId}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'pins',
-          filter: `roof_id=eq.${roofId}`
-        }, (payload) => {
-          console.log('🔄 Real-time pin update:', payload.eventType, payload.new || payload.old)
-          // Invalidate and refetch pins data
-          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofPins(roofId) })
-          
-          // Also invalidate related queries
-          queryClient.invalidateQueries({ queryKey: ['pins', 'parents', roofId] })
-          queryClient.invalidateQueries({ queryKey: ['pin-status-summary', roofId] })
-        })
-        .subscribe()
-
-      console.log('🔌 Subscribed to pins real-time updates for roof:', roofId)
-      
-      // Cleanup function
-      return () => {
-        console.log('🔌 Unsubscribing from pins real-time channel')
-        subscription.unsubscribe()
-      }
-    },
   })
 }
 

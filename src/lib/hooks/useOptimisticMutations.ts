@@ -32,6 +32,7 @@ export function useCreatePinOptimistic(roofId: string) {
       // Optimistically update to the new value
       if (previousPins) {
         const optimisticPin: Pin = {
+          ...newPin,
           id: `temp-${Date.now()}`, // Temporary ID
           roof_id: roofId,
           seq_number: (previousPins.length || 0) + 1,
@@ -39,7 +40,7 @@ export function useCreatePinOptimistic(roofId: string) {
           x: newPin.x || 0,
           y: newPin.y || 0,
           status: 'Open',
-          status_parent_manual: null,
+          status_parent_manual: 'Open',
           group_count: 0,
           children_total: 0,
           children_open: 0,
@@ -47,9 +48,8 @@ export function useCreatePinOptimistic(roofId: string) {
           children_closed: 0,
           parent_mix_state: null,
           opened_by: null,
-          opened_at: null,
+          opened_at: new Date().toISOString(),
           last_activity_at: new Date().toISOString(),
-          ...newPin,
         }
 
         queryClient.setQueryData<Pin[]>(

@@ -59,7 +59,7 @@ export function useRealTimeSync(options: UseRealTimeSyncOptions) {
         
         // Invalidate related queries
         queryKeysToInvalidate.forEach(queryKey => {
-          queryClient.invalidateQueries({ queryKey })
+          queryClient.invalidateQueries({ queryKey: Array.isArray(queryKey) ? queryKey : [queryKey] })
         })
       })
       .on('postgres_changes', {
@@ -73,7 +73,7 @@ export function useRealTimeSync(options: UseRealTimeSyncOptions) {
         
         // Invalidate related queries
         queryKeysToInvalidate.forEach(queryKey => {
-          queryClient.invalidateQueries({ queryKey })
+          queryClient.invalidateQueries({ queryKey: Array.isArray(queryKey) ? queryKey : [queryKey] })
         })
       })
       .on('postgres_changes', {
@@ -87,7 +87,7 @@ export function useRealTimeSync(options: UseRealTimeSyncOptions) {
         
         // Invalidate related queries
         queryKeysToInvalidate.forEach(queryKey => {
-          queryClient.invalidateQueries({ queryKey })
+          queryClient.invalidateQueries({ queryKey: Array.isArray(queryKey) ? queryKey : [queryKey] })
         })
       })
       .subscribe()
@@ -115,7 +115,7 @@ export function useRealTimeSync(options: UseRealTimeSyncOptions) {
   }, [])
 
   return {
-    isSubscribed: subscriptionRef.current?.state === 'SUBSCRIBED'
+    isSubscribed: subscriptionRef.current?.state === 'SUBSCRIBED' as any
   }
 }
 
@@ -160,8 +160,8 @@ export function useChatRealTime(scope: string, scopeId?: string | null, enabled 
     table: 'chats',
     filter,
     queryKeysToInvalidate: [
-      ['chat', scope, scopeId],
-      ['chat-messages', scope, scopeId]
+      ['chat', scope, scopeId || ''],
+      ['chat-messages', scope, scopeId || '']
     ],
     onInsert: (payload) => {
       // Could trigger notification here

@@ -101,7 +101,7 @@ export function PinCanvas({
   }, [calculateScaleFactors])
 
   // Fetch pins for this roof
-  const { data: pins = [], isLoading } = usePins(roofId)
+  const { data: pins = [], isLoading } = usePins(roofId) as { data: any[], isLoading: boolean }
 
   // Convert screen coordinates to SVG coordinates - OPTIMIZED VERSION with cache
   const screenToSvgCoords = useCallback((clientX: number, clientY: number) => {

@@ -36,7 +36,7 @@ function RoofDashboardPage() {
   
   // Real-time roof data with live updates
   const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-  const { data: pins = [] } = usePins(roofId)
+  const { data: pins = [] } = usePins(roofId) as { data: any[] }
   const { data: pinItems = [] } = useAllPinItems(roofId)
   const { messages } = useChat(roofId, selectedPin?.id)
   const { data: users = [] } = useUsers()

@@ -80,7 +80,7 @@ export function PinItemsTable({
   const [useSemanticSearch, setUseSemanticSearch] = useState(false)
 
   const { data: pinItems = [], isLoading, error } = useAllPinItems(roofId)
-  const { data: pins = [] } = usePins(roofId || '')
+  const { data: pins = [] } = usePins(roofId || '') as { data: any[] }
   const updateStatusMutation = useUpdatePinItemStatus()
 
   // Helper function to determine zone based on pin coordinates
