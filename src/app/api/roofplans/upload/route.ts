@@ -6,9 +6,33 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createRouteHandlerClient({ cookies })
     
-    const { data: { session } } = await supabase.auth.getSession()
+    console.log('🔍 Roof plan upload request received')
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.error('❌ Session error:', sessionError)
+      return NextResponse.json({ error: 'Session error: ' + sessionError.message }, { status: 401 })
+    }
+    
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.error('❌ No session found')
+      return NextResponse.json({ error: 'No active session - please login again' }, { status: 401 })
+    }
+    
+    console.log('✅ Session found for user:', session.user.email)
+    
+    // Get user profile to check role
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('role, email')
+      .eq('id', session.user.id)
+      .single()
+    
+    if (profileError) {
+      console.error('❌ Profile fetch error:', profileError)
+    } else {
+      console.log('👤 User profile:', userProfile)
     }
 
     const formData = await request.formData()
@@ -43,6 +67,8 @@ export async function POST(request: NextRequest) {
     const fileName = `roof-plan-${timestamp}.${fileExt}`
     const storagePath = `roof-plans/${fileName}`
 
+    console.log('📤 Attempting upload to storage path:', storagePath)
+    
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from('pin-photos') // Reuse the existing bucket
@@ -52,12 +78,34 @@ export async function POST(request: NextRequest) {
       })
 
     if (error) {
-      console.error('Storage upload failed:', error)
-      return NextResponse.json(
-        { error: 'Failed to upload image' },
-        { status: 500 }
-      )
+      console.error('❌ Storage upload failed:', error)
+      console.error('Error details:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        error: error.error,
+        cause: error.cause
+      })
+      
+      // Return more specific error based on the error type
+      if (error.statusCode === '401' || error.message.includes('Unauthorized')) {
+        return NextResponse.json(
+          { error: 'Storage authorization failed - please check your permissions' },
+          { status: 401 }
+        )
+      } else if (error.statusCode === '403' || error.message.includes('policies')) {
+        return NextResponse.json(
+          { error: 'Storage policy violation - insufficient permissions for this operation' },
+          { status: 403 }
+        )
+      } else {
+        return NextResponse.json(
+          { error: `Storage upload failed: ${error.message}` },
+          { status: 500 }
+        )
+      }
     }
+    
+    console.log('✅ Upload successful:', data)
 
     // Get the public URL
     const { data: { publicUrl } } = supabase.storage
