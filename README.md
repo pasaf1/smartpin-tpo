@@ -1,6 +1,12 @@
 # SmartPin TPO – Project Guide (EN/HE)
 
 ## What's new (highlights)
+- **🎯 BLUEBIN Integration Complete** - Full mobile-first interactive roof inspection platform integrated into existing SmartPin TPO
+- **📱 Mobile-Optimized Canvas** - React-Konva system with native touch gestures (pinch-zoom, pan, tap) for mobile inspection workflows
+- **🔄 Real-Time Collaboration** - Live multi-user presence tracking, collaborative cursors, instant pin updates with Supabase Realtime
+- **🏗️ Enhanced Pin System** - Parent/child pin hierarchy with photo containers, status workflows, and backwards-compatible counting logic
+- **🎨 Mobile-First UI Components** - Bottom sheet modals, floating action buttons (FAB), and responsive design for all screen sizes
+- **🗄️ Database Migration** - Backwards-compatible schema enhancement with layers, spatial features, and PostGIS integration
 - **🚀 Next.js 15 + @supabase/ssr Migration** - Complete upgrade to Next.js 15 App Router with modern @supabase/ssr for enhanced SSR compatibility and performance
 - **🔐 Enhanced Authentication System** - Comprehensive Google OAuth integration with improved error handling, automatic profile creation, and auth_user_id synchronization
 - **🛡️ Comprehensive RLS Policies** - Full Row Level Security implementation for users, pins, photos, and projects with proper role-based access control
@@ -16,9 +22,9 @@
 - **SSR-safe Supabase client** with diagnostics and `/api/env-check` + `/api/health` endpoints.
 - **Simplified ESLint** (flat config) and hardened `next.config.js`. Legacy demo pages were removed.
 
-A Next.js application for managing Pins/INCR, photos, statuses, severities, and scoped chat. This document is designed for both humans and AI agents to understand the stack, rules, pages, data model, and conventions.
+A Next.js application for managing Pins/INCR, photos, statuses, severities, and scoped chat, now enhanced with the BLUEBIN mobile-first interactive roof inspection platform. This document is designed for both humans and AI agents to understand the stack, rules, pages, data model, and conventions.
 
-אפליקציית Next.js לניהול Pins/INCR, תמונות, סטטוסים וחומרות, כולל צ׳אט בהיקפים שונים. מסמך זה נועד לאנשים ולסוכני AI כדי להבין את הסטאק, כללי הפיתוח, העמודים, מודל הנתונים והקונבנציות.
+אפליקציית Next.js לניהול Pins/INCR, תמונות, סטטוסים וחומרות, כולל צ׳אט בהיקפים שונים, כעת משופרת עם פלטפורמת הבדיקה האינטראקטיבית BLUEBIN המותאמת לנייד. מסמך זה נועד לאנשים ולסוכני AI כדי להבין את הסטאק, כללי הפיתוח, העמודים, מודל הנתונים והקונבנציות.
 
 ---
 
@@ -26,11 +32,13 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - Framework: Next.js 15 (App Router), React 18
 - Language: TypeScript
 - UI: Tailwind CSS + shadcn/ui (Card, Button, Select, Badge, Textarea, Input, ScrollArea, etc.)
+- Canvas: React-Konva for mobile-optimized interactive canvas with touch gesture support
 - Theme: next-themes for dark/light mode switching with CSS custom properties
 - Dates: date-fns (format, getISOWeek)
-- Realtime/DB: Supabase with @supabase/ssr for Next.js 15 compatibility (no Prisma)
+- Realtime/DB: Supabase with @supabase/ssr for Next.js 15 compatibility + PostGIS for spatial features (no Prisma)
 - Authentication: Supabase Auth with Google OAuth support and enhanced error handling
-- State/Logic: Custom hooks (e.g., usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem)
+- State/Logic: Custom hooks (e.g., usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem, useBluebinRealtimeSync)
+- Mobile UI: Bottom sheet modals, floating action buttons, responsive design patterns
 - Security: Row Level Security (RLS) policies for all data access
 - Build: next build
 - Package manager: PNPM preferred
@@ -39,11 +47,13 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - פריימוורק: Next.js 15 (App Router), React 18
 - שפה: TypeScript
 - UI: Tailwind CSS + shadcn/ui (Card, Button, Select, Badge, Textarea, Input, ScrollArea ועוד)
+- קנבס: React-Konva לקנבס אינטראקטיבי מותאם לנייד עם תמיכה בתנועות מגע
 - עיצוב: next-themes למעבר בין מצב חשוך/בהיר עם CSS custom properties
 - תאריכים: date-fns (format, getISOWeek)
-- Realtime/DB: Supabase עם @supabase/ssr לתאימות Next.js 15 (ללא Prisma)
+- Realtime/DB: Supabase עם @supabase/ssr לתאימות Next.js 15 + PostGIS לתכונות מרחביות (ללא Prisma)
 - התחברות: Supabase Auth עם תמיכה ב-Google OAuth וטיפול משופר בשגיאות
-- State/Logic: הוקים מותאמים אישית (למשל usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem)
+- State/Logic: הוקים מותאמים אישית (למשל usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem, useBluebinRealtimeSync)
+- ממשק נייד: מודלים של bottom sheet, כפתורי פעולה צפים, דפוסי עיצוב רספונסיביים
 - אבטחה: מדיניות Row Level Security (RLS) לכל גישה לנתונים
 - בנייה: next build
 - מנהל חבילות: PNPM מועדף
@@ -565,15 +575,23 @@ A professional roof inspection and project management application built with Nex
 
 ## 🚀 Features
 
-- **Pin-based Inspection System** - Parent/child pins, status timeline, and aggregates
+### 📱 BLUEBIN Mobile-First Inspection Platform
+- **Interactive Canvas** - React-Konva system with native touch gestures (pinch-zoom, pan, tap)
+- **Mobile-Optimized UI** - Bottom sheet modals, floating action buttons, responsive design for all screen sizes
+- **Real-Time Collaboration** - Live multi-user presence tracking, collaborative cursors, instant updates
+- **Layer Management** - Advanced layer system with visibility controls, opacity adjustment, and z-index ordering
+- **Enhanced Pin System** - Parent/child pin hierarchy with photo containers and status workflows
+
+### 🏗️ Core Application Features
+- **Pin-based Inspection System** - Parent/child pins, status timeline, and aggregates with backwards-compatible counting
 - **Dark/Light Theme Support** - Complete theme system with user preference detection and CSS custom properties
 - **Uniform Page Layout** - Consistent design template across all pages with navigation and theme controls
 - **Enhanced Authentication** - Email/password and Google OAuth integration with improved UI
 - **Real-time Collaboration** - Live updates and scoped chat (global/roof/pin), edit/delete
 - **Photo Management** - Upload to `pin-photos`, per-child Open/Closure pairs  
 - **Project Analytics** - Quality trends and performance metrics
-- **Mobile Responsive** - Works seamlessly on all devices
-- **Offline Support** - Continue working without internet connection
+- **Mobile Responsive** - Works seamlessly on all devices with touch gesture support
+- **Spatial Features** - PostGIS integration for geographic validation and spatial tool gating
 - **Export Capabilities** - Generate reports in multiple formats
 
 ## 📋 Prerequisites
@@ -611,9 +629,11 @@ NODE_ENV=production
    - 20240827_functions_views.sql
    - 20240828_rls_policies.sql
    - 20240829_chats_delete_policy.sql
+   - **20250830_bluebin_integration.sql** (BLUEBIN platform migration)
 3. Ensure RLS is enabled and policies are active. Project INSERT is allowed only for roles `Admin` or `QA_Manager`.
 4. Create a public storage bucket named `pin-photos` and grant read access for public URLs.
-5. **Optional: Configure Google OAuth**
+5. Enable PostGIS extension for spatial features: `CREATE EXTENSION IF NOT EXISTS postgis;`
+6. **Optional: Configure Google OAuth**
    - Go to Supabase Dashboard → Authentication → Providers
    - Enable Google provider
    - Add your Google Cloud Console Client ID and Client Secret
@@ -680,14 +700,24 @@ src/
 │   ├── layout.tsx      # Root layout with theme providers
 │   └── login/          # Enhanced authentication page
 ├── components/          # Reusable UI components
+│   ├── dashboard/      # BLUEBIN interactive canvas components
+│   │   └── BluebinInteractiveRoofPlan.tsx  # Mobile-first React-Konva canvas
+│   ├── pins/           # Pin management components
+│   │   └── BluebinPinDetailsCard.tsx       # Enhanced pin details with child containers
 │   ├── layout/         # PageLayout template for consistent design
 │   ├── ui/             # shadcn/ui components with theme support
-│   │   └── theme-toggle.tsx  # Dark/light theme switcher
+│   │   ├── theme-toggle.tsx      # Dark/light theme switcher
+│   │   ├── MobileBottomSheet.tsx # Touch-responsive bottom sheet modal
+│   │   └── MobileFAB.tsx         # Floating action button for mobile tools
 │   └── ...             # Other feature components
 ├── lib/                 # Utilities and configurations
 │   ├── supabase/       # Database client setup
 │   ├── auth/           # Authentication context with Google OAuth
 │   ├── hooks/          # Custom React hooks
+│   │   ├── useBluebinRealtimeSync.ts  # Real-time collaboration hook
+│   │   └── useSupabaseRealtimeSync.ts # Supabase realtime integration
+│   ├── services/       # Business logic services
+│   │   └── supabaseRealtimeManager.ts # Centralized realtime management
 │   └── utils/          # Helper functions
 ├── styles/             # Global styles
 └── types/              # TypeScript definitions
@@ -759,7 +789,7 @@ For support and questions:
 
 ---
 
-**SmartPin TPO v1.0.0** - Professional roof inspection made simple.
+**SmartPin TPO v1.0.0** - Professional roof inspection made simple, now enhanced with BLUEBIN mobile-first interactive platform.
 
 ---
 
