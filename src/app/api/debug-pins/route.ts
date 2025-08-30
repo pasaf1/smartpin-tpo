@@ -58,12 +58,12 @@ export async function GET(request: NextRequest) {
       },
       childPins: {
         data: childPins || [],
-        error: childError?.message,
+        error: childError,
         count: childPins?.length || 0
       },
       layers: {
         data: layers || [],
-        error: layersError?.message,
+        error: layersError,
         count: layers?.length || 0
       },
       troubleshooting: {

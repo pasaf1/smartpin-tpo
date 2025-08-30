@@ -61,7 +61,7 @@
     "react-dom": "^18.3.0",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.62.0",
-    "react-konva": "^19.0.7",
+    "react-konva": "^18.2.10",
     "react-step-progress-bar": "^1.0.3",
     "react-vertical-timeline-component": "^3.5.3",
     "react-zoom-pan-pinch": "^3.7.0",
