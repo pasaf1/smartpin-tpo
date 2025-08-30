@@ -25,11 +25,11 @@ const QUERY_KEYS = {
 }
 
 export function usePins(roofId: string) {
+  const queryClient = useQueryClient()
+
   return useQuery({
     queryKey: QUERY_KEYS.roofPins(roofId),
     queryFn: async (): Promise<PinWithRelations[]> => {
-      // Removed demo mode check
-
       const { data, error } = await supabase
         .from('pins')
         .select(`*`)
@@ -44,6 +44,37 @@ export function usePins(roofId: string) {
       })) as PinWithRelations[]
     },
     enabled: !!roofId,
+    // 2025 Enhancement: Real-time subscription integration
+    onSuccess: () => {
+      if (!roofId) return
+
+      // Set up real-time subscription for this roof's pins
+      const subscription = supabase
+        .channel(`pins-${roofId}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'pins',
+          filter: `roof_id=eq.${roofId}`
+        }, (payload) => {
+          console.log('🔄 Real-time pin update:', payload.eventType, payload.new || payload.old)
+          // Invalidate and refetch pins data
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofPins(roofId) })
+          
+          // Also invalidate related queries
+          queryClient.invalidateQueries({ queryKey: ['pins', 'parents', roofId] })
+          queryClient.invalidateQueries({ queryKey: ['pin-status-summary', roofId] })
+        })
+        .subscribe()
+
+      console.log('🔌 Subscribed to pins real-time updates for roof:', roofId)
+      
+      // Cleanup function
+      return () => {
+        console.log('🔌 Unsubscribing from pins real-time channel')
+        subscription.unsubscribe()
+      }
+    },
   })
 }
 

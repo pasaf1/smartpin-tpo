@@ -23,7 +23,11 @@
       "WebFetch(domain:localhost)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Read(C:\\Users\\asaf6\\Desktop\\APP/**)",
+      "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
+      "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
+      "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)"
     ],
     "deny": [],
     "ask": []
