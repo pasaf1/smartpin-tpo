@@ -8,59 +8,13 @@ export async function POST(request: NextRequest) {
     
     console.log('🔍 Roof plan upload request received')
     
-    // Try multiple methods to get session for better reliability
-    let session = null
-    let sessionError = null
-
-    // Method 1: Get session from cookies
-    try {
-      const result = await supabase.auth.getSession()
-      session = result.data.session
-      sessionError = result.error
-    } catch (error) {
-      console.warn('⚠️ Failed to get session from cookies, trying alternative method')
-      sessionError = error
-    }
-
-    // Method 2: If no session, try to get user directly (fallback)
-    if (!session && !sessionError) {
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        if (user && !userError) {
-          // Create a minimal session-like object for backward compatibility
-          console.log('✅ Found user via getUser method:', user.email)
-          session = { user, access_token: 'fallback', refresh_token: 'fallback' }
-        }
-      } catch (error) {
-        console.warn('⚠️ Fallback user method also failed')
-      }
-    }
-    
-    if (sessionError) {
-      console.error('❌ Session error:', sessionError)
-      const errorMessage = sessionError instanceof Error ? sessionError.message : 'Unknown session error'
-      return NextResponse.json({ error: 'Session error: ' + errorMessage }, { status: 401 })
-    }
-    
+    // Simple session check - matching photos upload approach
+    const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      console.error('❌ No session found with any method')
       return NextResponse.json({ error: 'No active session - please refresh the page and login again' }, { status: 401 })
     }
     
     console.log('✅ Session found for user:', session.user.email)
-    
-    // Get user profile to check role
-    const { data: userProfile, error: profileError } = await supabase
-      .from('users')
-      .select('role, email')
-      .eq('id', session.user.id)
-      .single()
-    
-    if (profileError) {
-      console.error('❌ Profile fetch error:', profileError)
-    } else {
-      console.log('👤 User profile:', userProfile)
-    }
 
     const formData = await request.formData()
     const file = formData.get('image') as File

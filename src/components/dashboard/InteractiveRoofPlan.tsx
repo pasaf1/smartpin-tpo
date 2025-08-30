@@ -139,11 +139,20 @@ export function InteractiveRoofPlan({
       
       if (result.success && result.url) {
         onImageUpload(result.url)
+        setUploadError(null) // Clear any previous errors
       } else {
-        setUploadError(result.error || 'Upload failed')
+        const errorMessage = result.error || 'Upload failed'
+        setUploadError(errorMessage)
+        
+        // If it's a session error, provide specific guidance
+        if (errorMessage.includes('session') || errorMessage.includes('login')) {
+          console.warn('🚨 Session issue detected, user should refresh page')
+        }
       }
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload failed')
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      setUploadError(errorMessage)
+      console.error('❌ Roof plan upload error:', error)
     } finally {
       setIsUploading(false)
     }

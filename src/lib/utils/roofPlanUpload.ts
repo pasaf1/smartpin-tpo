@@ -7,6 +7,17 @@ export interface RoofPlanUploadResult {
 
 export async function uploadRoofPlanImage(file: File): Promise<RoofPlanUploadResult> {
   try {
+    // Check if we have a valid session before attempting upload
+    const { supabase } = await import('../supabase')
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session) {
+      return {
+        success: false,
+        error: 'No active session - please refresh the page and login again'
+      }
+    }
+
     const formData = new FormData()
     formData.append('image', file)
 
@@ -17,6 +28,8 @@ export async function uploadRoofPlanImage(file: File): Promise<RoofPlanUploadRes
       headers: {
         // Don't set Content-Type - let browser set it for FormData with boundary
         'Cache-Control': 'no-cache',
+        // Include auth header if available
+        ...(session.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
       },
       credentials: 'include' // Ensure cookies are included
     })
