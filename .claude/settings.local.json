@@ -28,7 +28,9 @@
       "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
       "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
       "Read(C:\\Users\\asaf6\\Desktop\\APP\\scripts/**)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck:*)"
     ],
     "deny": [],
     "ask": []

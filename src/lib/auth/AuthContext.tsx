@@ -102,12 +102,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('🔍 Fetching user profile for userId:', userId)
       
+      // Get current user email for fallback lookup
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      const userEmail = currentUser?.email
+      
+      console.log('📧 User email from auth:', userEmail)
+      
       // Add timeout to profile fetch using Promise.race
-      const profilePromise = supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      // Try to find user by auth_user_id, id, or email
+      let profilePromise
+      if (userEmail) {
+        profilePromise = supabase
+          .from('users')
+          .select('*')
+          .or(`auth_user_id.eq.${userId},id.eq.${userId},email.eq.${userEmail}`)
+          .limit(1)
+          .single()
+      } else {
+        profilePromise = supabase
+          .from('users')
+          .select('*')
+          .or(`auth_user_id.eq.${userId},id.eq.${userId}`)
+          .limit(1)
+          .single()
+      }
       
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
@@ -133,6 +151,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         console.log('✅ User profile found:', data)
+        
+        // If we found the user but auth_user_id doesn't match, update it
+        if (data.auth_user_id !== userId) {
+          console.log('🔧 Fixing auth_user_id mismatch:', {
+            current: data.auth_user_id,
+            expected: userId
+          })
+          
+          try {
+            const { error: updateError } = await supabase
+              .from('users')
+              .update({ auth_user_id: userId })
+              .eq('id', data.id)
+            
+            if (updateError) {
+              console.error('❌ Failed to update auth_user_id:', updateError)
+            } else {
+              console.log('✅ auth_user_id updated successfully')
+              // Update the local data
+              data.auth_user_id = userId
+            }
+          } catch (updateErr) {
+            console.error('❌ Error updating auth_user_id:', updateErr)
+          }
+        }
+        
         setProfile(data)
       }
     } catch (error) {

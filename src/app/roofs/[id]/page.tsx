@@ -6,8 +6,10 @@ import { useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { PinCanvas } from '@/components/canvas/PinCanvas'
-import { PinDetailsCard } from '@/components/pins/PinDetailsCard'
+import { BluebinInteractiveRoofPlan } from '@/components/dashboard/BluebinInteractiveRoofPlan'
+import { MobileBottomSheet } from '@/components/ui/MobileBottomSheet'
+import { MobileFAB, defaultBluebinTools } from '@/components/ui/MobileFAB'
+import { BluebinPinDetailsCard } from '@/components/pins/BluebinPinDetailsCard'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
 import ExportDialog from '@/components/export/ExportDialog'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -33,6 +35,13 @@ function RoofDashboardPage() {
   const [showPinPopup, setShowPinPopup] = useState(false)
   const [closurePhotoItemId, setClosurePhotoItemId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'Open' | 'ReadyForInspection' | 'Closed'>('all')
+  const [selectedTool, setSelectedTool] = useState<'pin' | 'childPin' | 'annotation' | 'text' | 'measure'>('pin')
+  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
+  const [childPins, setChildPins] = useState<any[]>([])
+  const [layers, setLayers] = useState<any[]>([{ id: '1', name: 'Quality Control', visible: true, z_index: 1, opacity: 1.0, type: 'pins' }])
+  const [annotations, setAnnotations] = useState<any[]>([])
+  const [isMobile, setIsMobile] = useState(false)
+  const [showMobileDetails, setShowMobileDetails] = useState(false)
   
   // Real-time roof data with live updates
   const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
@@ -41,6 +50,21 @@ function RoofDashboardPage() {
   const { messages } = useChat(roofId, selectedPin?.id)
   const { data: users = [] } = useUsers()
   const createPinMutation = useCreatePin()
+
+  // Mobile detection
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Set default layer
+  useEffect(() => {
+    if (layers.length > 0 && !selectedLayerId) {
+      setSelectedLayerId(layers[0].id)
+    }
+  }, [layers, selectedLayerId])
   
   // Presence tracking for collaborative features (simplified)
   const onlineUsers: any[] = []
@@ -62,7 +86,70 @@ function RoofDashboardPage() {
   const handlePinClick = (pin: PinWithRelations) => {
     setSelectedPin(pin)
     setClosurePhotoItemId(null)
-    setShowPinPopup(false) // Don't show popup anymore, use pin card directly
+    setShowPinPopup(false)
+    if (isMobile) {
+      setShowMobileDetails(true)
+    }
+  }
+
+  const handleChildPinClick = (childPin: any, parentPin: any) => {
+    setSelectedPin(parentPin)
+    if (isMobile) {
+      setShowMobileDetails(true)
+    }
+  }
+
+  const handleAddPin = async (x: number, y: number, layerId: string) => {
+    if (!selectedLayerId) return
+    try {
+      await createPinMutation.mutateAsync({
+        roof_id: roofId,
+        layer_id: layerId,
+        x: x,
+        y: y,
+        status: 'Open' as const,
+      } as any)
+    } catch (error) {
+      console.error('Failed to create pin:', error)
+    }
+  }
+
+  const handleAddChildPin = async (parentPin: any, x: number, y: number) => {
+    // Create child pin logic
+    const newChildPin = {
+      id: Date.now().toString(),
+      parent_id: parentPin.id,
+      seq: `${parentPin.seq_number}.${childPins.filter(cp => cp.parent_id === parentPin.id).length + 1}`,
+      x,
+      y,
+      status: 'Open',
+      severity: 'Medium',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      metadata: {}
+    }
+    setChildPins([...childPins, newChildPin])
+  }
+
+  const handleStatusChange = (pinId: string, newStatus: any, isChild = false) => {
+    if (isChild) {
+      setChildPins(childPins.map(cp => cp.id === pinId ? { ...cp, status: newStatus } : cp))
+    } else {
+      // Update parent pin status logic
+      console.log('Update parent pin status:', pinId, newStatus)
+    }
+  }
+
+  const handleUpdateChildPin = (childPin: any) => {
+    setChildPins(childPins.map(cp => cp.id === childPin.id ? childPin : cp))
+  }
+
+  const handleDeleteChildPin = (childPinId: string) => {
+    setChildPins(childPins.filter(cp => cp.id !== childPinId))
+  }
+
+  const handleAddAnnotation = (annotation: any) => {
+    setAnnotations([...annotations, { ...annotation, id: Date.now().toString() }])
   }
 
   const handleChildPinCreate = async (parentPinId: string, x: number, y: number) => {
@@ -343,34 +430,35 @@ function RoofDashboardPage() {
                 </div>
               </div>
               
-              {/* Roof Plan Container */}
+              {/* BLUEBIN Interactive Roof Plan Container */}
               <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden relative">
-                <PinCanvas
+                <BluebinInteractiveRoofPlan
                   roofId={roofId}
-                  onPinCreate={handlePinCreate}
-                  onPinSelect={(pin) => pin && handlePinClick(pin)}
-                  selectedPinId={selectedPin?.id}
+                  pins={pins.map(pin => ({
+                    ...pin,
+                    layer_id: selectedLayerId || layers[0]?.id || '1',
+                    children_total: childPins.filter(cp => cp.parent_id === pin.id).length,
+                    children_open: childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Open').length,
+                    children_ready: childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'ReadyForInspection').length,
+                    children_closed: childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Closed').length,
+                    parent_mix_state: childPins.filter(cp => cp.parent_id === pin.id).length === 0 ? null :
+                                     childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Closed').length === childPins.filter(cp => cp.parent_id === pin.id).length ? 'ALL_CLOSED' :
+                                     childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Open').length === childPins.filter(cp => cp.parent_id === pin.id).length ? 'ALL_OPEN' : 'MIXED'
+                  }))}
+                  childPins={childPins}
+                  layers={layers}
+                  annotations={annotations}
+                  roofPlanImageUrl={roof.plan_image_url || roof.roof_plan_url}
+                  onPinClick={handlePinClick}
+                  onChildPinClick={handleChildPinClick}
+                  onAddPin={handleAddPin}
+                  onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin, 0.5, 0.5)}
+                  onAddAnnotation={handleAddAnnotation}
+                  selectedLayerId={selectedLayerId}
+                  selectedTool={selectedTool}
                   className="w-full h-full"
-                  backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
+                  isMobile={isMobile}
                 />
-                
-                {/* Interactive Pin Legend */}
-                <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span>Open Issues</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                      <span>Ready for Inspection</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                      <span>Closed</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -490,24 +578,16 @@ function RoofDashboardPage() {
               
               {/* Content Area */}
               <div className="h-[calc(90vh-200px)] bg-gradient-to-br from-gray-50/50 to-white/50">
-                <PinDetailsCard
+                <BluebinPinDetailsCard
                   pin={selectedPin}
-                  roofId={roofId}
-                  backgroundImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
-                  onClosurePhoto={(pinId) => {
-                    setShowPinPopup(true)
-                    setClosurePhotoItemId(null)
-                  }}
-                  onStatusChange={(pinId, status) => {
-                    console.log('Status change:', pinId, status)
-                    // TODO: Implement status update
-                  }}
-                  onSeverityChange={(pinId, severity) => {
-                    console.log('Severity change:', pinId, severity)
-                    // TODO: Implement severity update
-                  }}
-                  onChildPinCreate={handleChildPinCreate}
+                  childPins={childPins.filter(cp => cp.parent_id === selectedPin.id)}
+                  onClose={() => setSelectedPin(null)}
+                  onStatusChange={handleStatusChange}
+                  onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin, 0.5, 0.5)}
+                  onUpdateChildPin={handleUpdateChildPin}
+                  onDeleteChildPin={handleDeleteChildPin}
                   className="h-full border-0 bg-transparent"
+                  isMobile={isMobile}
                 />
               </div>
             </div>
@@ -606,6 +686,44 @@ function RoofDashboardPage() {
             </Card>
           </div>
         </div>
+      )}
+
+      {/* Mobile FAB for tool selection */}
+      {isMobile && (
+        <MobileFAB
+          tools={defaultBluebinTools}
+          selectedTool={selectedTool}
+          onToolSelect={setSelectedTool}
+          position="bottom-right"
+        />
+      )}
+
+      {/* Mobile Bottom Sheet for Pin Details */}
+      {isMobile && (
+        <MobileBottomSheet
+          isOpen={showMobileDetails && selectedPin !== null}
+          onClose={() => setShowMobileDetails(false)}
+          snapPoints={[30, 70, 95]}
+          initialSnap={1}
+          title={selectedPin ? `Pin ${selectedPin.seq_number}` : undefined}
+        >
+          {selectedPin && (
+            <BluebinPinDetailsCard
+              pin={selectedPin}
+              childPins={childPins.filter(cp => cp.parent_id === selectedPin.id)}
+              onClose={() => {
+                setShowMobileDetails(false)
+                setSelectedPin(null)
+              }}
+              onStatusChange={handleStatusChange}
+              onAddChildPin={handleAddChildPin}
+              onUpdateChildPin={handleUpdateChildPin}
+              onDeleteChildPin={handleDeleteChildPin}
+              className="border-0 bg-transparent"
+              isMobile={true}
+            />
+          )}
+        </MobileBottomSheet>
       )}
 
       {/* Docked Chat */}

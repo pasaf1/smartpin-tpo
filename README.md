@@ -1,27 +1,24 @@
-# SmartP## What's new (highlights)
+# SmartPin TPO – Project Guide (EN/HE)
+
+## What's new (highlights)
+- **🚀 Next.js 15 + @supabase/ssr Migration** - Complete upgrade to Next.js 15 App Router with modern @supabase/ssr for enhanced SSR compatibility and performance
+- **🔐 Enhanced Authentication System** - Comprehensive Google OAuth integration with improved error handling, automatic profile creation, and auth_user_id synchronization
+- **🛡️ Comprehensive RLS Policies** - Full Row Level Security implementation for users, pins, photos, and projects with proper role-based access control
+- **🐛 Login UX Improvements** - Removed problematic UI elements, enhanced error messages, and streamlined authentication flow with timeout handling
+- **📸 Roof Plan Upload Authentication** - Fixed authentication issues in roof plan upload component with proper user context integration
+- **🔧 Debug & Monitoring Tools** - New API endpoints `/api/debug-oauth` and `/api/fix-user-auth` for OAuth troubleshooting and user management
 - **Dark/Light Theme System** - Complete theme support with CSS custom properties, theme toggle, and system preference detection
 - **Uniform Page Layout** - PageLayout template component for consistent design across all pages with navigation, breadcrumbs, and theme controls
-- **Enhanced Authentication** - Improved login page with proper input components and Google OAuth integration
 - **Parent/Child pins** with status timeline (Open → ReadyForInspection → Closed) and parent aggregates. New UI: PinDetailsModalV2.
 - **Photos** stored in a dedicated public bucket `pin-photos`; child closure requires a Closure photo.
 - **Project creation** is RLS-gated: only roles Admin or QA_Manager can create projects. UI is gated accordingly with clear messages.
 - **Chat improvements**: edit/delete actions, with a DELETE RLS policy migration included.
 - **SSR-safe Supabase client** with diagnostics and `/api/env-check` + `/api/health` endpoints.
-- **Simplified ESLint** (flat config) and hardened `next.config.js`. Legacy demo pages were removed.– Project Guide (EN/HE)
+- **Simplified ESLint** (flat config) and hardened `next.config.js`. Legacy demo pages were removed.
 
 A Next.js application for managing Pins/INCR, photos, statuses, severities, and scoped chat. This document is designed for both humans and AI agents to understand the stack, rules, pages, data model, and conventions.
 
 אפליקציית Next.js לניהול Pins/INCR, תמונות, סטטוסים וחומרות, כולל צ׳אט בהיקפים שונים. מסמך זה נועד לאנשים ולסוכני AI כדי להבין את הסטאק, כללי הפיתוח, העמודים, מודל הנתונים והקונבנציות.
-
----
-
-## What’s new (highlights)
-- Parent/Child pins with status timeline (Open → ReadyForInspection → Closed) and parent aggregates. New UI: PinDetailsModalV2.
-- Photos stored in a dedicated public bucket `pin-photos`; child closure requires a Closure photo.
-- Project creation is RLS-gated: only roles Admin or QA_Manager can create projects. UI is gated accordingly with clear messages.
-- Chat improvements: edit/delete actions, with a DELETE RLS policy migration included.
-- SSR-safe Supabase client with diagnostics and `/api/env-check` + `/api/health` endpoints.
-- Simplified ESLint (flat config) and hardened `next.config.js`. Legacy demo pages were removed.
 
 ---
 
@@ -31,9 +28,10 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - UI: Tailwind CSS + shadcn/ui (Card, Button, Select, Badge, Textarea, Input, ScrollArea, etc.)
 - Theme: next-themes for dark/light mode switching with CSS custom properties
 - Dates: date-fns (format, getISOWeek)
-- Realtime/DB: Supabase (no Prisma)
-- Authentication: Supabase Auth with Google OAuth support
+- Realtime/DB: Supabase with @supabase/ssr for Next.js 15 compatibility (no Prisma)
+- Authentication: Supabase Auth with Google OAuth support and enhanced error handling
 - State/Logic: Custom hooks (e.g., usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem)
+- Security: Row Level Security (RLS) policies for all data access
 - Build: next build
 - Package manager: PNPM preferred
 
@@ -43,9 +41,10 @@ A Next.js application for managing Pins/INCR, photos, statuses, severities, and 
 - UI: Tailwind CSS + shadcn/ui (Card, Button, Select, Badge, Textarea, Input, ScrollArea ועוד)
 - עיצוב: next-themes למעבר בין מצב חשוך/בהיר עם CSS custom properties
 - תאריכים: date-fns (format, getISOWeek)
-- Realtime/DB: Supabase (ללא Prisma)
-- התחברות: Supabase Auth עם תמיכה ב-Google OAuth
+- Realtime/DB: Supabase עם @supabase/ssr לתאימות Next.js 15 (ללא Prisma)
+- התחברות: Supabase Auth עם תמיכה ב-Google OAuth וטיפול משופר בשגיאות
 - State/Logic: הוקים מותאמים אישית (למשל usePins, usePinStatusManager, usePhotoAnalytics, useChatSystem)
+- אבטחה: מדיניות Row Level Security (RLS) לכל גישה לנתונים
 - בנייה: next build
 - מנהל חבילות: PNPM מועדף
 
@@ -459,6 +458,32 @@ User (משתמש)
 - **usePinStatusManager**
    - Child pin close flow, validation, parent status updates, and summary functions.
 
+## API Endpoints (English)
+
+### Debug and Monitoring Endpoints
+- **GET /api/debug-oauth**
+  - Purpose: Comprehensive OAuth configuration and connectivity diagnostics
+  - Features: Tests environment variables, Supabase connection, users table access, Google OAuth URL generation
+  - Response: JSON with environment checks, auth test results, users table access status, and troubleshooting steps
+  - Use case: Debugging OAuth setup issues, verifying Supabase configuration
+
+- **POST /api/fix-user-auth** (Requires active session)
+  - Purpose: Synchronize auth_user_id in users table with current authenticated session
+  - Features: Finds user by email, updates auth_user_id to match current session user ID
+  - Response: Success confirmation with old/new auth_user_id values and next steps
+  - Use case: Fixing OAuth users where auth_user_id doesn't match current session
+
+### Health and Diagnostics
+- **GET /api/env-check**
+  - Purpose: Environment variable validation and system health check
+  - Features: Verifies required environment variables are configured
+  - Use case: Deployment validation and configuration troubleshooting
+
+- **GET /api/health** 
+  - Purpose: Basic application health status
+  - Features: Returns application status and basic connectivity checks
+  - Use case: Load balancer health checks and monitoring
+
 ## רכיבים מרכזיים וחוזים (עברית)
 - **PageLayout**
    - מטרה: תבנית אחידה לעיצוב עמודים עקבי ברחבי האפליקציה
@@ -493,6 +518,32 @@ User (משתמש)
 
 - **usePinStatusManager**
    - תהליך סגירת תתי־פינים, ולידציה, עדכון סטטוס הורה ופונקציות סיכום.
+
+## נקודות קצה API (עברית)
+
+### נקודות קצה לדיבוג ומעקב
+- **GET /api/debug-oauth**
+  - מטרה: אבחון מקיף של הגדרות OAuth וקישוריות
+  - תכונות: בדיקת משתני סביבה, חיבור Supabase, גישה לטבלת משתמשים, יצירת URL של Google OAuth
+  - תגובה: JSON עם בדיקות סביבה, תוצאות בדיקת אימות, סטטוס גישה לטבלת משתמשים, וצעדי פתרון בעיות
+  - שימוש: דיבוג בעיות הגדרת OAuth, אימות הגדרת Supabase
+
+- **POST /api/fix-user-auth** (דורש סשן פעיל)
+  - מטרה: סינכרון auth_user_id בטבלת משתמשים עם הסשן המאומת הנוכחי
+  - תכונות: מוצא משתמש לפי אימייל, מעדכן auth_user_id להתאמה עם מזהה המשתמש הנוכחי
+  - תגובה: אישור הצלחה עם ערכי auth_user_id ישנים/חדשים וצעדים הבאים
+  - שימוש: תיקון משתמשי OAuth שבהם auth_user_id לא תואם לסשן הנוכחי
+
+### בריאות ואבחון
+- **GET /api/env-check**
+  - מטרה: אימות משתני סביבה ובדיקת בריאות מערכת
+  - תכונות: מאמת שמשתני הסביבה הנדרשים מוגדרים
+  - שימוש: אימות פריסה ופתרון בעיות הגדרה
+
+- **GET /api/health**
+  - מטרה: סטטוס בריאות יישום בסיסי
+  - תכונות: מחזיר סטטוס יישום ובדיקות קישוריות בסיסיות
+  - שימוש: בדיקות בריאות load balancer ומעקב
 
 ---
 
@@ -715,14 +766,44 @@ For support and questions:
 ## 🔎 Troubleshooting
 
 ### Authentication Issues
-- **Login page shows invisible input fields**:
-  - Ensure you're using the updated login page with proper shadcn/ui Input components
-  - Check that theme CSS variables are properly loaded in globals.css
 
+#### Common OAuth Problems
 - **Google OAuth not working**:
   - Configure Google OAuth in Supabase Dashboard → Authentication → Providers
   - Ensure Google Cloud Console credentials are properly set
   - Verify redirect URLs match your Supabase project settings
+  - Use debug endpoint: `GET /api/debug-oauth` to diagnose configuration issues
+
+- **User profile not loading after OAuth**:
+  - Check if user exists in `users` table with matching `auth_user_id`
+  - Use fix endpoint: `POST /api/fix-user-auth` to synchronize auth_user_id
+  - Verify RLS policies allow the authenticated user to access their profile
+
+#### Authentication Flow Issues
+- **Login page shows invisible input fields**:
+  - Ensure you're using the updated login page with proper shadcn/ui Input components
+  - Check that theme CSS variables are properly loaded in globals.css
+
+- **Auth timeout or infinite loading**:
+  - AuthContext includes 10-second timeout protection
+  - Profile fetch includes 8-second timeout with fallback profile creation
+  - Check console for timeout warnings and auth state change events
+
+- **Profile creation failing**:
+  - Ensure RLS policies allow INSERT on users table for authenticated users
+  - Check that required user metadata (full_name, role) is included in signup
+  - Verify user table structure matches UserProfile interface
+
+#### Debug Tools
+- **OAuth Configuration Check**: `GET /api/debug-oauth`
+  - Tests environment variables, Supabase connection, users table access
+  - Checks specific user existence and Google OAuth URL generation
+  - Provides troubleshooting steps and common issue identification
+
+- **User Authentication Fix**: `POST /api/fix-user-auth` (requires active session)
+  - Synchronizes auth_user_id in users table with current session
+  - Useful when OAuth user exists but auth_user_id is mismatched
+  - Updates user record with current authenticated user ID
 
 ### Theme Issues
 - **Theme not switching properly**:
@@ -731,10 +812,37 @@ For support and questions:
   - Verify CSS custom properties are defined in globals.css
 
 ### Database Issues
+
+#### Row Level Security (RLS) Problems
 - **Failed to create project (permission denied / RLS)**:
   - Ensure your `users.role` is `Admin` or `QA_Manager`
-  - Verify `20240828_rls_policies.sql` was applied
+  - Verify comprehensive RLS policies were applied (recent migration includes full RLS coverage)
   - Sign out/in to refresh the JWT after role changes
+
+- **Cannot access user profile / pins / photos**:
+  - Check that user exists in `users` table with correct `auth_user_id`
+  - Verify RLS policies are enabled on all tables (users, pins, photos, projects)
+  - Use `SELECT auth.uid()` in database to verify current authenticated user ID
+  - Ensure user role matches required permissions for the operation
+
+#### RLS Policy Coverage
+The application now includes comprehensive RLS policies for:
+- **Users Table**: Users can view/update their own profile, admins can manage all users
+- **Projects Table**: Role-based access (Admin/QA_Manager can create, appropriate roles can view/edit)
+- **Pins Table**: Users can access pins from projects they're associated with
+- **Photos Table**: Access controlled based on pin ownership and user permissions
+- **Chat Messages**: Scoped access based on pin/project association
+
+#### Database Connection Issues
+- **Supabase connection timeout**:
+  - Check environment variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - Verify network connectivity to Supabase instance
+  - Use `/api/debug-oauth` endpoint to test database connection
+
+- **Migration/Schema issues**:
+  - Ensure all recent database migrations are applied
+  - Check that user table includes required fields: `auth_user_id`, `role`, `email`, `full_name`
+  - Verify foreign key constraints and RLS policies are properly configured
 
 ### Build Issues
 - **Next.js "inferred workspace root" warning (multiple lockfiles)**:
