@@ -354,11 +354,22 @@ export function useDeleteProject() {
       }
     },
     onSuccess: () => {
+      console.log('🔄 Project deleted successfully, invalidating cache...')
+      
       // Aggressively invalidate and refetch all related queries
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofs })
-      // Force immediate refetch
-      queryClient.refetchQueries({ queryKey: ['projects'] })
+      
+      // Force immediate refetch with exact option
+      queryClient.refetchQueries({ 
+        queryKey: ['projects'], 
+        exact: true 
+      })
+      
+      // Also remove any cached project data to ensure fresh fetch
+      queryClient.removeQueries({ queryKey: ['projects'] })
+      
+      console.log('✅ Cache invalidated and queries refetched')
     }
   })
 }

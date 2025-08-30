@@ -13,6 +13,7 @@ import { useProjects, useCreateProject, useDeleteProject } from '@/lib/hooks/use
 import { useRoofsByProject } from '@/lib/hooks/useRoofs'
 import { useCreateRoof } from '@/lib/hooks/useRoofs'
 import { supabase } from '@/lib/supabase'
+import { uploadRoofPlanImage } from '@/lib/utils/roofPlanUpload'
 
 function HomePage() {
   const { profile } = useAuth()
@@ -24,7 +25,7 @@ function HomePage() {
   const { } = useRealTimeProjectDashboard() // connectionStatus not used
   
   // Real projects from Supabase
-  const { data: projects = [], isLoading: projectsLoading } = useProjects()
+  const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects()
   const createProject = useCreateProject()
   const createRoof = useCreateRoof()
   const deleteProject = useDeleteProject()
@@ -228,6 +229,20 @@ function HomePage() {
     try {
       // Map priority to status
       const status = 'Open' as const
+      
+      // Upload roof plan image if provided
+      let roofPlanImageUrl: string | null = null
+      if (newProjectForm.roofPlanFile) {
+        const uploadResult = await uploadRoofPlanImage(newProjectForm.roofPlanFile)
+        if (uploadResult.success && uploadResult.url) {
+          roofPlanImageUrl = uploadResult.url
+        } else {
+          console.error('Failed to upload roof plan image:', uploadResult.error)
+          alert(`Failed to upload roof plan image: ${uploadResult.error || 'Unknown error'}`)
+          return
+        }
+      }
+
       // Create project in Supabase
       const newProject = await createProject.mutateAsync({
         name: newProjectForm.name.trim(),
@@ -249,7 +264,7 @@ function HomePage() {
         code: roofCode,
         name: `${newProjectForm.name} - Main Roof`,
         building: newProjectForm.location.trim(),
-        plan_image_url: newProjectForm.roofPlanPreview || null,
+        plan_image_url: roofPlanImageUrl,
         roof_plan_url: null,
         zones: {},
         stakeholders: {},
@@ -312,17 +327,27 @@ function HomePage() {
     if (!confirmed) return
 
     try {
+      console.log('🗑️ Starting project deletion:', project.project_id)
+      
       await deleteProject.mutateAsync(project.project_id)
       
-      // Wait a moment for React Query cache invalidation to complete
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('✅ Project deletion completed successfully')
+      
+      // Wait a bit longer for React Query cache invalidation to complete
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Manually trigger a refetch of projects to ensure UI updates
+      await refetchProjects()
+      console.log('🔄 Projects manually refetched')
       
       // Refresh issue statistics after successful deletion
       await fetchIssueStats()
       
+      console.log('📊 Issue statistics refreshed')
+      
       alert(`Project "${project.name}" has been successfully deleted.`)
     } catch (error: any) {
-      console.error('Failed to delete project:', error)
+      console.error('❌ Failed to delete project:', error)
       const code = error?.code || 'UNKNOWN'
       const msg = error?.message || 'Unknown error'
       
@@ -940,7 +965,7 @@ function HomePage() {
                   {isCreatingProject ? (
                     <span className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Creating Project & Roof...
+                      {newProjectForm.roofPlanFile ? 'Uploading Image & Creating...' : 'Creating Project & Roof...'}
                     </span>
                   ) : 'Create Project'}
                 </button>
