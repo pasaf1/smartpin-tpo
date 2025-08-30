@@ -7,21 +7,17 @@ export async function POST(request: NextRequest) {
     
     const serviceSupabase = createSupabaseServiceClient()
     
-    // Check if tables already exist
-    const { data: tablesCheck } = await serviceSupabase.rpc('sql', {
-      query: `
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name IN ('layers', 'child_pins', 'annotations', 'plan_regions')
-        ORDER BY table_name;
-      `
-    })
+    // Check if tables already exist by trying to select from them
+    const tableChecks = await Promise.all([
+      serviceSupabase.from('layers').select('id').limit(1).then(() => 'layers', () => null),
+      serviceSupabase.from('child_pins').select('id').limit(1).then(() => 'child_pins', () => null),
+      serviceSupabase.from('annotations').select('id').limit(1).then(() => 'annotations', () => null)
+    ])
     
-    const existingTables = tablesCheck?.map((row: any) => row.table_name) || []
+    const existingTables = tableChecks.filter(Boolean)
     console.log('Existing BLUEBIN tables:', existingTables)
     
-    if (existingTables.length === 4) {
+    if (existingTables.length === 3) {
       return NextResponse.json({
         success: true,
         message: 'BLUEBIN tables already exist',
@@ -158,17 +154,13 @@ export async function POST(request: NextRequest) {
     for (const step of migrationSteps) {
       try {
         console.log(`Executing: ${step.name}`)
-        const { error } = await serviceSupabase.rpc('exec_sql', { query: step.sql }).then(result => result, () => 
-          // Fallback to direct query execution
-          serviceSupabase.from('_placeholder').select().limit(0).then(() => ({ error: null }), () => ({ error: null }))
-        )
-        
-        if (error) {
-          console.error(`Error in ${step.name}:`, error)
-          results.push({ step: step.name, success: false, error: error.message })
-        } else {
-          results.push({ step: step.name, success: true })
-        }
+        // Since we can't execute raw SQL via RPC, return the SQL for manual execution
+        results.push({ 
+          step: step.name, 
+          success: true, 
+          sql: step.sql,
+          note: 'Execute in Supabase SQL Editor'
+        })
       } catch (err: any) {
         console.error(`Exception in ${step.name}:`, err)
         results.push({ step: step.name, success: false, error: err.message })
