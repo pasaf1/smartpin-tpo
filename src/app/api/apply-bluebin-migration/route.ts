@@ -7,24 +7,9 @@ export async function POST(request: NextRequest) {
     
     const serviceSupabase = createSupabaseServiceClient()
     
-    // Check if tables already exist by trying to select from them
-    const tableChecks = await Promise.all([
-      serviceSupabase.from('layers').select('id').limit(1).then(() => 'layers', () => null),
-      serviceSupabase.from('child_pins').select('id').limit(1).then(() => 'child_pins', () => null),
-      serviceSupabase.from('annotations').select('id').limit(1).then(() => 'annotations', () => null)
-    ])
-    
-    const existingTables = tableChecks.filter(Boolean)
-    console.log('Existing BLUEBIN tables:', existingTables)
-    
-    if (existingTables.length === 3) {
-      return NextResponse.json({
-        success: true,
-        message: 'BLUEBIN tables already exist',
-        existingTables,
-        skipped: true
-      })
-    }
+    // Skip table existence check since tables don't exist in types yet
+    // The migration will use CREATE TABLE IF NOT EXISTS to handle this safely
+    console.log('Proceeding with BLUEBIN migration...')
     
     // Apply the migration step by step
     const migrationSteps = [
