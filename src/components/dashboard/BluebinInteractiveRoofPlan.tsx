@@ -5,7 +5,7 @@ import { Stage, Layer, Image, Group, Circle, Text, Line, Rect } from 'react-konv
 import { KonvaEventObject } from 'konva/lib/Node'
 import { cn } from '@/lib/utils'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
-import { createBrowserSupabaseClient } from '@/lib/utils/supabaseClient'
+import { getSupabase } from '@/lib/supabase'
 
 // Mobile-first responsive constants
 const MOBILE_BREAKPOINT = 768

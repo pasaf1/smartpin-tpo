@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { createBrowserSupabaseClient } from '@/lib/utils/supabaseClient'
+import { getSupabase } from '@/lib/supabase'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
 
 interface Pin {
@@ -67,7 +67,7 @@ export function BluebinPinDetailsCard({
   const [activeTab, setActiveTab] = useState<'overview' | 'children' | 'photos'>('overview')
   const [expandedChildId, setExpandedChildId] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
-  const supabase = createBrowserSupabaseClient()
+  const supabase = getSupabase()
 
   // Real-time sync for this specific pin using BLUEBIN manager
   const { 

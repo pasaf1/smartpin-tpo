@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { RealtimeChannel, RealtimeChannelSendResponse } from '@supabase/supabase-js'
-import { createBrowserSupabaseClient } from '@/lib/utils/supabaseClient'
+import { getSupabase } from '@/lib/supabase'
 
 interface RealtimeSyncConfig {
   channelName: string
@@ -31,7 +31,7 @@ export function useSupabaseRealtimeSync({
   const [isConnected, setIsConnected] = useState(false)
   const [activeUsers, setActiveUsers] = useState<UserPresence[]>([])
   const channelRef = useRef<RealtimeChannel | null>(null)
-  const supabase = createBrowserSupabaseClient()
+  const supabase = getSupabase()
 
   // Broadcast function for sending real-time updates
   const broadcast = useCallback(async (

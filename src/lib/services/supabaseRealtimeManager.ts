@@ -1,4 +1,4 @@
-import { createBrowserSupabaseClient } from '@/lib/utils/supabaseClient'
+import { getSupabase } from '@/lib/supabase'
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js'
 
 interface RealtimeManager {
@@ -9,7 +9,7 @@ interface RealtimeManager {
 
 class SupabaseRealtimeManager {
   private static instance: SupabaseRealtimeManager
-  private supabase = createBrowserSupabaseClient()
+  private supabase = getSupabase()
   private manager: RealtimeManager = {
     channels: new Map(),
     subscriptions: new Map(),
