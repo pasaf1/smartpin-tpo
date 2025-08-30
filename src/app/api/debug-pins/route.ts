@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
           'Component not refreshing after pin creation',
           'Real-time subscription not working'
         ],
-        recommendations: []
+        recommendations: [] as string[]
       }
     }
     
