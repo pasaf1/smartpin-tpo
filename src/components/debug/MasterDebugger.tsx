@@ -7,7 +7,6 @@ import { StyleDebugger } from './StyleDebugger'
 import { ResponsiveDebugger } from './ResponsiveDebugger'
 import { PerformanceProfiler } from './PerformanceProfiler'
 import { ConflictDetector } from './ConflictDetector'
-import { DebugPanel } from './DebugPanel'
 
 interface DebugFeature {
   id: string
@@ -51,13 +50,6 @@ const DEBUG_FEATURES: DebugFeature[] = [
     component: ConflictDetector,
     enabled: true,
     props: { autoScan: true }
-  },
-  {
-    id: 'debug-panel',
-    name: 'Canvas Debug Panel',
-    component: DebugPanel,
-    enabled: false,
-    props: { position: 'top-left' }
   }
 ]
 

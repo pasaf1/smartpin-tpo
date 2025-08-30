@@ -12,9 +12,16 @@
       "WebFetch(domain:github.com)",
       "Bash(pnpm add:*)",
       "Bash(pnpm install:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(git rm:*)",
+      "Bash(timeout 30 npm run build)"
     ],
     "deny": [],
     "ask": []
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); project_dir=$(echo \"$input\" | jq -r '.workspace.project_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); if [ \"$project_dir\" != \"null\" ] && [ -d \"$project_dir\" ]; then project_name=$(basename \"$project_dir\"); printf \"\\033[2m%s\\033[0m in \\033[1;34m%s\\033[0m • %s\" \"$model\" \"$project_name\" \"SmartPin TPO Navigation Analysis\"; else printf \"\\033[2m%s\\033[0m • %s\" \"$model\" \"SmartPin TPO Navigation Analysis\"; fi"
   }
 }
