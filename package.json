@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm run generate-types:local && next dev",
-    "build": "npm run generate-types && next build",
+    "dev": "npm run generate-types:local-safe && next dev",
+    "build": "npm run generate-types:safe && next build",
     "start": "next start",
     "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=0",
     "create:admin:asaf": "node scripts/create-admin-user.mjs --email=Asaf6peer@gmail.com --name=\"Asaf Peer\" --role=Admin",
     "setpass:asaf": "node scripts/set-admin-password.mjs Asaf6peer@gmail.com \"$env:NEW_ADMIN_PASSWORD\"",
     "generate-types": "npx supabase gen types typescript --project-id vhtbinssqbzcjmbgkseo > src/lib/database.types.ts",
     "generate-types:local": "npx supabase gen types typescript --local > src/lib/database.types.ts || echo 'Warning: Local Supabase not running, skipping type generation'",
+    "generate-types:local-safe": "npx supabase gen types typescript --local > src/lib/database.types.ts 2>/dev/null || echo 'Using existing types - local Supabase not available'",
+    "generate-types:safe": "node scripts/generate-types-safe.js",
     "types:watch": "npx nodemon --watch supabase/migrations --ext sql --exec \"npm run generate-types\"",
     "db:reset": "npx supabase db reset && npm run generate-types:local"
   },
