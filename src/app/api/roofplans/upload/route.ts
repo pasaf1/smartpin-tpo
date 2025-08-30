@@ -81,18 +81,17 @@ export async function POST(request: NextRequest) {
       console.error('❌ Storage upload failed:', error)
       console.error('Error details:', {
         message: error.message,
-        statusCode: error.statusCode,
-        error: error.error,
-        cause: error.cause
+        name: error.name,
+        stack: error.stack
       })
       
       // Return more specific error based on the error type
-      if (error.statusCode === '401' || error.message.includes('Unauthorized')) {
+      if (error.message.includes('Unauthorized') || error.message.includes('401')) {
         return NextResponse.json(
           { error: 'Storage authorization failed - please check your permissions' },
           { status: 401 }
         )
-      } else if (error.statusCode === '403' || error.message.includes('policies')) {
+      } else if (error.message.includes('policies') || error.message.includes('403') || error.message.includes('Forbidden')) {
         return NextResponse.json(
           { error: 'Storage policy violation - insufficient permissions for this operation' },
           { status: 403 }
