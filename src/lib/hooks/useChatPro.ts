@@ -215,7 +215,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
         reactions: {},
         is_edited: false
       }
-      queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+      queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
         if (!old) return old
         const pages = [...old.pages]
         if (!pages.length) pages.push([])
@@ -226,7 +226,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
     },
     onSuccess: (msg, _payload, ctx) => {
       // replace optimistic
-      queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+      queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
         if (!old) return old
         const pages = old.pages.map((page: ChatProMessage[]) =>
           page.map((m: ChatProMessage) => (m.id === ctx?.optimisticId ? msg : m))
@@ -236,7 +236,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
     },
     onError: (_err, _payload, ctx) => {
       // rollback optimistic
-      queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+      queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
         if (!old) return old
         const pages = old.pages.map((page: ChatProMessage[]) =>
           page.filter((m: ChatProMessage) => m.id !== ctx?.optimisticId)
@@ -259,7 +259,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
       return toClientMessage(data)
     },
     onSuccess: (msg) => {
-      queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+      queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
         if (!old) return old
         const pages = old.pages.map((page: ChatProMessage[]) =>
           page.map((m) => (m.id === msg.id ? { ...m, text: msg.text, is_edited: true, updated_at: msg.updated_at } : m))
@@ -276,7 +276,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
       return id
     },
     onSuccess: (id) => {
-      queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+      queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
         if (!old) return old
         const pages = old.pages.map((page: ChatProMessage[]) =>
           page.filter((m) => m.id !== id)
@@ -293,7 +293,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
       return { messageId, emoji, removed: false }
     },
     onSuccess: (res) => {
-      queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+      queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
         if (!old) return old
         const userId = 'current-user' // פישוט
         const pages = old.pages.map((page: ChatProMessage[]) =>
@@ -350,7 +350,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
     ch.on('postgres_changes', { schema: 'public', table: 'chats', event: '*' }, (payload) => {
       if (payload.eventType === 'INSERT') {
         const m = toClientMessage(payload.new)
-        queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+        queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
           if (!old) return old
           const pages = [...old.pages]
           if (!pages.length) pages.push([])
@@ -359,7 +359,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
         })
       } else if (payload.eventType === 'UPDATE') {
         const m = toClientMessage(payload.new)
-        queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+        queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
           if (!old) return old
           const pages = old.pages.map((page: ChatProMessage[]) =>
             page.map((x) => (x.id === m.id ? { ...x, text: m.text, is_edited: true, updated_at: m.updated_at } : x))
@@ -368,7 +368,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
         })
       } else if (payload.eventType === 'DELETE') {
         const id = (payload.old as any).message_id
-        queryClient.setQueryData<any>(['chat', scope, scopeId], (old) => {
+        queryClient.setQueryData<any>(['chat', scope, scopeId], (old: any) => {
           if (!old) return old
           const pages = old.pages.map((page: ChatProMessage[]) => page.filter((x) => x.id !== id))
           return { ...old, pages }

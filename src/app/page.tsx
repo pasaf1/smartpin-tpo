@@ -457,9 +457,9 @@ function HomePage() {
             {/* Enhanced KPI Cards with Responsive Grid */}
             <ResponsiveGrid
               columns={{ 
-                mobile: 1, 
-                tablet: 2, 
-                desktop: 4 
+                xs: 1, 
+                md: 2, 
+                lg: 4 
               }}
               gap="lg"
             >
@@ -661,8 +661,7 @@ function HomePage() {
                       <TouchButton 
                         size="sm"
                         variant="primary"
-                        onClick={(e) => {
-                          e.stopPropagation()
+                        onClick={() => {
                           handleProjectRowClick(p)
                         }}
                         className="text-xs"
@@ -673,8 +672,7 @@ function HomePage() {
                         <TouchButton 
                           size="sm"
                           variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation()
+                          onClick={() => {
                             handleDeleteProject(p)
                           }}
                           className="text-xs text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
@@ -743,7 +741,8 @@ function HomePage() {
                 className="bg-white/60 backdrop-blur-sm border-white/40 focus:ring-indigo-500"
               />
             </div>
-            </SmartCard>
+          </div>
+        </SmartCard>
 
           </main>
         </SmartContainer>

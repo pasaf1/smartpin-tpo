@@ -193,7 +193,7 @@ export default function UserManagementPage() {
           <main id="main-content" className="py-8 space-y-8">
             {/* Enhanced Stats with KPI Cards */}
             <ResponsiveGrid
-              columns={{ mobile: 1, tablet: 2, desktop: 3 }}
+              columns={{ xs: 1, sm: 2, lg: 3 }}
               gap="lg"
             >
               <KPICard
@@ -320,7 +320,9 @@ export default function UserManagementPage() {
                   ))
                 )}
               </TableBody>
-            </SmartCard>
+            </Table>
+          </CardContent>
+        </SmartCard>
           </main>
         </ResponsiveContainer>
       </div>

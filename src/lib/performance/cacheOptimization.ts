@@ -1,23 +1,38 @@
 import { QueryClient } from '@tanstack/react-query'
 
+// Enhanced cache duration constants
+export const CACHE_DURATIONS = {
+  IMMEDIATE: 0,
+  SHORT: 5 * 60 * 1000,      // 5 minutes
+  MEDIUM: 30 * 60 * 1000,    // 30 minutes  
+  LONG: 2 * 60 * 60 * 1000,  // 2 hours
+  VERY_LONG: 24 * 60 * 60 * 1000, // 24 hours
+  INFINITE: Infinity
+} as const
+
 export const queryClientConfig = {
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime)
+      staleTime: CACHE_DURATIONS.SHORT,
+      gcTime: CACHE_DURATIONS.LONG,
       retry: (failureCount: number, error: any) => {
-        if (error?.status === 404) return false
-        if (error?.status === 403) return false
+        // Don't retry on client errors
+        if (error?.status >= 400 && error?.status < 500) return false
+        // Don't retry network errors more than 3 times
         return failureCount < 3
       },
       retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
+      refetchOnReconnect: 'always',
       refetchOnMount: true,
+      // Network optimization
+      networkMode: 'online',
     },
     mutations: {
       retry: 1,
       retryDelay: 1000,
+      // Network optimization for mutations
+      networkMode: 'online',
     },
   },
 }
@@ -147,3 +162,172 @@ export class CacheManager {
 }
 
 export const createCacheManager = (queryClient: QueryClient) => new CacheManager(queryClient)
+
+// Browser cache management for static assets
+export class BrowserCacheManager {
+  // Service Worker cache management
+  static async updateServiceWorkerCache() {
+    if ('serviceWorker' in navigator && 'caches' in window) {
+      try {
+        const cacheNames = await caches.keys()
+        const currentCache = cacheNames.find(name => name.includes('smartpin-tpo'))
+        
+        if (currentCache) {
+          const cache = await caches.open(currentCache)
+          
+          // Cache critical assets
+          await cache.addAll([
+            '/',
+            '/roofs',
+            '/settings',
+            '/offline',
+            '/manifest.json',
+          ])
+        }
+      } catch (error) {
+        console.warn('Service Worker cache update failed:', error)
+      }
+    }
+  }
+
+  // Local Storage cache with expiration
+  static setWithExpiry(key: string, value: any, ttl: number) {
+    const now = new Date()
+    const item = {
+      value: value,
+      expiry: now.getTime() + ttl,
+    }
+    try {
+      localStorage.setItem(key, JSON.stringify(item))
+    } catch (error) {
+      // Handle quota exceeded
+      console.warn('Local storage quota exceeded:', error)
+      this.clearOldEntries()
+      try {
+        localStorage.setItem(key, JSON.stringify(item))
+      } catch {
+        // Still failing, clear everything
+        localStorage.clear()
+      }
+    }
+  }
+
+  static getWithExpiry(key: string) {
+    try {
+      const itemStr = localStorage.getItem(key)
+      if (!itemStr) return null
+
+      const item = JSON.parse(itemStr)
+      const now = new Date()
+
+      if (now.getTime() > item.expiry) {
+        localStorage.removeItem(key)
+        return null
+      }
+      
+      return item.value
+    } catch {
+      return null
+    }
+  }
+
+  private static clearOldEntries() {
+    const now = new Date().getTime()
+    const keysToRemove: string[] = []
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key) continue
+      
+      try {
+        const item = JSON.parse(localStorage.getItem(key) || '')
+        if (item.expiry && now > item.expiry) {
+          keysToRemove.push(key)
+        }
+      } catch {
+        // Invalid JSON, remove it
+        keysToRemove.push(key)
+      }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+  }
+}
+
+// Memory management for large datasets
+export class MemoryOptimizer {
+  private static memoryCache = new Map<string, { data: any; timestamp: number; size: number }>()
+  private static maxMemorySize = 50 * 1024 * 1024 // 50MB limit
+
+  static set(key: string, data: any) {
+    const size = this.calculateSize(data)
+    const timestamp = Date.now()
+    
+    // Check if we need to clear old data
+    this.ensureMemoryLimit(size)
+    
+    this.memoryCache.set(key, { data, timestamp, size })
+  }
+
+  static get(key: string, maxAge: number = CACHE_DURATIONS.MEDIUM) {
+    const item = this.memoryCache.get(key)
+    if (!item) return null
+
+    const age = Date.now() - item.timestamp
+    if (age > maxAge) {
+      this.memoryCache.delete(key)
+      return null
+    }
+
+    return item.data
+  }
+
+  static clear() {
+    this.memoryCache.clear()
+  }
+
+  static getStats() {
+    const items = Array.from(this.memoryCache.values())
+    const totalSize = items.reduce((sum, item) => sum + item.size, 0)
+    
+    return {
+      itemCount: items.length,
+      totalSize: totalSize,
+      formattedSize: this.formatSize(totalSize),
+      maxSize: this.formatSize(this.maxMemorySize),
+      utilizationPercent: Math.round((totalSize / this.maxMemorySize) * 100)
+    }
+  }
+
+  private static calculateSize(obj: any): number {
+    try {
+      return new Blob([JSON.stringify(obj)]).size
+    } catch {
+      return 1024 // Fallback estimate
+    }
+  }
+
+  private static ensureMemoryLimit(newSize: number) {
+    const currentSize = Array.from(this.memoryCache.values())
+      .reduce((total, item) => total + item.size, 0)
+
+    if (currentSize + newSize > this.maxMemorySize) {
+      // Remove oldest entries until we have enough space
+      const entries = Array.from(this.memoryCache.entries())
+        .sort(([,a], [,b]) => a.timestamp - b.timestamp)
+
+      let freedSize = 0
+      for (const [key, item] of entries) {
+        this.memoryCache.delete(key)
+        freedSize += item.size
+        if (freedSize >= newSize) break
+      }
+    }
+  }
+
+  private static formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+}

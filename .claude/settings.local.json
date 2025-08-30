@@ -17,7 +17,12 @@
       "Bash(git rm:*)",
       "Bash(timeout 30 npm run build)",
       "Read(C:\\Users\\asaf6\\.claude/**)",
-      "Read(C:\\Users\\asaf6/**)"
+      "Read(C:\\Users\\asaf6/**)",
+      "Bash(npx next lint:*)",
+      "Bash(npx next build:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

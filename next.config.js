@@ -5,7 +5,20 @@ const nextConfig = {
   // Note: Avoid setting outputFileTracingRoot here to prevent Vercel packaging issues
   // Performance optimizations
   experimental: {
-    optimizePackageImports: ['lucide-react', '@tanstack/react-query', 'date-fns'],
+    optimizePackageImports: [
+      'lucide-react', 
+      '@tanstack/react-query', 
+      'date-fns',
+      'framer-motion',
+      'react-konva',
+      'konva',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-popover',
+      'papaparse'
+    ],
+    webpackBuildWorker: true,
+    optimizeCss: true,
+    optimizeServerReact: true,
   },
 
   // Turbopack configuration (experimental.turbo is deprecated)
@@ -51,18 +64,57 @@ const nextConfig = {
       }
     }
 
-    // Optimize bundle splitting
+    // Optimize bundle splitting with more granular chunks
     config.optimization = {
       ...config.optimization,
       splitChunks: {
         chunks: 'all',
+        maxInitialRequests: 25,
+        maxAsyncRequests: 25,
         cacheGroups: {
+          // Large UI libraries
+          radixui: {
+            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            name: 'radix-ui',
+            priority: 20,
+            chunks: 'all',
+          },
+          // Canvas and graphics libraries
+          graphics: {
+            test: /[\\/]node_modules[\\/](konva|react-konva|fabric|html2canvas)[\\/]/,
+            name: 'graphics',
+            priority: 20,
+            chunks: 'all',
+          },
+          // Query and state management
+          query: {
+            test: /[\\/]node_modules[\\/](@tanstack|zustand|immer)[\\/]/,
+            name: 'query-state',
+            priority: 20,
+            chunks: 'all',
+          },
+          // Animation libraries
+          animations: {
+            test: /[\\/]node_modules[\\/](framer-motion|react-spring)[\\/]/,
+            name: 'animations',
+            priority: 20,
+            chunks: 'all',
+          },
+          // Supabase
+          supabase: {
+            test: /[\\/]node_modules[\\/]@supabase[\\/]/,
+            name: 'supabase',
+            priority: 20,
+            chunks: 'all',
+          },
+          // Generic vendor chunk for smaller libraries
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             priority: 10,
             chunks: 'all',
           },
+          // Common application code
           common: {
             name: 'common',
             minChunks: 2,
@@ -72,6 +124,12 @@ const nextConfig = {
           },
         },
       },
+      // Better module concatenation
+      concatenateModules: true,
+      // Remove empty chunks
+      removeEmptyChunks: true,
+      // Merge duplicate chunks
+      mergeDuplicateChunks: true,
     }
 
     return config

@@ -18,16 +18,16 @@ export function deriveIssueRowStatus(
 ): IssueRowStatus {
   // If parent is closed and no children are open or ready
   if (parentStatus === 'Closed' && childrenOpen === 0 && childrenReady === 0) {
-    return 'Closed'
+    return 'closed'
   }
   
   // If no children are open AND (parent is ready OR some children are ready)
   if (childrenOpen === 0 && (parentStatus === 'ReadyForInspection' || childrenReady > 0)) {
-    return 'ReadyForInspection'
+    return 'in-progress'
   }
   
   // Default to Open
-  return 'Open'
+  return 'open'
 }
 
 /**
@@ -56,11 +56,13 @@ export function deriveIssueRowStatusFromPin(pin: PinWithRelations): IssueRowStat
  */
 export function getIssueStatusColor(status: IssueRowStatus): string {
   switch (status) {
-    case 'Open':
+    case 'open':
       return 'text-red-600 bg-red-50 border-red-200'
-    case 'ReadyForInspection':
+    case 'in-progress':
       return 'text-amber-600 bg-amber-50 border-amber-200'
-    case 'Closed':
+    case 'resolved':
+      return 'text-blue-600 bg-blue-50 border-blue-200'
+    case 'closed':
       return 'text-green-600 bg-green-50 border-green-200'
   }
 }
@@ -70,11 +72,13 @@ export function getIssueStatusColor(status: IssueRowStatus): string {
  */
 export function getIssueStatusIcon(status: IssueRowStatus): string {
   switch (status) {
-    case 'Open':
+    case 'open':
       return '🔴'
-    case 'ReadyForInspection':
+    case 'in-progress':
       return '🟡'
-    case 'Closed':
+    case 'resolved':
+      return '🔵'
+    case 'closed':
       return '🟢'
   }
 }

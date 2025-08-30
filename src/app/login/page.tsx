@@ -104,7 +104,7 @@ export default function LoginPage() {
         </div>
         
         <ResponsiveContainer 
-          size="sm" 
+          maxWidth="sm" 
           padding={{ mobile: 'px-4 py-8', tablet: 'px-6 py-12', desktop: 'px-8 py-16' }}
         >
           {/* Enhanced Login Form */}
