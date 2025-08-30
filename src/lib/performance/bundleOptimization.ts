@@ -75,7 +75,7 @@ export const preloadCriticalComponents = async () => {
   // Preload components that are likely to be used soon
   const criticalComponents = [
     () => import('@/components/dashboard/InteractiveRoofPlan'),
-    () => import('@/components/canvas/EnhancedPinCanvas'),
+    () => import('@/components/canvas/PinCanvas'),
   ]
 
   // Use requestIdleCallback if available, otherwise setTimeout
@@ -131,50 +131,18 @@ export const ImageOptimization = {
 
 // Performance monitoring
 export const PerformanceMonitoring = {
-  // Web Vitals tracking
+  // Web Vitals tracking (disabled - web-vitals package not installed)
   trackWebVitals: () => {
     if (typeof window !== 'undefined') {
-      import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-        getCLS(metric => {
-          window.gtag?.('event', 'web_vital', {
-            name: 'CLS',
-            value: Math.round(metric.value * 1000),
-            category: 'performance'
-          })
-        })
-
-        getFID(metric => {
-          window.gtag?.('event', 'web_vital', {
-            name: 'FID',
-            value: Math.round(metric.value),
-            category: 'performance'
-          })
-        })
-
-        getFCP(metric => {
-          window.gtag?.('event', 'web_vital', {
-            name: 'FCP',
-            value: Math.round(metric.value),
-            category: 'performance'
-          })
-        })
-
-        getLCP(metric => {
-          window.gtag?.('event', 'web_vital', {
-            name: 'LCP',
-            value: Math.round(metric.value),
-            category: 'performance'
-          })
-        })
-
-        getTTFB(metric => {
-          window.gtag?.('event', 'web_vital', {
-            name: 'TTFB',
-            value: Math.round(metric.value),
-            category: 'performance'
-          })
-        })
-      })
+      console.debug('Web vitals tracking disabled - web-vitals package not available')
+      // TODO: Install web-vitals package to enable this functionality
+      // import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      //   getCLS((metric: any) => { /* track CLS */ })
+      //   getFID((metric: any) => { /* track FID */ })
+      //   getFCP((metric: any) => { /* track FCP */ })
+      //   getLCP((metric: any) => { /* track LCP */ })
+      //   getTTFB((metric: any) => { /* track TTFB */ })
+      // })
     }
   },
 
@@ -190,9 +158,9 @@ export const PerformanceMonitoring = {
         
         resourceTiming.forEach(resource => {
           if (resource.name.includes('.js')) {
-            totalJSSize += resource.transferSize || 0
+            totalJSSize += (resource as any).transferSize || 0
           } else if (resource.name.includes('.css')) {
-            totalCSSSize += resource.transferSize || 0
+            totalCSSSize += (resource as any).transferSize || 0
           }
         })
 

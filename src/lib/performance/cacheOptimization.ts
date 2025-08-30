@@ -23,16 +23,16 @@ export const queryClientConfig = {
       },
       retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false,
-      refetchOnReconnect: 'always',
+      refetchOnReconnect: true,
       refetchOnMount: true,
       // Network optimization
-      networkMode: 'online',
+      networkMode: 'online' as const,
     },
     mutations: {
       retry: 1,
       retryDelay: 1000,
       // Network optimization for mutations
-      networkMode: 'online',
+      networkMode: 'online' as const,
     },
   },
 }
