@@ -76,7 +76,7 @@ export function LayerManager({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 flex-1">
                   <span className="text-base">
-                    {LAYER_ICONS[layer.name] || '📄'}
+                    {LAYER_ICONS[layer.name as keyof typeof LAYER_ICONS] || '📄'}
                   </span>
                   <span className="text-sm font-medium truncate">
                     {layer.name}

@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { usePins } from '@/lib/hooks/usePins'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { supabase } from '@/lib/supabase'
 import { PinMarker } from './PinMarker'
 import { RegionDrawer } from './RegionDrawer'
 import { ProximityIndicator } from './ProximityIndicator'
@@ -64,7 +64,6 @@ export function SpatialPinCanvas({
 }: SpatialCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const supabase = useSupabaseClient()
   
   const [canvasState, setCanvasState] = useState({
     zoom: 1,
@@ -89,118 +88,13 @@ export function SpatialPinCanvas({
   
   const { data: pins = [], isLoading } = usePins(roofId)
   
-  // Spatial validation function
-  const validatePinLocation = useCallback(async (x: number, y: number): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .rpc('validate_pin_location', {
-          p_roof_id: roofId,
-          p_x: x / CANVAS_WIDTH,  // Normalize to 0-1 coordinates
-          p_y: y / CANVAS_HEIGHT
-        })
-      
-      if (error) {
-        console.warn('Spatial validation error:', error)
-        return true // Allow creation if validation fails
-      }
-      
-      return data || true
-    } catch (error) {
-      console.warn('Spatial validation failed:', error)
-      return true
-    }
-  }, [roofId, supabase])
-  
-  // Find nearby pins for spatial analysis
-  const findNearbyPins = useCallback(async (x: number, y: number) => {
-    try {
-      const { data, error } = await supabase
-        .rpc('find_nearby_pins', {
-          p_roof_id: roofId,
-          p_x: x / CANVAS_WIDTH,
-          p_y: y / CANVAS_HEIGHT,
-          p_radius_meters: proximityRadius
-        })
-      
-      if (error) {
-        console.warn('Nearby pins query error:', error)
-        return []
-      }
-      
-      return data || []
-    } catch (error) {
-      console.warn('Nearby pins query failed:', error)
-      return []
-    }
-  }, [roofId, supabase, proximityRadius])
-  
-  // Get region statistics
-  const getRegionStatistics = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_region_statistics', {
-          p_roof_id: roofId
-        })
-      
-      if (error) {
-        console.warn('Region statistics error:', error)
-        return null
-      }
-      
-      return data?.[0] || null
-    } catch (error) {
-      console.warn('Region statistics failed:', error)
-      return null
-    }
-  }, [roofId, supabase])
-  
-  // Enhanced pin creation with spatial validation
-  const handleSpatialPinCreate = useCallback(async (x: number, y: number) => {
+  // Simple pin creation handler
+  const handleSpatialPinCreate = useCallback((x: number, y: number) => {
     if (!editable || !onPinCreate) return
     
-    // Validate location before creation
-    const isValid = await validatePinLocation(x, y)
-    if (!isValid) {
-      // Show user feedback
-      setHoveredPoint({ x, y })
-      setTimeout(() => setHoveredPoint(null), 2000)
-      return
-    }
-    
-    // Find nearby pins for context
-    const nearby = await findNearbyPins(x, y)
-    if (nearby.length > 0) {
-      console.log(`Creating pin near ${nearby.length} existing pins`)
-    }
-    
-    // Create the pin with spatial context
-    try {
-      const { data, error } = await supabase
-        .rpc('create_pin_with_spatial_validation', {
-          p_roof_id: roofId,
-          p_x: x / CANVAS_WIDTH,
-          p_y: y / CANVAS_HEIGHT,
-          p_zone: getZoneFromCoordinates(x, y)
-        })
-      
-      if (error) {
-        console.error('Spatial pin creation error:', error)
-        return
-      }
-      
-      // Update spatial data
-      setSpatialData(prev => prev ? {
-        ...prev,
-        nearbyPins: nearby
-      } : null)
-      
-      // Call the original callback
-      onPinCreate(x, y)
-      
-    } catch (error) {
-      console.error('Pin creation failed:', error)
-    }
-  }, [editable, onPinCreate, validatePinLocation, findNearbyPins, roofId, supabase])
+    // Call the original callback
+    onPinCreate(x, y)
+  }, [editable, onPinCreate])
   
   // Determine zone from coordinates (based on regions)
   const getZoneFromCoordinates = useCallback((x: number, y: number): string => {
@@ -225,32 +119,26 @@ export function SpatialPinCanvas({
     return inside
   }
   
-  // Load region statistics on mount and pin changes
+  // Initialize spatial data (simplified for now)
   useEffect(() => {
     if (showSpatialFeatures) {
-      getRegionStatistics().then(setSpatialData)
+      setSpatialData({
+        nearbyPins: [],
+        regionStats: {
+          total_pins: pins.length,
+          pins_per_zone: {},
+          pin_density: 0,
+          coverage_area: 0
+        }
+      })
     }
-  }, [showSpatialFeatures, getRegionStatistics, pins])
+  }, [showSpatialFeatures, pins])
   
   // Mouse move handler with spatial feedback
-  const handleMouseMove = useCallback(async (event: React.MouseEvent<SVGSVGElement>) => {
-    // ... existing pan logic ...
-    
-    if (showSpatialFeatures && !canvasState.isDragging) {
-      const rect = svgRef.current?.getBoundingClientRect()
-      if (!rect) return
-      
-      const x = ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH
-      const y = ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT
-      
-      // Debounce spatial queries
-      const nearby = await findNearbyPins(x, y)
-      setSpatialData(prev => ({
-        ...prev!,
-        nearbyPins: nearby
-      }))
-    }
-  }, [showSpatialFeatures, canvasState.isDragging, findNearbyPins])
+  const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
+    // Handle pan logic only for now
+    // Spatial features can be added later when database functions are available
+  }, [canvasState.isDragging])
   
   // Region drawing handlers
   const handleRegionDrawingClick = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
@@ -442,7 +330,6 @@ export function SpatialPinCanvas({
                     isSelected={pin.id === selectedPinId}
                     onClick={() => onPinSelect?.(pin)}
                     editable={editable}
-                    showSpatialInfo={showSpatialFeatures}
                   />
                 ))}
               </g>

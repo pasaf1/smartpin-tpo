@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useRef, useState, useCallback, useEffect } from 'react'
-import { Stage, Layer, Line, Text, Circle, Arrow, Rect } from 'react-konva'
+import { Stage, Layer, Line, Text, Circle, Arrow, Rect, Image } from 'react-konva'
 import Konva from 'konva'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -486,7 +486,7 @@ export function PhotoAnnotation({
           <Layer>
             {/* Background Image */}
             {image && (
-              <Konva.Image
+              <Image
                 ref={imageRef}
                 image={image}
                 width={stageDimensions.width}
@@ -537,7 +537,7 @@ export function PhotoAnnotation({
                   return (
                     <Arrow
                       key={annotation.id}
-                      points={annotation.points}
+                      points={annotation.points || []}
                       stroke={annotation.stroke}
                       strokeWidth={annotation.strokeWidth}
                       fill={annotation.stroke}

@@ -146,7 +146,7 @@ export function BluebinPinDetailsCard({
           <div className="flex items-center gap-4">
             <div className={cn(
               "w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg",
-              getSeverityColor(pin.severity)
+              getSeverityColor(pin.severity || 'Low')
             )}>
               {pin.seq_number}
             </div>
@@ -242,7 +242,7 @@ export function BluebinPinDetailsCard({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-luxury-600">Severity:</span>
-                    <span className={cn("px-2 py-1 text-xs font-medium rounded-full text-white", getSeverityColor(pin.severity))}>
+                    <span className={cn("px-2 py-1 text-xs font-medium rounded-full text-white", getSeverityColor(pin.severity || 'Low'))}>
                       {pin.severity}
                     </span>
                   </div>
@@ -378,7 +378,7 @@ export function BluebinPinDetailsCard({
                             <div>
                               <label className="block text-sm font-medium text-luxury-700 mb-1">Position</label>
                               <p className="text-sm font-mono text-luxury-600">
-                                ({childPin.x.toFixed(3)}, {childPin.y.toFixed(3)})
+                                ({(childPin.x || 0).toFixed(3)}, {(childPin.y || 0).toFixed(3)})
                               </p>
                             </div>
                           </div>

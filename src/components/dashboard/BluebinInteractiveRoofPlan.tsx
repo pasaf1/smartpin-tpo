@@ -488,7 +488,7 @@ export function BluebinInteractiveRoofPlan({
                       y={canvasPos.y}
                       radius={pinSize * 0.6}
                       fill={getSeverityColor(childPin.severity)}
-                      stroke={getStatusColor(childPin.status)}
+                      stroke={getStatusColor(childPin.status || 'Open')}
                       strokeWidth={2}
                       onClick={() => handleChildPinClick(childPin)}
                       onTap={() => handleChildPinClick(childPin)}
@@ -497,7 +497,7 @@ export function BluebinInteractiveRoofPlan({
                     <Text
                       x={canvasPos.x}
                       y={canvasPos.y - 4}
-                      text={childPin.seq.split('.')[1] || childPin.seq}
+                      text={childPin.seq?.split('.')[1] || childPin.seq || 'N/A'}
                       fontSize={isMobile ? 8 : 6}
                       fontStyle="bold"
                       fill="white"

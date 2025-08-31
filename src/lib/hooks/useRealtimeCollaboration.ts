@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { supabase } from '@/lib/supabase'
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js'
 
 interface PresenceUser {
@@ -34,7 +34,7 @@ interface CollaborationState {
 }
 
 export function useRealtimeCollaboration(roofId: string, currentUser: any) {
-  const supabase = useSupabaseClient()
+  // Using direct supabase client instead of hook
   const channelRef = useRef<RealtimeChannel | null>(null)
   const [state, setState] = useState<CollaborationState>({
     presence: {},
@@ -61,7 +61,7 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
         const presence: Record<string, PresenceUser> = {}
         
         Object.keys(presenceState).forEach((key) => {
-          const user = presenceState[key][0] as PresenceUser
+          const user = presenceState[key][0] as any as PresenceUser
           if (user.user_id !== currentUser.id) {
             presence[key] = user
           }

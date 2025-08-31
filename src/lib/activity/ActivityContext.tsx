@@ -119,7 +119,7 @@ export function ActivityProvider({
           .channel('activity-updates')
           .on('broadcast', { event: 'activity' }, (payload) => {
             const newActivity = payload.payload as ActivityLogEntry
-            if (newActivity && newActivity.message) {
+            if (newActivity && newActivity.action) {
               setRecentActivities(prev => [newActivity, ...prev.slice(0, 19)])
             }
           })

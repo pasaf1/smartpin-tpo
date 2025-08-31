@@ -44,10 +44,10 @@ export function useCreatePinWithActivity() {
         roof_id: data.roof_id,
         x_position: data.x || 0,
         y_position: data.y || 0,
-        issue_type: data.issue_type,
-        defect_type: data.defect_type,
-        defect_layer: data.defect_layer,
-        severity: data.severity
+        issue_type: (data as any).issue_type,
+        defect_type: (data as any).defect_type,
+        defect_layer: (data as any).defect_layer,
+        severity: (data as any).severity
       })
 
       return data
@@ -289,6 +289,7 @@ export function useCreateChildPinWithActivity() {
         .from('pin_children')
         .insert({
           pin_id: parentPinId,
+          child_code: 'AUTO',
           ...childData
         })
         .select()
@@ -304,8 +305,8 @@ export function useCreateChildPinWithActivity() {
           roof_id: parentPin.roof_id
         },
         {
-          id: childPin.id,
-          child_seq: childData.child_code || `${parentPin.seq_number}.${childPin.id.slice(-2)}`,
+          id: childPin.child_id,
+          child_seq: childData.child_code || `${parentPin.seq_number}.${childPin.child_id.slice(-2)}`,
           defect_type: childData.defect_type
         }
       )

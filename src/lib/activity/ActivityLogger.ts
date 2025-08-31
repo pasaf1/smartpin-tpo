@@ -270,22 +270,23 @@ export class ActivityLogger {
     this.pendingLogs = []
 
     try {
+      // TODO: Re-enable when activity_logs table is created
       // Insert to database
-      const { data, error } = await supabase
-        .from('activity_logs')
-        .insert(logsToProcess)
-        .select()
+      // const { data, error } = await supabase
+      //   .from('activity_logs')
+      //   .insert(logsToProcess)
+      //   .select()
 
-      if (error) {
-        console.error('Failed to insert activity logs:', error)
-        // Re-add to pending (simple retry logic)
-        this.pendingLogs.unshift(...logsToProcess)
-        return
-      }
+      // if (error) {
+      //   console.error('Failed to insert activity logs:', error)
+      //   // Re-add to pending (simple retry logic)
+      //   this.pendingLogs.unshift(...logsToProcess)
+      //   return
+      // }
 
-      // Broadcast to real-time channels if enabled
-      if (this.enableBroadcast && data) {
-        await this.broadcastActivities(data as ActivityLogEntry[])
+      // Broadcast to real-time channels if enabled (with mock data for now)
+      if (this.enableBroadcast) {
+        await this.broadcastActivities(logsToProcess as ActivityLogEntry[])
       }
 
     } catch (error) {
@@ -401,39 +402,43 @@ export class ActivityLogger {
       since?: string
     } = {}
   ): Promise<ActivityLogEntry[]> {
-    let query = supabase
-      .from('activity_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // TODO: Re-enable when activity_logs table is created
+    // For now, return empty array to avoid database errors
+    return []
+    
+    // let query = supabase
+    //   .from('activity_logs')
+    //   .select('*')
+    //   .order('created_at', { ascending: false })
 
-    if (context.pin_id) {
-      query = query.eq('pin_id', context.pin_id)
-    } else if (context.roof_id) {
-      query = query.eq('roof_id', context.roof_id)
-    } else if (context.project_id) {
-      query = query.eq('project_id', context.project_id)
-    }
+    // if (context.pin_id) {
+    //   query = query.eq('pin_id', context.pin_id)
+    // } else if (context.roof_id) {
+    //   query = query.eq('roof_id', context.roof_id)
+    // } else if (context.project_id) {
+    //   query = query.eq('project_id', context.project_id)
+    // }
 
-    if (options.since) {
-      query = query.gte('created_at', options.since)
-    }
+    // if (options.since) {
+    //   query = query.gte('created_at', options.since)
+    // }
 
-    if (options.limit) {
-      query = query.limit(options.limit)
-    }
+    // if (options.limit) {
+    //   query = query.limit(options.limit)
+    // }
 
-    if (options.offset) {
-      query = query.range(options.offset, options.offset + (options.limit || 50) - 1)
-    }
+    // if (options.offset) {
+    //   query = query.range(options.offset, options.offset + (options.limit || 50) - 1)
+    // }
 
-    const { data, error } = await query
+    // const { data, error } = await query
 
-    if (error) {
-      console.error('Failed to fetch activity history:', error)
-      return []
-    }
+    // if (error) {
+    //   console.error('Failed to fetch activity history:', error)
+    //   return []
+    // }
 
-    return data || []
+    // return data || []
   }
 
   /**

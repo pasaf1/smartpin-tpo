@@ -145,7 +145,7 @@ export class CSVExporter {
     csvContent += 'KEY PERFORMANCE INDICATORS\n'
     csvContent += 'Metric,Value,Unit\n'
     Object.entries(analytics.kpis).forEach(([metric, value]) => {
-      csvContent += `"${metric}","${value}","${analytics.units[metric] || ''}"\n`
+      csvContent += `"${metric}","${value}","${(analytics.units as any)[metric] || ''}"\n`
     })
     
     csvContent += '\n'

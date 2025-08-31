@@ -11,7 +11,7 @@ import { MobileBottomSheet } from '@/components/ui/MobileBottomSheet'
 import { MobileFAB, defaultBluebinTools } from '@/components/ui/MobileFAB'
 import { BluebinPinDetailsCard } from '@/components/pins/BluebinPinDetailsCard'
 import { PinItemsTable } from '@/components/tables/PinItemsTable'
-import ExportDialog from '@/components/export/ExportDialog'
+import { ExportDialog } from '@/components/export/ExportDialog'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -59,6 +59,7 @@ function RoofDashboardPage() {
   }[]>([])
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileDetails, setShowMobileDetails] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
   
   // Real-time roof data with live updates
   const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
@@ -288,18 +289,13 @@ function RoofDashboardPage() {
                 className="text-white/90"
               />
               
-              <ExportDialog
-                roofId={roofId}
-                roofName={roof.name}
-                messages={messages || []}
-                pins={pins}
-                users={users}
-                roofData={roof}
+              <Button 
+                className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 transition-all duration-200" 
+                size="sm"
+                onClick={() => setShowExportDialog(true)}
               >
-                <Button className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 transition-all duration-200" size="sm">
-                  📄 Export Report
-                </Button>
-              </ExportDialog>
+                📄 Export Report
+              </Button>
               <Link href={`/roofs/${roofId}/settings`}>
                 <Button className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 transition-all duration-200" size="sm">
                   ⚙️
@@ -778,6 +774,14 @@ function RoofDashboardPage() {
 
       {/* Docked Chat */}
       <DockedChat roofId={roofId} />
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        pins={pins}
+        selectedPin={selectedPin || undefined}
+      />
     </div>
   )
 }

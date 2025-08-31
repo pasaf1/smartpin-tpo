@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { Polygon, Square, Circle, Trash2, Save } from 'lucide-react'
+import { Shapes, Square, Circle, Trash2, Save } from 'lucide-react'
 
 export interface Region {
   id: string
@@ -103,7 +103,7 @@ export function RegionDrawer({
               )}
               title="Draw Polygon"
             >
-              <Polygon className="w-4 h-4" />
+              <Shapes className="w-4 h-4" />
               Polygon
             </button>
             

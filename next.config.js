@@ -228,6 +228,7 @@ const nextConfig = {
     dirs: ['src'], // Only lint src directory during builds
   },
 
+
   // Monitoring and analytics
   async redirects() {
     return [

@@ -97,7 +97,7 @@ export class PushNotificationService {
         // Create new subscription
         this.subscription = await this.registration!.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
+          applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey) as any
         })
       }
 
@@ -163,26 +163,28 @@ export class PushNotificationService {
       enabled: true
     }
 
-    const { error } = await supabase
-      .from('push_subscriptions')
-      .upsert(subscriptionData, {
-        onConflict: 'user_id'
-      })
+    // TODO: Re-enable when push_subscriptions table is created
+    // const { error } = await supabase
+    //   .from('push_subscriptions')
+    //   .upsert(subscriptionData, {
+    //     onConflict: 'user_id'
+    //   })
 
-    if (error) {
-      throw new Error(`Failed to save subscription: ${error.message}`)
-    }
+    // if (error) {
+    //   throw new Error(`Failed to save subscription: ${error.message}`)
+    // }
   }
 
   private async removeSubscription(userId: string): Promise<void> {
-    const { error } = await supabase
-      .from('push_subscriptions')
-      .update({ enabled: false })
-      .eq('user_id', userId)
+    // TODO: Re-enable when push_subscriptions table is created
+    // const { error } = await supabase
+    //   .from('push_subscriptions')
+    //   .update({ enabled: false })
+    //   .eq('user_id', userId)
 
-    if (error) {
-      throw new Error(`Failed to remove subscription: ${error.message}`)
-    }
+    // if (error) {
+    //   throw new Error(`Failed to remove subscription: ${error.message}`)
+    // }
   }
 
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -257,44 +259,50 @@ export class ServerPushService {
   }
 
   async sendToUser(userId: string, payload: NotificationPayload): Promise<boolean> {
-    try {
-      // Get user's active subscriptions
-      const { data: subscriptions, error } = await supabase
-        .from('push_subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('enabled', true)
+    // TODO: Re-enable when push_subscriptions table is created
+    return false
+    
+    // try {
+    //   // Get user's active subscriptions
+    //   const { data: subscriptions, error } = await supabase
+    //     .from('push_subscriptions')
+    //     .select('*')
+    //     .eq('user_id', userId)
+    //     .eq('enabled', true)
 
-      if (error) throw error
-      if (!subscriptions || subscriptions.length === 0) return false
+    //   if (error) throw error
+    //   if (!subscriptions || subscriptions.length === 0) return false
 
-      const results = await this.sendNotification(subscriptions, payload)
-      return results.success > 0
-    } catch (error) {
-      console.error('Failed to send notification to user:', error)
-      return false
-    }
+    //   const results = await this.sendNotification(subscriptions, payload)
+    //   return results.success > 0
+    // } catch (error) {
+    //   console.error('Failed to send notification to user:', error)
+    //   return false
+    // }
   }
 
   async sendToProject(projectId: string, payload: NotificationPayload): Promise<void> {
     try {
       // Get all users in the project with active subscriptions
-      const { data: subscriptions, error } = await supabase
-        .from('push_subscriptions')
-        .select(`
-          *,
-          users!inner (
-            id,
-            projects!inner (id)
-          )
-        `)
-        .eq('enabled', true)
-        .eq('users.projects.id', projectId)
+      // TODO: Re-enable when push_subscriptions table is created
+      return
+      
+      // const { data: subscriptions, error } = await supabase
+      //   .from('push_subscriptions')
+      //   .select(`
+      //     *,
+      //     users!inner (
+      //       id,
+      //       projects!inner (id)
+      //     )
+      //   `)
+      //   .eq('enabled', true)
+      //   .eq('users.projects.id', projectId)
 
-      if (error) throw error
-      if (!subscriptions || subscriptions.length === 0) return
+      // if (error) throw error
+      // if (!subscriptions || subscriptions.length === 0) return
 
-      await this.sendNotification(subscriptions, payload)
+      // await this.sendNotification(subscriptions, payload)
     } catch (error) {
       console.error('Failed to send notifications to project users:', error)
     }
@@ -317,14 +325,17 @@ export class ServerPushService {
   }
 
   private async markSubscriptionInvalid(userId: string): Promise<void> {
-    const { error } = await supabase
-      .from('push_subscriptions')
-      .update({ enabled: false })
-      .eq('user_id', userId)
+    // TODO: Re-enable when push_subscriptions table is created
+    return
+    
+    // const { error } = await supabase
+    //   .from('push_subscriptions')
+    //   .update({ enabled: false })
+    //   .eq('user_id', userId)
 
-    if (error) {
-      console.error('Failed to mark subscription as invalid:', error)
-    }
+    // if (error) {
+    //   console.error('Failed to mark subscription as invalid:', error)
+    // }
   }
 }
 
