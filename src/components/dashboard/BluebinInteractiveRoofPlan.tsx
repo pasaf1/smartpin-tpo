@@ -157,7 +157,7 @@ export function BluebinInteractiveRoofPlan({
   }, [selectedTool, selectedLayerId, updateSelectedTool])
 
   // Utility functions
-  const getSeverityColor = (severity: string): string => {
+  const getSeverityColor = (severity: string | null | undefined): string => {
     switch (severity) {
       case 'Critical': return '#dc2626'
       case 'High': return '#f97316' 
@@ -479,7 +479,7 @@ export function BluebinInteractiveRoofPlan({
                 return parent?.layer_id === layer.id
               })
               .map(childPin => {
-                const canvasPos = normalizedToCanvas({ x: childPin.x, y: childPin.y })
+                const canvasPos = normalizedToCanvas({ x: childPin.x || 0.5, y: childPin.y || 0.5 })
                 
                 return (
                   <Group key={childPin.id}>

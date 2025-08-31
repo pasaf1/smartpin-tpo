@@ -36,7 +36,8 @@
       "Bash(pnpm typecheck:*)",
       "Bash(pnpm ls:*)",
       "Bash(npx eslint:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npm cache clean:*)"
     ],
     "deny": [],
     "ask": []
