@@ -73,6 +73,8 @@ export function PhotoGallery({ pinId, photos, onRefresh, className }: PhotoGalle
   }, [deletePhoto, onRefresh]);
 
   const handleDownload = useCallback(async (photo: PinPhoto) => {
+    if (typeof window === 'undefined') return;
+    
     try {
       const response = await fetch(photo.storage_url);
       const blob = await response.blob();

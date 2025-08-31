@@ -774,3 +774,58 @@ export type PinChildUpdate = Database['public']['Tables']['pin_children']['Updat
 export type PhotoUpdate = Database['public']['Tables']['photos']['Update']
 export type ChatUpdate = Database['public']['Tables']['chats']['Update']
 export type UserUpdate = Database['public']['Tables']['users']['Update']
+
+// Unified Pin type with relations - single source of truth
+export interface PinWithRelations extends Pin {
+  // Optional UI fields for legacy compatibility
+  title?: string | null
+  description?: string | null
+  severity?: Severity | null
+  layer_id?: string | null
+  
+  // Child pin relationships (various naming patterns used across codebase)
+  children?: PinChild[]
+  child_pins?: PinChild[]
+  pin_children?: PinChild[]
+  
+  // Parent relationship (for legacy compatibility)
+  parent_id?: string | null
+  
+  // Photos relationship
+  photos?: Photo[]
+  
+  // Additional UI fields for legacy components
+  has_closure_photo?: boolean
+  closure_photo_url?: string | null
+  completed_at?: string | null
+  
+  // UI properties that extend the database fields
+  seq?: string // for child pins compatibility
+  open_pic_url?: string | null
+  close_pic_url?: string | null
+}
+
+// Extended child pin type that includes both database fields and UI compatibility fields
+export interface ChildPinWithUIFields extends PinChild {
+  // UI compatibility fields that components expect
+  id?: string // maps to child_id for components expecting this field
+  parent_id?: string // maps to pin_id for components expecting this field
+  seq?: string // maps to child_code for components expecting this field
+  x?: number // UI positioning (not in database)
+  y?: number // UI positioning (not in database)
+  status?: PinStatus // maps to status_child for components expecting this field
+  title?: string | null
+  description?: string | null
+  open_pic_url?: string | null // maps to openpic_id lookup
+  close_pic_url?: string | null // maps to closurepic_id lookup
+  metadata?: Record<string, any> // additional UI data
+  defect_layer?: string // additional UI field
+}
+
+// Handler function type signatures for Pin interactions
+export type PinClickHandler = (pin: PinWithRelations) => void
+export type ChildPinClickHandler = (childPin: ChildPinWithUIFields, parentPin: PinWithRelations) => void
+export type AddChildPinHandler = (parentPin: PinWithRelations, x?: number, y?: number) => void | Promise<void>
+export type UpdateChildPinHandler = (childPin: ChildPinWithUIFields) => void
+export type DeleteChildPinHandler = (childPinId: string) => void
+export type StatusChangeHandler = (pinId: string, newStatus: PinStatus, isChild?: boolean) => void

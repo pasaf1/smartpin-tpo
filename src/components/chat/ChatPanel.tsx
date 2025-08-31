@@ -138,7 +138,7 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
                   mentions: message.mentions ?? undefined,
                   created_at: message.created_at,
                   roof_id: roofId, // Use roofId directly since message does not have roof_id
-                  message_type: "text" as const, // Set as string literal type
+                  message_type: "text" as const
                 };
                 return (
                   <ChatMessageComponent key={chatMessage.id} message={chatMessage} />

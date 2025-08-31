@@ -31,18 +31,22 @@ export function MobileFAB({
   // Auto-hide FAB on scroll down, show on scroll up
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      const isScrollingDown = currentScrollY > lastScrollY
-      const hasScrolledEnough = Math.abs(currentScrollY - lastScrollY) > 10
+      if (typeof window !== 'undefined') {
+        const currentScrollY = window.scrollY
+        const isScrollingDown = currentScrollY > lastScrollY
+        const hasScrolledEnough = Math.abs(currentScrollY - lastScrollY) > 10
 
-      if (hasScrolledEnough) {
-        setIsVisible(!isScrollingDown || currentScrollY < 100)
-        setLastScrollY(currentScrollY)
+        if (hasScrolledEnough) {
+          setIsVisible(!isScrollingDown || currentScrollY < 100)
+          setLastScrollY(currentScrollY)
+        }
       }
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('scroll', handleScroll, { passive: true })
+      return () => window.removeEventListener('scroll', handleScroll)
+    }
   }, [lastScrollY])
 
   // Close expanded menu on outside click

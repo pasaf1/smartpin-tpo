@@ -32,7 +32,11 @@
       "Bash(npm run lint)",
       "Bash(npm run typecheck:*)",
       "Bash(echo:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm ls:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": []

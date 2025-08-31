@@ -11,18 +11,22 @@ export function useBreakpoint() {
 
   useEffect(() => {
     const updateBreakpoint = () => {
-      const width = window.innerWidth
-      if (width >= 1536) setBreakpoint('2xl')
-      else if (width >= 1280) setBreakpoint('xl')
-      else if (width >= 1024) setBreakpoint('lg')
-      else if (width >= 768) setBreakpoint('md')
-      else if (width >= 640) setBreakpoint('sm')
-      else setBreakpoint('xs')
+      if (typeof window !== 'undefined') {
+        const width = window.innerWidth
+        if (width >= 1536) setBreakpoint('2xl')
+        else if (width >= 1280) setBreakpoint('xl')
+        else if (width >= 1024) setBreakpoint('lg')
+        else if (width >= 768) setBreakpoint('md')
+        else if (width >= 640) setBreakpoint('sm')
+        else setBreakpoint('xs')
+      }
     }
 
     updateBreakpoint()
-    window.addEventListener('resize', updateBreakpoint)
-    return () => window.removeEventListener('resize', updateBreakpoint)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updateBreakpoint)
+      return () => window.removeEventListener('resize', updateBreakpoint)
+    }
   }, [])
 
   const isMobile = breakpoint === 'xs' || breakpoint === 'sm'

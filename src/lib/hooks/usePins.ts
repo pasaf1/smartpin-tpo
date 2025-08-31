@@ -1,21 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { supabase } from '../supabase'
-import type { Database, Severity } from '../database.types'
-import type { PinStatus } from '../database.types'
-
-type Pin = Database['public']['Tables']['pins']['Row']
-type PinInsert = Database['public']['Tables']['pins']['Insert']
-type PinUpdate = Database['public']['Tables']['pins']['Update']
-
-export interface PinWithRelations extends Pin {
-  // Optional UI-only fields previously used in demo/legacy
-  title?: string | null
-  description?: string | null
-  severity?: Severity | null
-  pin_children?: any[]
-  photos?: any[]
-}
+import type { Database, Pin, PinChild, PinInsert, PinUpdate, PinWithRelations, PinStatus } from '../database.types'
 
 export const QUERY_KEYS = {
   pins: ['pins'] as const,
@@ -85,7 +71,7 @@ export function useParentPins(roofId: string) {
 export function usePinChildren(parentId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.pinChildren(parentId),
-    queryFn: async (): Promise<any[]> => {
+    queryFn: async (): Promise<PinChild[]> => {
       const { data, error } = await supabase
         .from('pin_children')
         .select('*')
@@ -122,7 +108,7 @@ export function useCreatePin() {
       const { data, error } = await supabase
         .from('pins')
         .insert({
-          ...(pin as any),
+          ...pin,
           seq_number: nextSeqNumber,
         })
         .select()

@@ -6,6 +6,7 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import { cn } from '@/lib/utils'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
 import { getSupabase } from '@/lib/supabase'
+import type { PinWithRelations, ChildPinWithUIFields, PinClickHandler, AddChildPinHandler } from '@/lib/database.types'
 
 // Mobile-first responsive constants
 const MOBILE_BREAKPOINT = 768
@@ -14,36 +15,7 @@ const MAX_SCALE = 5
 const MOBILE_PIN_SIZE = 20
 const DESKTOP_PIN_SIZE = 16
 
-interface Pin {
-  id: string
-  roof_id: string
-  layer_id: string
-  seq_number: number
-  x: number // 0-1 normalized coordinates
-  y: number // 0-1 normalized coordinates
-  status: 'Open' | 'ReadyForInspection' | 'Closed'
-  severity: 'Low' | 'Medium' | 'High' | 'Critical'
-  zone?: string
-  children_total: number
-  children_open: number
-  children_ready: number
-  children_closed: number
-  parent_mix_state: 'ALL_OPEN' | 'MIXED' | 'ALL_CLOSED' | null
-}
-
-interface ChildPin {
-  id: string
-  parent_id: string
-  seq: string
-  x: number
-  y: number
-  status: 'Open' | 'ReadyForInspection' | 'Closed'
-  severity: 'Low' | 'Medium' | 'High' | 'Critical'
-  title?: string
-  description?: string
-  open_pic_url?: string
-  close_pic_url?: string
-}
+// Using unified types from database.types.ts
 
 interface Layer {
   id: string
@@ -68,15 +40,15 @@ interface Annotation {
 
 interface BluebinInteractiveRoofPlanProps {
   roofId: string
-  pins: Pin[]
-  childPins: ChildPin[]
+  pins: PinWithRelations[]
+  childPins: ChildPinWithUIFields[]
   layers: Layer[]
   annotations: Annotation[]
   roofPlanImageUrl?: string
-  onPinClick: (pin: Pin) => void
-  onChildPinClick: (childPin: ChildPin, parentPin: Pin) => void
+  onPinClick: PinClickHandler
+  onChildPinClick: (childPin: ChildPinWithUIFields, parentPin: PinWithRelations) => void
   onAddPin?: (x: number, y: number, layerId: string) => void
-  onAddChildPin?: (parentPin: Pin, x: number, y: number) => void
+  onAddChildPin?: AddChildPinHandler
   onAddAnnotation?: (annotation: Omit<Annotation, 'id'>) => void
   selectedLayerId?: string
   selectedTool?: 'pin' | 'childPin' | 'annotation' | 'text' | 'measure'
@@ -106,7 +78,7 @@ export function BluebinInteractiveRoofPlan({
   const [scale, setScale] = useState(1)
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [roofImage, setRoofImage] = useState<HTMLImageElement | null>(null)
-  const [selectedPin, setSelectedPin] = useState<Pin | null>(null)
+  const [selectedPin, setSelectedPin] = useState<PinWithRelations | null>(null)
   const [isAddingChildPin, setIsAddingChildPin] = useState(false)
   
   // Mobile touch handling
@@ -163,13 +135,15 @@ export function BluebinInteractiveRoofPlan({
     }
 
     updateDimensions()
-    window.addEventListener('resize', updateDimensions)
-    return () => window.removeEventListener('resize', updateDimensions)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updateDimensions)
+      return () => window.removeEventListener('resize', updateDimensions)
+    }
   }, [isMobile])
 
   // Load roof plan image
   useEffect(() => {
-    if (roofPlanImageUrl) {
+    if (roofPlanImageUrl && typeof window !== 'undefined') {
       const img = new window.Image()
       img.crossOrigin = 'anonymous'
       img.onload = () => setRoofImage(img)
@@ -330,7 +304,7 @@ export function BluebinInteractiveRoofPlan({
   }, [selectedTool, onAddPin, selectedLayerId, selectedPin, onAddChildPin, position, scale, dimensions, broadcastPinOperation, broadcastChildPinOperation])
 
   // Pin click handler
-  const handlePinClick = useCallback((pin: Pin) => {
+  const handlePinClick = useCallback((pin: PinWithRelations) => {
     setSelectedPin(pin)
     onPinClick(pin)
     
@@ -340,8 +314,8 @@ export function BluebinInteractiveRoofPlan({
   }, [onPinClick, selectedTool])
 
   // Child pin click handler
-  const handleChildPinClick = useCallback((childPin: ChildPin) => {
-    const parentPin = pins.find(p => p.id === childPin.parent_id)
+  const handleChildPinClick = useCallback((childPin: ChildPinWithUIFields) => {
+    const parentPin = pins.find(p => p.id === (childPin.parent_id || childPin.pin_id))
     if (parentPin) {
       onChildPinClick(childPin, parentPin)
     }
@@ -354,7 +328,7 @@ export function BluebinInteractiveRoofPlan({
     return pinLayer?.visible
   })
   const visibleChildPins = childPins.filter(childPin => {
-    const parent = pins.find(p => p.id === childPin.parent_id)
+    const parent = pins.find(p => p.id === (childPin.parent_id || childPin.pin_id))
     if (!parent) return false
     const layer = layers.find(l => l.id === parent.layer_id)
     return layer?.visible
@@ -501,7 +475,7 @@ export function BluebinInteractiveRoofPlan({
             {/* Render child pins for this layer */}
             {visibleChildPins
               .filter(childPin => {
-                const parent = pins.find(p => p.id === childPin.parent_id)
+                const parent = pins.find(p => p.id === (childPin.parent_id || childPin.pin_id))
                 return parent?.layer_id === layer.id
               })
               .map(childPin => {

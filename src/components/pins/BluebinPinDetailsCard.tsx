@@ -5,50 +5,16 @@ import { cn } from '@/lib/utils'
 import { getSupabase } from '@/lib/supabase'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
 
-interface Pin {
-  id: string
-  roof_id: string
-  layer_id: string
-  seq_number: number
-  x: number
-  y: number
-  status: 'Open' | 'ReadyForInspection' | 'Closed'
-  severity: 'Low' | 'Medium' | 'High' | 'Critical'
-  zone?: string
-  children_total: number
-  children_open: number
-  children_ready: number
-  children_closed: number
-  parent_mix_state: 'ALL_OPEN' | 'MIXED' | 'ALL_CLOSED' | null
-}
-
-interface ChildPin {
-  id: string
-  parent_id: string
-  seq: string
-  x: number
-  y: number
-  status: 'Open' | 'ReadyForInspection' | 'Closed'
-  severity: 'Low' | 'Medium' | 'High' | 'Critical'
-  zone?: string
-  defect_layer?: string
-  title?: string
-  description?: string
-  open_pic_url?: string
-  close_pic_url?: string
-  metadata: Record<string, any>
-  created_at: string
-  updated_at: string
-}
+import type { PinWithRelations, ChildPinWithUIFields, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler } from '@/lib/database.types'
 
 interface BluebinPinDetailsCardProps {
-  pin: Pin
-  childPins: ChildPin[]
+  pin: PinWithRelations
+  childPins: ChildPinWithUIFields[]
   onClose: () => void
   onStatusChange: (pinId: string, newStatus: 'Open' | 'ReadyForInspection' | 'Closed', isChild?: boolean) => void
-  onAddChildPin: (parentPin: Pin) => void
-  onUpdateChildPin: (childPin: ChildPin) => void
-  onDeleteChildPin: (childPinId: string) => void
+  onAddChildPin: AddChildPinHandler
+  onUpdateChildPin: UpdateChildPinHandler
+  onDeleteChildPin: DeleteChildPinHandler
   className?: string
   isMobile?: boolean
 }
@@ -104,19 +70,19 @@ export function BluebinPinDetailsCard({
     }
   }
 
-  const handleStatusChange = async (newStatus: 'Open' | 'ReadyForInspection' | 'Closed', childPin?: ChildPin) => {
+  const handleStatusChange = async (newStatus: 'Open' | 'ReadyForInspection' | 'Closed', childPin?: ChildPinWithUIFields) => {
     setIsUpdating(true)
     
     try {
       if (childPin) {
         // Update child pin status
-        await onStatusChange(childPin.id, newStatus, true)
+        await onStatusChange(childPin.id || childPin.child_id || childPin.child_id, newStatus, true)
         // Broadcast change to other users using BLUEBIN manager
         broadcastChildPinOperation('update', {
-          childPinId: childPin.id,
+          childPinId: childPin.id || childPin.child_id,
           parentPinId: pin.id,
           newStatus,
-          seq: childPin.seq
+          seq: childPin.seq || childPin.child_code
         })
       } else {
         // Update parent pin status
@@ -343,10 +309,10 @@ export function BluebinPinDetailsCard({
                 </div>
               ) : (
                 childPins.map(childPin => (
-                  <div key={childPin.id} className="border border-luxury-200 rounded-lg overflow-hidden">
+                  <div key={childPin.id || childPin.child_id} className="border border-luxury-200 rounded-lg overflow-hidden">
                     <div 
                       className="p-4 bg-luxury-50 hover:bg-luxury-100 cursor-pointer transition-colors"
-                      onClick={() => toggleChildExpansion(childPin.id)}
+                      onClick={() => toggleChildExpansion(childPin.id || childPin.child_id)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -354,11 +320,11 @@ export function BluebinPinDetailsCard({
                             "w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm",
                             getSeverityColor(childPin.severity)
                           )}>
-                            {childPin.seq.split('.')[1] || childPin.seq}
+                            {childPin.seq || childPin.child_code.split('.')[1] || childPin.seq || childPin.child_code}
                           </div>
                           <div>
                             <div className="font-medium text-luxury-900">
-                              {childPin.title || `Issue ${childPin.seq}`}
+                              {childPin.title || `Issue ${childPin.seq || childPin.child_code}`}
                             </div>
                             <div className="text-sm text-luxury-600">
                               {childPin.defect_layer && `${childPin.defect_layer} • `}
@@ -367,13 +333,13 @@ export function BluebinPinDetailsCard({
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getStatusColor(childPin.status))}>
-                            {childPin.status}
+                          <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getStatusColor(childPin.status || childPin.status_child))}>
+                            {childPin.status || childPin.status_child}
                           </span>
                           <svg 
                             className={cn(
                               "w-4 h-4 text-luxury-400 transition-transform",
-                              expandedChildId === childPin.id && "rotate-180"
+                              expandedChildId === childPin.id || childPin.child_id && "rotate-180"
                             )} 
                             fill="none" 
                             stroke="currentColor" 
@@ -386,7 +352,7 @@ export function BluebinPinDetailsCard({
                     </div>
 
                     {/* Expanded child pin details */}
-                    {expandedChildId === childPin.id && (
+                    {expandedChildId === childPin.id || childPin.child_id && (
                       <div className="p-4 border-t border-luxury-200 bg-white">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* Child pin info */}
@@ -394,7 +360,7 @@ export function BluebinPinDetailsCard({
                             <div>
                               <label className="block text-sm font-medium text-luxury-700 mb-1">Status</label>
                               <StatusSelect
-                                currentStatus={childPin.status}
+                                currentStatus={childPin.status || childPin.status_child}
                                 onStatusChange={(status) => handleStatusChange(status, childPin)}
                                 disabled={isUpdating}
                               />
@@ -470,7 +436,7 @@ export function BluebinPinDetailsCard({
                             Edit
                           </button>
                           <button
-                            onClick={() => onDeleteChildPin(childPin.id)}
+                            onClick={() => onDeleteChildPin(childPin.id || childPin.child_id)}
                             className="px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           >
                             Delete
@@ -492,16 +458,16 @@ export function BluebinPinDetailsCard({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {childPins.flatMap(childPin => [
                 ...(childPin.open_pic_url ? [{
-                  id: `${childPin.id}-open`,
+                  id: `${childPin.id || childPin.child_id}-open`,
                   url: childPin.open_pic_url,
                   type: 'Open',
-                  childSeq: childPin.seq
+                  childSeq: childPin.seq || childPin.child_code
                 }] : []),
                 ...(childPin.close_pic_url ? [{
-                  id: `${childPin.id}-close`,
+                  id: `${childPin.id || childPin.child_id}-close`,
                   url: childPin.close_pic_url,
                   type: 'Close',
-                  childSeq: childPin.seq
+                  childSeq: childPin.seq || childPin.child_code
                 }] : [])
               ]).map(photo => (
                 <div key={photo.id} className="relative group">

@@ -19,13 +19,15 @@ export function usePhotoUpload() {
 
   // מאזין לשינויים במצב הרשת
   useEffect(() => {
-    const updateOnlineStatus = () => setIsOffline(!navigator.onLine);
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus);
-      window.removeEventListener('offline', updateOnlineStatus);
-    };
+    if (typeof window !== 'undefined') {
+      const updateOnlineStatus = () => setIsOffline(!navigator.onLine);
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+      return () => {
+        window.removeEventListener('online', updateOnlineStatus);
+        window.removeEventListener('offline', updateOnlineStatus);
+      };
+    }
   }, []);
 
   // העלאת תמונה יחידה ל־Supabase Storage

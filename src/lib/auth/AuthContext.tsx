@@ -79,13 +79,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       
-      if (session?.user) {
-        console.log('👤 User authenticated, fetching profile...')
+      if (session?.user && event === 'SIGNED_IN') {
+        console.log('👤 User signed in, fetching profile...')
         try {
           await fetchUserProfile(session.user.id)
         } catch (error) {
           console.error('❌ Failed to fetch profile in auth change:', error)
-          // Don't block the auth flow, just log the error
+          // Create minimal fallback profile for OAuth users
+          if (event === 'SIGNED_IN' && session.user.app_metadata?.provider === 'google') {
+            console.log('🔧 Creating fallback profile for Google user')
+            setProfile({
+              id: session.user.id,
+              auth_user_id: session.user.id,
+              email: session.user.email || '',
+              full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Google User',
+              role: 'Viewer',
+              address: null,
+              birth_date: null,
+              created_at: new Date().toISOString(),
+            })
+          }
           setLoading(false)
         }
       } else {
@@ -273,12 +286,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true)
     try {
       console.log('🔵 Starting Google OAuth flow...')
-      console.log('🔵 Redirect URL:', `${window.location.origin}/`)
+      const redirectUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+      console.log('🔵 Redirect URL:', `${redirectUrl}/`)
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: `${redirectUrl}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       })
       
@@ -286,11 +304,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error('🔴 OAuth error:', error)
+        setLoading(false)
         throw error
       }
       
       if (data?.url) {
         console.log('🔵 Redirecting to:', data.url)
+        // Don't set loading to false here - let the auth state change handle it
       }
       
     } catch (error) {

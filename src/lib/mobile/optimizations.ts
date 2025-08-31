@@ -44,9 +44,11 @@ export class MobileOptimizer {
   }
 
   private updateViewport() {
-    this.viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight
+    if (typeof window !== 'undefined') {
+      this.viewport = {
+        width: window.innerWidth,
+        height: window.innerHeight
+      }
     }
   }
 
@@ -177,7 +179,7 @@ export class MobileOptimizer {
     }
 
     // Handle virtual keyboard
-    if ('visualViewport' in window) {
+    if (typeof window !== 'undefined' && 'visualViewport' in window) {
       const visualViewport = window.visualViewport!
       
       visualViewport.addEventListener('resize', () => {
@@ -247,6 +249,8 @@ export class MobileOptimizer {
   }
 
   private limitConcurrentOperations() {
+    if (typeof window === 'undefined') return
+    
     // Override fetch to limit concurrent requests
     const originalFetch = window.fetch
     let activeRequests = 0
@@ -320,11 +324,13 @@ export class MobileOptimizer {
     })
 
     // Reduce polling frequency by overriding setInterval
-    const originalSetInterval = window.setInterval
-    window.setInterval = ((callback: any, delay: any, ...args: any[]) => {
-      // Double the interval to reduce network usage
-      return originalSetInterval(callback, Math.max(delay * 2, 1000), ...args)
-    }) as typeof window.setInterval
+    if (typeof window !== 'undefined') {
+      const originalSetInterval = window.setInterval
+      window.setInterval = ((callback: any, delay: any, ...args: any[]) => {
+        // Double the interval to reduce network usage
+        return originalSetInterval(callback, Math.max(delay * 2, 1000), ...args)
+      }) as typeof window.setInterval
+    }
   }
 
   // Public methods for component integration
@@ -356,7 +362,7 @@ export class MobileOptimizer {
 
   shouldUseReducedAnimations(): boolean {
     return this.isLowEndDevice() || 
-           window.matchMedia('(prefers-reduced-motion: reduce)').matches
+           (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   }
 
   getOptimalChunkSize(): number {
@@ -400,10 +406,12 @@ export class MobileOptimizer {
           this.shouldUseReducedAnimations = () => true
 
           // Reduce polling frequency
-          const originalSetTimeout = window.setTimeout
-          window.setTimeout = ((callback: any, delay: any) => {
-            return originalSetTimeout(callback, Math.max(delay * 1.5, 100))
-          }) as typeof window.setTimeout
+          if (typeof window !== 'undefined') {
+            const originalSetTimeout = window.setTimeout
+            window.setTimeout = ((callback: any, delay: any) => {
+              return originalSetTimeout(callback, Math.max(delay * 1.5, 100))
+            }) as typeof window.setTimeout
+          }
 
           // Disable vibrations
           if ('vibrate' in navigator) {
@@ -432,7 +440,7 @@ export class MobileOptimizer {
     notification.innerHTML = `
       <div class="flex items-center space-x-2">
         <span>App updated! Refresh to see changes.</span>
-        <button onclick="window.location.reload()" class="bg-white text-blue-500 px-2 py-1 rounded text-sm">
+        <button onclick="typeof window !== 'undefined' && window.location.reload()" class="bg-white text-blue-500 px-2 py-1 rounded text-sm">
           Refresh
         </button>
         <button onclick="this.parentElement.parentElement.remove()" class="text-white/70 hover:text-white">

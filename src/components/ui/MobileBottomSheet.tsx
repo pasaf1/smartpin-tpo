@@ -40,7 +40,7 @@ export function MobileBottomSheet({
 
   // Find closest snap point to current position
   const findClosestSnap = (yPosition: number, velocity: number) => {
-    const windowHeight = window.innerHeight
+    const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 1000
     const currentPercent = ((windowHeight - yPosition) / windowHeight) * 100
     
     let closestIndex = 0

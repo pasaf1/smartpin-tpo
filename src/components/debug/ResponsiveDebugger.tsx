@@ -79,13 +79,17 @@ export function ResponsiveDebugger({
   // Update viewport dimensions
   useEffect(() => {
     const updateViewport = () => {
-      setViewportWidth(window.innerWidth)
-      setViewportHeight(window.innerHeight)
+      if (typeof window !== 'undefined') {
+        setViewportWidth(window.innerWidth)
+        setViewportHeight(window.innerHeight)
+      }
     }
 
     updateViewport()
-    window.addEventListener('resize', updateViewport)
-    return () => window.removeEventListener('resize', updateViewport)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updateViewport)
+      return () => window.removeEventListener('resize', updateViewport)
+    }
   }, [])
 
   // Determine current breakpoint
@@ -146,7 +150,7 @@ export function ResponsiveDebugger({
         <div className="fixed bottom-4 right-4 z-50 bg-black/80 text-white text-xs font-mono p-3 rounded-lg backdrop-blur-md">
           <div className="space-y-1">
             <div>Viewport: {viewportWidth}x{viewportHeight}</div>
-            <div>Device Pixel Ratio: {window.devicePixelRatio}</div>
+            <div>Device Pixel Ratio: {typeof window !== 'undefined' ? window.devicePixelRatio : 1}</div>
             <div>Orientation: {viewportWidth > viewportHeight ? 'Landscape' : 'Portrait'}</div>
           </div>
         </div>
@@ -180,7 +184,7 @@ export function ResponsiveDebugger({
                 <div className="text-sm text-gray-400 space-y-1">
                   <div>Viewport: {viewportWidth}×{viewportHeight}px</div>
                   <div>Range: {currentBreakpoint?.min}px - {currentBreakpoint?.max || '∞'}px</div>
-                  <div>DPR: {window.devicePixelRatio}</div>
+                  <div>DPR: {typeof window !== 'undefined' ? window.devicePixelRatio : 1}</div>
                 </div>
               </div>
             </div>

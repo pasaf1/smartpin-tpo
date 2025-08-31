@@ -2,7 +2,12 @@
 const path = require('path')
 
 const nextConfig = {
-  // Note: Avoid setting outputFileTracingRoot here to prevent Vercel packaging issues
+  // For monorepo deployments - helps Vercel properly trace dependencies
+  outputFileTracingRoot: path.join(__dirname, '../../'),
+  
+  // Output configuration for Vercel deployment
+  output: 'standalone',
+  
   // Performance optimizations
   experimental: {
     optimizePackageImports: [
@@ -17,8 +22,10 @@ const nextConfig = {
       'papaparse'
     ],
     webpackBuildWorker: true,
-    // optimizeCss: true, // Temporarily disabled - requires 'critters' package
     optimizeServerReact: true,
+    // Additional Vercel-optimized flags
+    scrollRestoration: true,
+    optimizeCss: false, // Disabled - can cause issues with dynamic imports
   },
 
   // Turbopack configuration (experimental.turbo is deprecated)
@@ -141,8 +148,7 @@ const nextConfig = {
   generateEtags: true,
 
   // Output optimization for production
-  // Note: 'standalone' can cause symlink issues on Windows local builds.
-  // Vercel will handle output tracing automatically in CI.
+  // Standalone output is handled by the 'output' configuration above
   
   // Security headers
   async headers() {

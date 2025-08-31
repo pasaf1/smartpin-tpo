@@ -24,7 +24,7 @@ import ChatInterface from '@/components/chat/ChatInterface'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
 import { RealtimeStatus } from '@/components/realtime/ConnectionStatus'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations } from '@/lib/hooks/usePins'
+import type { PinWithRelations, PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler, ChildPinWithUIFields } from '@/lib/database.types'
 import { DockedChat } from '@/components/chat/DockedChat'
 
 function RoofDashboardPage() {
@@ -37,15 +37,32 @@ function RoofDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Open' | 'ReadyForInspection' | 'Closed'>('all')
   const [selectedTool, setSelectedTool] = useState<'pin' | 'childPin' | 'annotation' | 'text' | 'measure'>('pin')
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
-  const [childPins, setChildPins] = useState<any[]>([])
-  const [layers, setLayers] = useState<any[]>([{ id: '1', name: 'Quality Control', visible: true, z_index: 1, opacity: 1.0, type: 'pins' }])
-  const [annotations, setAnnotations] = useState<any[]>([])
+  const [childPins, setChildPins] = useState<ChildPinWithUIFields[]>([])
+  const [layers, setLayers] = useState([{ 
+    id: '1', 
+    roof_id: roofId, 
+    name: 'Quality Control', 
+    type: 'pins' as const, 
+    visible: true, 
+    locked: false, 
+    z_index: 1, 
+    opacity: 1.0, 
+    settings: {} 
+  }])
+  const [annotations, setAnnotations] = useState<{ 
+    id: string; 
+    roof_id: string; 
+    layer_id: string; 
+    type: 'rectangle' | 'circle' | 'polygon' | 'polyline' | 'text' | 'arrow'; 
+    data: any; 
+    style: Record<string, any> 
+  }[]>([])
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileDetails, setShowMobileDetails] = useState(false)
   
   // Real-time roof data with live updates
   const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-  const { data: pins = [] } = usePins(roofId) as { data: any[] }
+  const { data: pins = [] } = usePins(roofId) as { data: PinWithRelations[] }
   const { data: pinItems = [] } = useAllPinItems(roofId)
   const { messages } = useChat(roofId, selectedPin?.id)
   const { data: users = [] } = useUsers()
@@ -53,10 +70,12 @@ function RoofDashboardPage() {
 
   // Mobile detection
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    if (typeof window !== 'undefined') {
+      setIsMobile(window.innerWidth < 768)
+      const handleResize = () => setIsMobile(window.innerWidth < 768)
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
   }, [])
 
   // Set default layer
@@ -83,7 +102,7 @@ function RoofDashboardPage() {
     }
   }
 
-  const handlePinClick = (pin: any) => {
+  const handlePinClick: PinClickHandler = (pin) => {
     setSelectedPin({
       ...pin,
       layer_id: pin.layer_id || selectedLayerId || layers[0]?.id || '1'
@@ -95,7 +114,7 @@ function RoofDashboardPage() {
     }
   }
 
-  const handleChildPinClick = (childPin: any, parentPin: any) => {
+  const handleChildPinClick = (childPin: ChildPinWithUIFields, parentPin: PinWithRelations) => {
     setSelectedPin(parentPin)
     if (isMobile) {
       setShowMobileDetails(true)
@@ -117,24 +136,42 @@ function RoofDashboardPage() {
     }
   }
 
-  const handleAddChildPin = async (parentPin: any, x: number, y: number) => {
+  const handleAddChildPin: AddChildPinHandler = async (parentPin, x = 0.5, y = 0.5) => {
     // Create child pin logic
-    const newChildPin = {
+    const newChildPin: ChildPinWithUIFields = {
+      child_id: Date.now().toString(),
+      pin_id: parentPin.id,
+      child_code: `${parentPin.seq_number}.${childPins.filter(cp => cp.pin_id === parentPin.id).length + 1}`,
+      zone: null,
+      defect_type: 'General',
+      severity: 'Medium' as const,
+      status_child: 'Open' as const,
+      due_date: null,
+      open_date: new Date().toISOString(),
+      closed_date: null,
+      openpic_id: null,
+      closurepic_id: null,
+      notes: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // UI compatibility fields
       id: Date.now().toString(),
       parent_id: parentPin.id,
-      seq: `${parentPin.seq_number}.${childPins.filter(cp => cp.parent_id === parentPin.id).length + 1}`,
+      seq: `${parentPin.seq_number}.${childPins.filter(cp => cp.pin_id === parentPin.id).length + 1}`,
       x,
       y,
       status: 'Open',
-      severity: 'Medium',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      metadata: {}
+      title: null,
+      description: null,
+      open_pic_url: null,
+      close_pic_url: null,
+      metadata: {},
+      defect_layer: undefined
     }
     setChildPins([...childPins, newChildPin])
   }
 
-  const handleStatusChange = (pinId: string, newStatus: any, isChild = false) => {
+  const handleStatusChange: StatusChangeHandler = (pinId, newStatus, isChild = false) => {
     if (isChild) {
       setChildPins(childPins.map(cp => cp.id === pinId ? { ...cp, status: newStatus } : cp))
     } else {
@@ -143,7 +180,7 @@ function RoofDashboardPage() {
     }
   }
 
-  const handleUpdateChildPin = (childPin: any) => {
+  const handleUpdateChildPin: UpdateChildPinHandler = (childPin) => {
     setChildPins(childPins.map(cp => cp.id === childPin.id ? childPin : cp))
   }
 
@@ -151,8 +188,18 @@ function RoofDashboardPage() {
     setChildPins(childPins.filter(cp => cp.id !== childPinId))
   }
 
-  const handleAddAnnotation = (annotation: any) => {
-    setAnnotations([...annotations, { ...annotation, id: Date.now().toString() }])
+  const handleAddAnnotation = (annotation: Omit<{ 
+    id: string; 
+    roof_id: string; 
+    layer_id: string; 
+    type: 'rectangle' | 'circle' | 'polygon' | 'polyline' | 'text' | 'arrow'; 
+    data: any; 
+    style: Record<string, any> 
+  }, "id">) => {
+    setAnnotations([...annotations, { 
+      ...annotation,
+      id: Date.now().toString()
+    }])
   }
 
   const handleChildPinCreate = async (parentPinId: string, x: number, y: number) => {
@@ -455,7 +502,7 @@ function RoofDashboardPage() {
                   onPinClick={handlePinClick}
                   onChildPinClick={handleChildPinClick}
                   onAddPin={handleAddPin}
-                  onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin, 0.5, 0.5)}
+                  onAddChildPin={(parentPin: PinWithRelations) => handleAddChildPin(parentPin, 0.5, 0.5)}
                   onAddAnnotation={handleAddAnnotation}
                   selectedLayerId={selectedLayerId || undefined}
                   selectedTool={selectedTool}
@@ -586,7 +633,7 @@ function RoofDashboardPage() {
                   childPins={childPins.filter(cp => cp.parent_id === selectedPin.id)}
                   onClose={() => setSelectedPin(null)}
                   onStatusChange={handleStatusChange}
-                  onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin, 0.5, 0.5)}
+                  onAddChildPin={(parentPin: PinWithRelations) => handleAddChildPin(parentPin, 0.5, 0.5)}
                   onUpdateChildPin={handleUpdateChildPin}
                   onDeleteChildPin={handleDeleteChildPin}
                   className="h-full border-0 bg-transparent"

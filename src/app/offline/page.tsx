@@ -2,7 +2,9 @@
 
 export default function OfflinePage() {
   const handleRetry = () => {
-    window.location.reload()
+    if (typeof window !== 'undefined') {
+      window.location.reload()
+    }
   }
 
   return (
@@ -49,7 +51,7 @@ export default function OfflinePage() {
         </button>
         
         <button
-          onClick={() => window.history.back()}
+          onClick={() => typeof window !== 'undefined' && window.history.back()}
           className="w-full mt-3 text-luxury-600 hover:text-luxury-900 font-semibold transition-colors"
         >
           Go Back

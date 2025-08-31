@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { Database } from '@/lib/database.types'
+import type { Database, PinWithRelations } from '@/lib/database.types'
 
 type PinItem = Database['public']['Tables']['pin_items']['Row']
 
@@ -80,7 +80,7 @@ export function PinItemsTable({
   const [useSemanticSearch, setUseSemanticSearch] = useState(false)
 
   const { data: pinItems = [], isLoading, error } = useAllPinItems(roofId)
-  const { data: pins = [] } = usePins(roofId || '') as { data: any[] }
+  const { data: pins = [] } = usePins(roofId || '') as { data: PinWithRelations[] }
   const updateStatusMutation = useUpdatePinItemStatus()
 
   // Helper function to determine zone based on pin coordinates
@@ -328,7 +328,7 @@ export function PinItemsTable({
     if (current !== desired) {
       col.setFilterValue(desired)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [table, defaultStatusFilter])
 
   if (isLoading) {

@@ -21,7 +21,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { format, getISOWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations } from '@/lib/hooks/usePins'
+import type { PinWithRelations } from '@/lib/database.types'
 
 interface PinDetailsCardProps {
   pin: PinWithRelations

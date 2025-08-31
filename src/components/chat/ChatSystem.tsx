@@ -53,10 +53,11 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
     role: user.user_metadata?.role || 'Viewer'
   } : undefined;
 
-  // תמיד נקרא להוק, ותמיד נעביר פרמטרים חוקיים
-  const scopeType = ['global', 'roof', 'pin'].includes(activeScope?.type) 
+  // Always ensure valid scope type for hooks
+  const scopeType = (activeScope && ['global', 'roof', 'pin'].includes(activeScope.type)) 
     ? (activeScope.type as 'global' | 'roof' | 'pin') 
     : 'global';
+  
   // Scope-aware mutations so cache invalidation targets the active chat feed
   const editMessageMutation = useEditChatMessage(scopeType, activeScope?.id);
   const deleteMessageMutation = useDeleteChatMessage(scopeType, activeScope?.id);
