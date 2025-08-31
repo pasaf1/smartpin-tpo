@@ -63,6 +63,17 @@ function RoofDashboardPage() {
   
   // Real-time roof data with live updates
   const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🏠 Roof Dashboard Debug:', {
+      roofId,
+      roof: !!roof,
+      roofLoading,
+      roofError: roofError?.message || roofError,
+      environment: process.env.NODE_ENV
+    })
+  }, [roofId, roof, roofLoading, roofError])
   const { data: pins = [] } = usePins(roofId) as { data: PinWithRelations[] }
   const { data: pinItems = [] } = useAllPinItems(roofId)
   const { messages } = useChat(roofId, selectedPin?.id)
@@ -231,14 +242,20 @@ function RoofDashboardPage() {
     )
   }
 
-  if (roofError || !roof) {
+  if (roofError || (!roofLoading && !roof)) {
+    console.error('🚨 Roof Dashboard Error:', { roofError, roofId })
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center text-muted-foreground">
-              <p>Roof not found</p>
-              <p className="text-sm mt-1">Please check the URL and try again</p>
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="font-semibold text-red-800">Roof Dashboard Error</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {roofError?.message || roofError?.toString() || 'Roof not found'}
+                </p>
+                <p className="text-xs text-red-500 mt-2">Roof ID: {roofId}</p>
+              </div>
               <Link href="/roofs">
                 <Button className="mt-4" variant="outline">
                   ← Back to Roofs
