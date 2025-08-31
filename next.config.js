@@ -2,41 +2,33 @@
 const path = require('path')
 
 const nextConfig = {
-  // For monorepo deployments - helps Vercel properly trace dependencies
-  outputFileTracingRoot: path.join(__dirname, '../../'),
+  // Simplified for Vercel deployment - remove problematic tracing config
+  // outputFileTracingRoot: path.join(__dirname, '../../'),
   
-  // Output configuration for Vercel deployment
-  output: 'standalone',
+  // Remove standalone output for standard Vercel deployment
+  // output: 'standalone',
   
-  // Performance optimizations
+  // Simplified experimental features for Vercel compatibility
   experimental: {
     optimizePackageImports: [
       'lucide-react', 
-      '@tanstack/react-query', 
-      'date-fns',
-      'framer-motion',
-      'react-konva',
-      'konva',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-popover',
-      'papaparse'
+      '@tanstack/react-query'
     ],
-    webpackBuildWorker: true,
-    optimizeServerReact: true,
-    // Additional Vercel-optimized flags
+    // Remove potentially problematic experimental features
+    // webpackBuildWorker: true,
+    // optimizeServerReact: true,
     scrollRestoration: true,
-    optimizeCss: false, // Disabled - can cause issues with dynamic imports
   },
 
-  // Turbopack configuration (experimental.turbo is deprecated)
-  turbopack: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
-  },
+  // Remove turbopack config that can cause deployment issues
+  // turbopack: {
+  //   rules: {
+  //     '*.svg': {
+  //       loaders: ['@svgr/webpack'],
+  //       as: '*.js',
+  //     },
+  //   },
+  // },
 
   // Image optimization
   images: {
@@ -68,8 +60,15 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
+        canvas: false, // Fix for Konva
       }
     }
+    
+    // Fix for Konva canvas module resolution
+    config.externals = config.externals || []
+    config.externals.push({
+      canvas: 'canvas',
+    })
 
     // Optimize bundle splitting with more granular chunks
     config.optimization = {
