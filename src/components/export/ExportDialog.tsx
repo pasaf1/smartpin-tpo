@@ -1,356 +1,193 @@
-// ExportDialog.tsx
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { useCurrentUser } from '@/lib/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import {
-  Dialog, DialogContent, DialogDescription,
-  DialogFooter, DialogHeader, DialogTitle, DialogTrigger
-} from '@/components/ui/dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { subDays } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { ExportManager, ChatExporter, ProjectExporter, ImageExporter, ExportOptions } from '@/lib/utils/exportUtils';
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { useExport } from '@/lib/hooks/useExport'
+import { ActivityLogger } from '@/lib/activity/ActivityLogger'
+import { Download, FileText, Image, Calendar, Settings } from 'lucide-react'
+import type { PinWithRelations, PinChild } from '@/lib/database.types'
 
 interface ExportDialogProps {
-  roofId: string;
-  roofName: string;
-  messages: any[];
-  pins: any[];
-  users: any[];
-  roofData: any;
-  children?: React.ReactNode;
-  className?: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  pins?: PinWithRelations[]
+  selectedPin?: PinWithRelations
+  pinChildren?: PinChild[]
+  projectId?: string
+  roofId?: string
+  activityLogger?: ActivityLogger
 }
 
-const DATE_PRESETS = [
-  { label: 'Last 24 hours', value: 'day', days: 1 },
-  { label: 'Last week', value: 'week', days: 7 },
-  { label: 'Last month', value: 'month', days: 30 },
-  { label: 'Last 3 months', value: '3months', days: 90 },
-  { label: 'All time', value: 'all', days: null },
-  { label: 'Custom range', value: 'custom', days: null }
-];
+type ExportType = 'csv-pins' | 'csv-project' | 'csv-analytics' | 'pdf-pin' | 'pdf-pins'
 
-export default function ExportDialog({
-  roofId, roofName, messages, pins, users, roofData, children, className
+export function ExportDialog({
+  open,
+  onOpenChange,
+  pins = [],
+  selectedPin,
+  pinChildren = [],
+  projectId,
+  roofId,
+  activityLogger
 }: ExportDialogProps) {
-  const { data: currentUser } = useCurrentUser();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportType, setExportType] = useState<'project'|'chat'|'both'>('both');
-  const [exportFormat, setExportFormat] = useState<'pdf'|'csv'|'both'>('pdf');
-  const [datePreset, setDatePreset] = useState('all');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [includeImages, setIncludeImages] = useState(true);
-  const [includeAttachments, setIncludeAttachments] = useState(true);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>(['text','mention','attachment','system']);
+  const [exportType, setExportType] = useState<ExportType>('csv-pins')
+  const [customFilename, setCustomFilename] = useState('')
+  const [options, setOptions] = useState({
+    includePhotos: false,
+    includeTechnicalDetails: true,
+    includeTimestamps: true,
+    dateFormat: 'US' as 'ISO' | 'US' | 'EU'
+  })
 
-  if (!currentUser) {
-    return null;
-  }
-
-  const getDateRange = () => {
-    const now = new Date();
-    const preset = DATE_PRESETS.find(p => p.value === datePreset);
-    if (preset && preset.days) {
-      return {
-        start: subDays(now, preset.days),
-        end: now
-      };
-    }
-    if (datePreset === 'custom' && customStartDate && customEndDate) {
-      return {
-        start: new Date(customStartDate),
-        end: new Date(customEndDate)
-      };
-    }
-    return null;
-  };
+  const {
+    isExporting,
+    exportProgress,
+    exportPinsCSV,
+    exportProjectCSV,
+    exportAnalyticsCSV,
+    exportPinPDF,
+    exportPinsPDF
+  } = useExport({ projectId, roofId, activityLogger })
 
   const handleExport = async () => {
-    setIsExporting(true);
-    try {
-      const dateRange = getDateRange();
-      const exportOptions: ExportOptions = {
-        includeImages,
-        includeAttachments,
-        dateRange: dateRange || undefined,
-        userFilter: selectedUsers.length > 0 ? selectedUsers : undefined,
-        messageType: selectedMessageTypes as any
-      };
-      const exportData = { roof: roofData, pins: pins || [], messages: messages || [], users: users || [] };
-      if (exportType === 'project') {
-        if (exportFormat === 'pdf') {
-          await ProjectExporter.exportRoofToPDF(exportData);
-        } else if (exportFormat === 'csv') {
-          await ProjectExporter.exportRoofToCSV(exportData);
-        } else {
-          await ProjectExporter.exportRoofToPDF(exportData);
-          await ProjectExporter.exportRoofToCSV(exportData);
+    const filename = customFilename.trim() || undefined
+    
+    switch (exportType) {
+      case 'csv-pins':
+        await exportPinsCSV(pins, filename, options)
+        break
+      case 'csv-project':
+        await exportProjectCSV(filename, options)
+        break
+      case 'csv-analytics':
+        await exportAnalyticsCSV(filename)
+        break
+      case 'pdf-pin':
+        if (selectedPin) {
+          await exportPinPDF(selectedPin, pinChildren, options)
         }
-      } else if (exportType === 'chat') {
-        if (exportFormat === 'pdf') {
-          await ChatExporter.exportToPDF(messages, roofName, exportOptions);
-        } else if (exportFormat === 'csv') {
-          await ChatExporter.exportToCSV(messages, roofName, exportOptions);
-        } else {
-          await ChatExporter.exportToPDF(messages, roofName, exportOptions);
-          await ChatExporter.exportToCSV(messages, roofName, exportOptions);
-        }
-      } else {
-        // both
-        await ExportManager.exportComplete(exportData, exportFormat as any, exportOptions);
-      }
-      setIsOpen(false);
-    } catch (error) {
-      console.error('Export failed:', error);
-    } finally {
-      setIsExporting(false);
+        break
+      case 'pdf-pins':
+        await exportPinsPDF(pins, options)
+        break
     }
-  };
-
-  const handleCaptureRoofPlan = async () => {
-    try {
-      const canvasElement = document.querySelector('svg.canvas-svg') as SVGSVGElement;
-      if (canvasElement) {
-        await ImageExporter.captureCanvasWithPins(canvasElement, roofName);
-      }
-    } catch (error) {
-      console.error('Screenshot failed:', error);
-    }
-  };
-
-  const messageCount = messages?.length || 0;
-  const filteredMessageCount = messages?.filter((msg: any) => {
-    const dateRange = getDateRange();
-    if (dateRange) {
-      const msgDate = new Date(msg.created_at);
-    }
-    if (selectedUsers.length > 0 && !selectedUsers.includes(msg.user_id)) return false;
-    if (!selectedMessageTypes.includes((msg as any).message_type)) return false;
-    return true;
-  }).length || 0;
+    
+    onOpenChange(false)
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" className={cn("gap-2", className)}>
-            📄 Export
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            📄 Export Data <Badge variant="outline">{roofName}</Badge>
+            <Download className="w-5 h-5" />
+            Export Data
           </DialogTitle>
           <DialogDescription>
-            Export project data, chat messages, and attachments for reporting
+            Choose export format and options
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* סוג פורמט הייצוא */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-sm">Export Type</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { label: 'Complete Project', value: 'both', desc: 'Includes all data' },
-                  { label: 'Project Only', value: 'project', desc: 'Roof info and team' },
-                  { label: 'Chat Only', value: 'chat', desc: 'Team communication' }
-                ].map((opt) => (
-                  <div key={opt.value}>
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        value={opt.value}
-                        checked={exportType === opt.value}
-                        onChange={(e) => setExportType(e.target.value as any)}
-                        className="text-primary"
-                      />
-                      <span className="text-sm">{opt.label}</span>
-                      {opt.value === 'both' && <Badge variant="secondary">Recommended</Badge>}
-                    </label>
-                    <p className="text-xs text-muted-foreground ml-6">{opt.desc}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-sm">Export Format</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {['pdf', 'csv', 'both'].map((fmt) => (
-                  <div key={fmt}>
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        value={fmt}
-                        checked={exportFormat === fmt}
-                        onChange={(e) => setExportFormat(e.target.value as any)}
-                        className="text-primary"
-                      />
-                      <span className="text-sm capitalize">{fmt}</span>
-                    </label>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-sm">Quick Actions</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                <Button variant="outline" size="sm" onClick={handleCaptureRoofPlan} className="w-full justify-start gap-2">
-                  📸 Capture Roof Plan
-                </Button>
-                <p className="text-xs text-muted-foreground">Save roof view with pins as image</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* סינונים ואופציות */}
-          <div className="space-y-4">
-            {(exportType === 'chat' || exportType === 'both') && (
-              <>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Date Range</CardTitle>
-                    <CardDescription className="text-xs">
-                      {messageCount} total • {filteredMessageCount} to export
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Select value={datePreset} onValueChange={setDatePreset}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {DATE_PRESETS.map((preset) => (
-                          <SelectItem key={preset.value} value={preset.value}>
-                            {preset.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {datePreset === 'custom' && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor="start-date" className="text-xs">Start Date</Label>
-                          <Input
-                            id="start-date"
-                            type="date"
-                            value={customStartDate}
-                            onChange={(e) => setCustomStartDate(e.target.value)}
-                            className="text-sm"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="end-date" className="text-xs">End Date</Label>
-                          <Input
-                            id="end-date"
-                            type="date"
-                            value={customEndDate}
-                            onChange={(e) => setCustomEndDate(e.target.value)}
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3"><CardTitle className="text-sm">Message Types</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
-                    {[
-                      { value: 'text', label: 'Regular Messages', icon: '💬' },
-                      { value: 'mention', label: '@Mentions', icon: '👤' },
-                      { value: 'attachment', label: 'File Attachments', icon: '📎' },
-                      { value: 'system', label: 'System Messages', icon: '⚙️' }
-                    ].map(type => (
-                      <div key={type.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`type-${type.value}`}
-                          checked={selectedMessageTypes.includes(type.value)}
-                          onCheckedChange={(checked) => {
-                            if (checked) setSelectedMessageTypes([...selectedMessageTypes, type.value]);
-                            else setSelectedMessageTypes(selectedMessageTypes.filter(t => t !== type.value));
-                          }}
-                        />
-                        <Label htmlFor={`type-${type.value}`} className="text-sm flex items-center gap-1">
-                          <span>{type.icon}</span>{type.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3"><CardTitle className="text-sm">Content Options</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="include-images"
-                        checked={includeImages}
-                        onCheckedChange={(checked: boolean | 'indeterminate') => setIncludeImages(Boolean(checked))}
-                      />
-                      <Label htmlFor="include-images" className="text-sm">
-                        Include images in PDF
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="include-attachments"
-                        checked={includeAttachments}
-                        onCheckedChange={(checked) => setIncludeAttachments(Boolean(checked))}
-                      />
-                      <Label htmlFor="include-attachments" className="text-sm">
-                        List file attachments
-                      </Label>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-            <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-sm">Export Summary</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-xs text-muted-foreground">
-                <div className="flex justify-between"><span>Pins:</span><span>{pins?.length || 0}</span></div>
-                <div className="flex justify-between"><span>Messages:</span><span>{filteredMessageCount}</span></div>
-                <div className="flex justify-between"><span>Team Members:</span><span>{users?.length || 0}</span></div>
-                <Separator />
-                <div className="flex justify-between font-medium">
-                  <span>Format:</span><span className="capitalize">{exportFormat}</span>
+        <div className="space-y-4">
+          {/* Export Type */}
+          <div className="space-y-3">
+            <Label>Export Type</Label>
+            <RadioGroup value={exportType} onValueChange={(value) => setExportType(value as ExportType)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="csv-pins" id="csv-pins" />
+                <Label htmlFor="csv-pins">CSV - Issues ({pins.length} pins)</Label>
+              </div>
+              {projectId && (
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="csv-project" id="csv-project" />
+                  <Label htmlFor="csv-project">CSV - Project Summary</Label>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="csv-analytics" id="csv-analytics" />
+                <Label htmlFor="csv-analytics">CSV - Analytics Report</Label>
+              </div>
+              {selectedPin && (
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pdf-pin" id="pdf-pin" />
+                  <Label htmlFor="pdf-pin">PDF - Single Pin</Label>
+                </div>
+              )}
+              {pins.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pdf-pins" id="pdf-pins" />
+                  <Label htmlFor="pdf-pins">PDF - Multiple Pins</Label>
+                </div>
+              )}
+            </RadioGroup>
           </div>
+
+          {/* Options */}
+          <div className="space-y-3">
+            <Label>Options</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="technical"
+                  checked={options.includeTechnicalDetails}
+                  onCheckedChange={(checked) =>
+                    setOptions(prev => ({ ...prev, includeTechnicalDetails: !!checked }))
+                  }
+                />
+                <Label htmlFor="technical">Technical Details</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="timestamps"
+                  checked={options.includeTimestamps}
+                  onCheckedChange={(checked) =>
+                    setOptions(prev => ({ ...prev, includeTimestamps: !!checked }))
+                  }
+                />
+                <Label htmlFor="timestamps">Timestamps</Label>
+              </div>
+              {exportType.startsWith('pdf') && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="photos"
+                    checked={options.includePhotos}
+                    onCheckedChange={(checked) =>
+                      setOptions(prev => ({ ...prev, includePhotos: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="photos">Photos</Label>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Progress */}
+          {isExporting && (
+            <div className="space-y-2">
+              <Progress value={exportProgress} />
+              <div className="text-sm text-center">
+                {exportProgress < 100 ? 'Exporting...' : 'Complete!'}
+              </div>
+            </div>
+          )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">
-            Files will be downloaded to your device
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isExporting}>Cancel</Button>
-            <Button onClick={handleExport} disabled={isExporting}>
-              {isExporting ? '📤 Exporting...' : '📤 Export'}
-            </Button>
-          </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
+            Cancel
+          </Button>
+          <Button onClick={handleExport} disabled={isExporting}>
+            {isExporting ? 'Exporting...' : 'Export'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

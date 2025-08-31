@@ -1,0 +1,780 @@
+SmartPin TPO - Technical Specification
+1. System Overview
+1.1 Purpose
+SmartPin TPO is a comprehensive construction quality control platform designed for real-time roof inspection management. The system enables inspectors, contractors, and quality managers to collaboratively track, document, and resolve construction issues through a visual pin-based interface.
+1.2 Core Architecture Principles
+
+Mobile-First PWA: Offline-capable Progressive Web App
+Real-time Collaboration: WebSocket-based instant updates
+Hierarchical Issue Tracking: Parent-child pin relationships
+Visual Documentation: Photo-based evidence system
+Automated Workflows: Status transitions and notifications
+
+2. Technical Stack
+2.1 Frontend Technologies
+javascript{
+  "framework": "Next.js 15.0.0",
+  "runtime": "React 18.2.0",
+  "language": "TypeScript 5.3.0",
+  "canvas": "Konva 9.3.0 + react-konva 18.2.0",
+  "styling": "Tailwind CSS 3.4.0 + shadcn/ui",
+  "state": "@tanstack/react-query 5.0.0",
+  "realtime": "@supabase/realtime-js 2.9.0",
+  "pwa": "next-pwa 5.6.0"
+}
+2.2 Backend Infrastructure
+javascript{
+  "database": "PostgreSQL 15 + PostGIS 3.3",
+  "auth": "Supabase Auth",
+  "storage": "Supabase Storage (S3 compatible)",
+  "realtime": "Supabase Realtime (PostgreSQL CDC)",
+  "serverless": "Supabase Edge Functions (Deno)",
+  "hosting": "Vercel Edge Network"
+}
+3. Database Design
+3.1 Schema Architecture
+sql-- Core entity relationships
+projects (1) -> (N) roofs
+roofs (1) -> (N) pins (parent)
+pins (1) -> (N) pin_children
+pins (1) -> (N) photos
+pins (1) -> (N) activity_logs
+users (N) <-> (N) projects (via stakeholders)
+3.2 Key Tables Structure
+Projects Table
+sqlCREATE TABLE projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  code TEXT UNIQUE,
+  start_date DATE,
+  actual_start_date DATE,
+  end_date DATE,
+  actual_end_date DATE,
+  contractor_id UUID REFERENCES users(id),
+  stakeholders UUID[] DEFAULT '{}',
+  notification_settings JSONB DEFAULT '{}',
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_projects_contractor ON projects(contractor_id);
+CREATE INDEX idx_projects_stakeholders ON projects USING GIN(stakeholders);
+Pins Table (Parent Issues)
+sqlCREATE TABLE pins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  roof_id UUID NOT NULL REFERENCES roofs(id) ON DELETE CASCADE,
+  seq_number INTEGER NOT NULL,
+  x_position DECIMAL(6,4) CHECK (x_position >= 0 AND x_position <= 1),
+  y_position DECIMAL(6,4) CHECK (y_position >= 0 AND y_position <= 1),
+  
+  -- Issue details
+  issue_type TEXT CHECK (issue_type IN ('INC', 'COR', 'TradeDamage')),
+  defect_type TEXT,
+  defect_layer TEXT CHECK (defect_layer IN ('DENSDECK', 'INSULATION', 'SURFACE PREP', 'TPO', 'VB')),
+  severity INTEGER CHECK (severity BETWEEN 1 AND 4),
+  
+  -- Status management
+  status TEXT DEFAULT 'Open' CHECK (status IN ('Open', 'ReadyToInspect', 'Closed', 'InDispute')),
+  status_changed_at TIMESTAMPTZ DEFAULT NOW(),
+  status_changed_by UUID REFERENCES users(id),
+  
+  -- Photos
+  opening_photo_url TEXT,
+  opening_photo_thumb TEXT,
+  closing_photo_url TEXT,
+  closing_photo_thumb TEXT,
+  
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by UUID REFERENCES users(id),
+  closed_at TIMESTAMPTZ,
+  closed_by UUID REFERENCES users(id),
+  
+  -- MTTR calculation
+  mttr_hours INTEGER GENERATED ALWAYS AS (
+    CASE 
+      WHEN closed_at IS NOT NULL 
+      THEN EXTRACT(EPOCH FROM (closed_at - created_at))/3600
+      ELSE NULL
+    END
+  ) STORED,
+  
+  UNIQUE(roof_id, seq_number)
+);
+Activity Logs (Chat Integration)
+sqlCREATE TABLE activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pin_id UUID REFERENCES pins(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  details JSONB NOT NULL,
+  user_id UUID REFERENCES users(id),
+  user_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Example log entry
+{
+  "action": "photo_uploaded",
+  "details": {
+    "photo_type": "closing",
+    "pin_sequence": "1.2",
+    "file_name": "IMG_20240315_143022.jpg",
+    "file_size": 2457600
+  }
+}
+3.3 RLS (Row Level Security) Policies
+sql-- Users can only see projects they're stakeholders in
+CREATE POLICY "view_stakeholder_projects" ON projects
+  FOR SELECT USING (
+    auth.uid() = ANY(stakeholders) OR 
+    auth.uid() = created_by OR
+    auth.uid() = contractor_id
+  );
+
+-- Only Admin/QA can create projects
+CREATE POLICY "create_projects" ON projects
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() 
+      AND role IN ('Admin', 'QA_Manager')
+    )
+  );
+
+-- Pin creation restricted to inspectors and above
+CREATE POLICY "create_pins" ON pins
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() 
+      AND role IN ('Admin', 'QA_Manager', 'Inspector')
+    )
+  );
+4. Real-time Synchronization
+4.1 WebSocket Channels
+javascript// Channel structure
+const channels = {
+  project: `project:${projectId}`,        // Project-level updates
+  roof: `roof:${roofId}`,                // Roof-specific changes
+  pin: `pin:${pinId}`,                   // Pin-specific chat
+  presence: `presence:${roofId}`         // Active users tracking
+};
+4.2 Event Broadcasting
+javascript// Activity log broadcasting
+const broadcastActivity = async (action: string, details: any) => {
+  // 1. Insert to database
+  const { data: log } = await supabase
+    .from('activity_logs')
+    .insert({
+      pin_id: currentPin.id,
+      action,
+      details,
+      user_id: currentUser.id,
+      user_name: currentUser.name
+    })
+    .select()
+    .single();
+  
+  // 2. Broadcast to channel
+  await supabase.channel(`pin:${currentPin.id}`)
+    .send({
+      type: 'broadcast',
+      event: 'activity',
+      payload: {
+        message: formatActivityMessage(action, details),
+        timestamp: new Date().toISOString()
+      }
+    });
+  
+  // 3. Send push notifications
+  await notifyStakeholders(currentPin.roof_id, {
+    title: `Pin ${currentPin.seq_number} Updated`,
+    body: formatActivityMessage(action, details)
+  });
+};
+4.3 Conflict Resolution
+javascript// Last Write Wins implementation
+const updatePin = async (pinId: string, updates: Partial<Pin>) => {
+  const optimisticUpdate = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+    updated_by: currentUser.id
+  };
+  
+  // 1. Optimistic UI update
+  queryClient.setQueryData(['pin', pinId], optimisticUpdate);
+  
+  // 2. Server update (last write wins)
+  const { data, error } = await supabase
+    .from('pins')
+    .update(updates)
+    .eq('id', pinId)
+    .select()
+    .single();
+  
+  // 3. Revalidate if conflict
+  if (error || data.updated_at !== optimisticUpdate.updated_at) {
+    queryClient.invalidateQueries(['pin', pinId]);
+  }
+};
+5. Canvas Implementation
+5.1 Coordinate System
+javascriptclass PinCoordinateSystem {
+  // Store as normalized (0-1)
+  static normalize(x: number, y: number, canvas: { width: number, height: number }) {
+    return {
+      x: x / canvas.width,
+      y: y / canvas.height
+    };
+  }
+  
+  // Convert to display coordinates
+  static toDisplay(normalizedX: number, normalizedY: number, stage: Konva.Stage) {
+    return {
+      x: normalizedX * stage.width(),
+      y: normalizedY * stage.height()
+    };
+  }
+  
+  // High precision for Konva
+  static snapToGrid(x: number, y: number, gridSize: number = 1) {
+    return {
+      x: Math.round(x * 10000) / 10000,  // 4 decimal precision
+      y: Math.round(y * 10000) / 10000
+    };
+  }
+}
+5.2 Layer Management
+javascriptinterface Layer {
+  id: string;
+  name: string;
+  type: 'issues' | 'notes' | 'custom';
+  visible: boolean;
+  opacity: number;
+  locked: boolean;
+  zIndex: number;
+}
+
+class LayerManager {
+  private layers: Map<string, Konva.Layer> = new Map();
+  
+  addLayer(config: Layer) {
+    const konvaLayer = new Konva.Layer({
+      id: config.id,
+      visible: config.visible,
+      opacity: config.opacity,
+      listening: !config.locked
+    });
+    
+    konvaLayer.setZIndex(config.zIndex);
+    this.layers.set(config.id, konvaLayer);
+    return konvaLayer;
+  }
+  
+  toggleLayer(layerId: string) {
+    const layer = this.layers.get(layerId);
+    if (layer) {
+      layer.visible(!layer.visible());
+      layer.batchDraw();
+    }
+  }
+}
+5.3 Pin Rendering with Hover
+javascriptclass PinRenderer {
+  private thumbnailCache = new Map<string, HTMLImageElement>();
+  
+  renderPin(pin: Pin, stage: Konva.Stage) {
+    const group = new Konva.Group({
+      x: pin.x_position * stage.width(),
+      y: pin.y_position * stage.height(),
+      draggable: false  // Pins don't move after creation
+    });
+    
+    // Status-based styling
+    const statusConfig = {
+      Open: { color: '#ef4444', label: 'O' },
+      ReadyToInspect: { color: '#f59e0b', label: 'R' },
+      Closed: { color: '#10b981', label: 'C' },
+      InDispute: { color: '#fb923c', label: 'D' }
+    };
+    
+    // Pin circle
+    const circle = new Konva.Circle({
+      radius: 15,
+      fill: statusConfig[pin.status].color,
+      stroke: '#ffffff',
+      strokeWidth: 2,
+      shadowColor: 'black',
+      shadowBlur: 5,
+      shadowOpacity: 0.3
+    });
+    
+    // Pin number
+    const text = new Konva.Text({
+      text: String(pin.seq_number),
+      fontSize: 12,
+      fill: 'white',
+      align: 'center',
+      verticalAlign: 'middle',
+      width: 30,
+      height: 30,
+      offsetX: 15,
+      offsetY: 15
+    });
+    
+    // Hover thumbnail
+    group.on('mouseenter', async () => {
+      if (pin.opening_photo_thumb) {
+        const tooltip = await this.createThumbnailTooltip(pin.opening_photo_thumb);
+        stage.add(tooltip);
+      }
+    });
+    
+    group.on('mouseleave', () => {
+      stage.find('.thumbnail-tooltip').destroy();
+    });
+    
+    group.add(circle);
+    group.add(text);
+    return group;
+  }
+  
+  private async createThumbnailTooltip(thumbUrl: string) {
+    const img = await this.loadImage(thumbUrl);
+    
+    const tooltip = new Konva.Group({
+      name: 'thumbnail-tooltip',
+      x: mousePos.x + 10,
+      y: mousePos.y - 160
+    });
+    
+    // Background
+    tooltip.add(new Konva.Rect({
+      width: 150,
+      height: 150,
+      fill: 'white',
+      stroke: '#ccc',
+      strokeWidth: 1,
+      shadowColor: 'black',
+      shadowBlur: 10,
+      shadowOpacity: 0.3
+    }));
+    
+    // Image
+    tooltip.add(new Konva.Image({
+      image: img,
+      width: 150,
+      height: 150
+    }));
+    
+    return tooltip;
+  }
+}
+6. Mobile Optimizations
+6.1 PWA Configuration
+javascript// next.config.js
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'supabase-images',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+        }
+      }
+    }
+  ]
+});
+6.2 Touch Gesture Handling
+javascriptclass TouchHandler {
+  private lastDistance = 0;
+  private isPinching = false;
+  
+  attachToStage(stage: Konva.Stage) {
+    // Pinch to zoom
+    stage.on('touchmove', (e) => {
+      const touches = e.evt.touches;
+      
+      if (touches.length === 2) {
+        const touch1 = touches[0];
+        const touch2 = touches[1];
+        const distance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+        
+        if (this.lastDistance > 0) {
+          const scale = stage.scaleX() * (distance / this.lastDistance);
+          stage.scale({ 
+            x: Math.min(Math.max(scale, 0.5), 3),
+            y: Math.min(Math.max(scale, 0.5), 3)
+          });
+          stage.batchDraw();
+        }
+        
+        this.lastDistance = distance;
+        this.isPinching = true;
+      }
+    });
+    
+    // Reset on touch end
+    stage.on('touchend', () => {
+      this.lastDistance = 0;
+      this.isPinching = false;
+    });
+    
+    // Single tap for pin creation
+    stage.on('tap', (e) => {
+      if (!this.isPinching) {
+        const pos = stage.getPointerPosition();
+        this.handlePinCreation(pos);
+      }
+    });
+  }
+}
+6.3 Image Optimization
+javascriptclass ImageOptimizer {
+  static async generateThumbnail(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d')!;
+          
+          // Thumbnail size
+          const maxSize = 200;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > maxSize) {
+              height = (height * maxSize) / width;
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = (width * maxSize) / height;
+              height = maxSize;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target!.result as string;
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  }
+  
+  static async uploadWithThumbnail(file: File, pinId: string) {
+    // Generate thumbnail
+    const thumbnail = await this.generateThumbnail(file);
+    
+    // Upload both
+    const [mainUpload, thumbUpload] = await Promise.all([
+      supabase.storage.from('pin-photos').upload(`${pinId}/photo_${Date.now()}.jpg`, file),
+      supabase.storage.from('pin-thumbs').upload(`${pinId}/thumb_${Date.now()}.jpg`, thumbnail)
+    ]);
+    
+    return {
+      photoUrl: mainUpload.data?.path,
+      thumbUrl: thumbUpload.data?.path
+    };
+  }
+}
+7. Performance Strategies
+7.1 Data Loading Strategy
+javascript// Minimal lazy loading with pagination
+const useIssuesTable = (projectId: string) => {
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  
+  // Load current page + prefetch next
+  const { data: currentPage } = useQuery({
+    queryKey: ['issues', projectId, page],
+    queryFn: () => fetchIssues(projectId, page, pageSize)
+  });
+  
+  // Prefetch next page
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ['issues', projectId, page + 1],
+      queryFn: () => fetchIssues(projectId, page + 1, pageSize)
+    });
+  }, [page]);
+  
+  return {
+    issues: currentPage,
+    loadMore: () => setPage(p => p + 1),
+    scrollToTop: () => window.scrollTo({ top: 0, behavior: 'smooth' })
+  };
+};
+7.2 Database Indexing
+sql-- Performance indexes
+CREATE INDEX idx_pins_roof_status ON pins(roof_id, status);
+CREATE INDEX idx_pins_created_at ON pins(created_at DESC);
+CREATE INDEX idx_activity_logs_pin ON activity_logs(pin_id, created_at DESC);
+CREATE INDEX idx_photos_pin ON photos(pin_id);
+
+-- Spatial index for future geo features
+CREATE INDEX idx_pins_position ON pins(x_position, y_position);
+8. Security Implementation
+8.1 Authentication Flow
+javascript// Supabase Auth with role management
+const signIn = async (email: string, password: string) => {
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+  
+  if (!error && authData.user) {
+    // Fetch user role
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role, permissions')
+      .eq('id', authData.user.id)
+      .single();
+    
+    // Store in context
+    setUser({
+      ...authData.user,
+      role: userData.role,
+      permissions: userData.permissions
+    });
+  }
+};
+8.2 File Upload Security
+javascriptconst secureUpload = async (file: File, pinId: string) => {
+  // Validate file
+  const maxSize = 20 * 1024 * 1024; // 20MB
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  
+  if (file.size > maxSize) {
+    throw new Error('File too large');
+  }
+  
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Invalid file type');
+  }
+  
+  // Generate secure filename
+  const ext = file.name.split('.').pop();
+  const filename = `${pinId}/${crypto.randomUUID()}.${ext}`;
+  
+  // Upload with RLS
+  const { data, error } = await supabase.storage
+    .from('pin-photos')
+    .upload(filename, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+  
+  return data?.path;
+};
+9. Export System
+9.1 PDF Generation
+javascriptimport jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
+class PDFExporter {
+  async exportPin(pin: Pin, children: PinChild[]) {
+    const doc = new jsPDF();
+    
+    // Page 1: Header
+    doc.setFontSize(20);
+    doc.text('SmartPin TPO - Issue Report', 20, 20);
+    
+    // Company logo
+    const logo = await this.loadImage('/logo.png');
+    doc.addImage(logo, 'PNG', 150, 10, 40, 20);
+    
+    // Issue details
+    doc.setFontSize(12);
+    doc.text(`Issue ID: ${pin.id}`, 20, 40);
+    doc.text(`Sequence: ${pin.seq_number}`, 20, 50);
+    doc.text(`Status: ${pin.status}`, 20, 60);
+    doc.text(`Created: ${new Date(pin.created_at).toLocaleDateString()}`, 20, 70);
+    
+    // Mini map with pins
+    const mapCanvas = await this.captureMap(pin);
+    doc.addImage(mapCanvas, 'PNG', 20, 80, 170, 100);
+    
+    // Photos on subsequent pages
+    let pageNum = 2;
+    for (const child of children) {
+      doc.addPage();
+      
+      doc.text(`Pin ${child.child_seq}`, 20, 20);
+      
+      // Opening photo (left)
+      if (child.opening_photo_url) {
+        const openImg = await this.loadImage(child.opening_photo_url);
+        doc.addImage(openImg, 'JPEG', 20, 30, 80, 80);
+        doc.text('Opening Photo', 20, 115);
+      }
+      
+      // Closing photo (right)
+      if (child.closing_photo_url) {
+        const closeImg = await this.loadImage(child.closing_photo_url);
+        doc.addImage(closeImg, 'JPEG', 110, 30, 80, 80);
+        doc.text('Closing Photo', 110, 115);
+      }
+      
+      // Status
+      doc.text(`Status: ${child.status}`, 20, 130);
+      
+      pageNum++;
+    }
+    
+    doc.save(`Issue_${pin.seq_number}_${Date.now()}.pdf`);
+  }
+  
+  private async captureMap(pin: Pin): Promise<string> {
+    // Capture current Konva stage view focused on pin
+    const stage = Konva.stages[0];
+    const dataURL = stage.toDataURL({
+      x: pin.x_position * stage.width() - 100,
+      y: pin.y_position * stage.height() - 100,
+      width: 200,
+      height: 200,
+      pixelRatio: 2
+    });
+    return dataURL;
+  }
+}
+9.2 CSV Export
+javascriptclass CSVExporter {
+  exportIssues(issues: Pin[]) {
+    const headers = [
+      'ID', 'Sequence', 'Status', 'Issue Type', 'Defect Type', 
+      'Defect Layer', 'Severity', 'Created', 'MTTR (hours)'
+    ];
+    
+    const rows = issues.map(pin => [
+      pin.id,
+      pin.seq_number,
+      pin.status,
+      pin.issue_type || '',
+      pin.defect_type || '',
+      pin.defect_layer || '',
+      pin.severity || '',
+      new Date(pin.created_at).toLocaleDateString(),
+      pin.mttr_hours || ''
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `issues_export_${Date.now()}.csv`;
+    link.click();
+  }
+}
+10. Deployment & Monitoring
+10.1 Environment Configuration
+bash# Production environment variables
+NEXT_PUBLIC_SUPABASE_URL=https://vhtbinssqbzcjmbgkseo.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-key
+
+# Feature flags
+NEXT_PUBLIC_ENABLE_PWA=true
+NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS=true
+NEXT_PUBLIC_MAX_PHOTO_SIZE=20971520  # 20MB
+NEXT_PUBLIC_MAX_CHILD_PINS=50
+10.2 Performance Monitoring
+javascript// Core Web Vitals tracking
+export function reportWebVitals(metric: any) {
+  const vitals = {
+    FCP: metric.name === 'FCP',
+    LCP: metric.name === 'LCP',
+    CLS: metric.name === 'CLS',
+    FID: metric.name === 'FID',
+    TTFB: metric.name === 'TTFB'
+  };
+  
+  if (vitals[metric.name]) {
+    // Send to analytics
+    analytics.track('Web Vital', {
+      metric: metric.name,
+      value: Math.round(metric.value),
+      rating: metric.rating
+    });
+  }
+}
+10.3 Error Boundary
+javascriptclass ErrorBoundary extends React.Component {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log to monitoring service
+    logger.error('React Error Boundary', {
+      error: error.toString(),
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      user: getCurrentUser(),
+      timestamp: new Date().toISOString()
+    });
+    
+    // Show user-friendly error
+    this.setState({
+      hasError: true,
+      errorMessage: 'Something went wrong. Please refresh the page.'
+    });
+  }
+}
+11. Future Scalability Considerations
+11.1 Database Partitioning Strategy
+sql-- Partition activity_logs by month for performance
+CREATE TABLE activity_logs_2024_03 PARTITION OF activity_logs
+  FOR VALUES FROM ('2024-03-01') TO ('2024-04-01');
+  
+-- Archive old data
+CREATE TABLE archived_pins AS 
+  SELECT * FROM pins 
+  WHERE closed_at < NOW() - INTERVAL '6 months';
+11.2 Caching Strategy
+javascript// Redis caching layer for frequently accessed data
+const cacheMiddleware = {
+  async get(key: string) {
+    // Check memory cache first
+    const memCache = memoryCache.get(key);
+    if (memCache) return memCache;
+    
+    // Check Redis
+    const redisCache = await redis.get(key);
+    if (redisCache) {
+      memoryCache.set(key, redisCache);
+      return redisCache;
+    }
+    
+    return null;
+  },
+  
+  async set(key: string, value: any, ttl: number = 300) {
+    memoryCache.set(key, value);
+    await redis.setex(key, ttl, JSON.stringify(value));
+  }
+};
