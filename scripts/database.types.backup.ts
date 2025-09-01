@@ -1021,3 +1021,109 @@ export const Constants = {
     },
   },
 } as const
+
+// Custom Types and Interfaces for Application Logic
+export type PinStatus = Database["public"]["Enums"]["pin_status"]
+export type Severity = Database["public"]["Enums"]["severity"]
+export type Role = Database["public"]["Enums"]["role"]
+export type DefectLayer = Database["public"]["Enums"]["defect_layer"]
+export type ImageKind = Database["public"]["Enums"]["image_kind"]
+
+// Database table row types
+export type Project = Database["public"]["Tables"]["projects"]["Row"]
+export type Roof = Database["public"]["Tables"]["roofs"]["Row"]
+export type Pin = Database["public"]["Tables"]["pins"]["Row"]
+export type PinItem = Database["public"]["Tables"]["pin_items"]["Row"]
+export type PinChild = Database["public"]["Tables"]["pin_children"]["Row"]
+export type Photo = Database["public"]["Tables"]["photos"]["Row"]
+export type User = Database["public"]["Tables"]["users"]["Row"]
+export type PinImage = Database["public"]["Tables"]["pin_images"]["Row"]
+export type PinChat = Database["public"]["Tables"]["pin_chat"]["Row"]
+
+// Insert types
+export type ProjectInsert = Database["public"]["Tables"]["projects"]["Insert"]
+export type RoofInsert = Database["public"]["Tables"]["roofs"]["Insert"]
+export type PinInsert = Database["public"]["Tables"]["pins"]["Insert"]
+export type PinItemInsert = Database["public"]["Tables"]["pin_items"]["Insert"]
+export type PinChildInsert = Database["public"]["Tables"]["pin_children"]["Insert"]
+export type PhotoInsert = Database["public"]["Tables"]["photos"]["Insert"]
+export type PinImageInsert = Database["public"]["Tables"]["pin_images"]["Insert"]
+export type PinChatInsert = Database["public"]["Tables"]["pin_chat"]["Insert"]
+
+// Update types
+export type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"]
+export type RoofUpdate = Database["public"]["Tables"]["roofs"]["Update"]
+export type PinUpdate = Database["public"]["Tables"]["pins"]["Update"]
+export type PinItemUpdate = Database["public"]["Tables"]["pin_items"]["Update"]
+export type PinChildUpdate = Database["public"]["Tables"]["pin_children"]["Update"]
+export type PhotoUpdate = Database["public"]["Tables"]["photos"]["Update"]
+export type PinImageUpdate = Database["public"]["Tables"]["pin_images"]["Update"]
+export type PinChatUpdate = Database["public"]["Tables"]["pin_chat"]["Update"]
+
+// Extended Pin type with relationships and UI fields
+export interface PinWithRelations extends Pin {
+  // Database relationships
+  roof?: Roof
+  opened_by_user?: User
+  
+  // Child pins (multiple relationship patterns supported)
+  children?: PinChild[]
+  child_pins?: PinChild[]
+  pin_children?: PinChild[]
+  
+  // Pin items relationship
+  pin_items?: PinItem[]
+  
+  // Photos relationship
+  photos?: Photo[]
+  
+  // Pin images relationship
+  pin_images?: PinImage[]
+  
+  // Chat messages relationship
+  pin_chat?: PinChat[]
+  
+  // UI compatibility fields
+  title?: string | null
+  description?: string | null
+  severity?: Severity | null
+  layer_id?: string | null
+  
+  // Parent relationship (for legacy compatibility)
+  parent_id?: string | null
+  
+  // Additional UI fields for legacy components
+  has_closure_photo?: boolean
+  closure_photo_url?: string | null
+  completed_at?: string | null
+  
+  // UI properties that extend the database fields
+  seq?: string // for child pins compatibility
+  open_pic_url?: string | null
+  close_pic_url?: string | null
+}
+
+// Extended child pin type that includes both database fields and UI compatibility fields
+export interface ChildPinWithUIFields extends PinChild {
+  // UI compatibility fields that components expect
+  id?: string // maps to child_id for components expecting this field
+  parent_id?: string // maps to pin_id for components expecting this field
+  seq?: string // maps to child_code for components expecting this field
+  x?: number // UI positioning (not in database)
+  y?: number // UI positioning (not in database)
+  status?: PinStatus // maps to status_child for components expecting this field
+  title?: string | null
+  description?: string | null
+  open_pic_url?: string | null // maps to openpic_id lookup
+  close_pic_url?: string | null // maps to closurepic_id lookup
+  metadata?: Record<string, any> // additional UI data
+  defect_layer?: string // additional UI field
+}
+
+// Handler function type signatures for Pin interactions
+export type PinClickHandler = (pin: PinWithRelations) => void
+export type ChildPinClickHandler = (childPin: ChildPinWithUIFields, parentPin: PinWithRelations) => void
+export type AddChildPinHandler = (parentPin: PinWithRelations, x?: number, y?: number) => void | Promise<void>
+export type UpdateChildPinHandler = (childPin: ChildPinWithUIFields) => void
+export type DeleteChildPinHandler = (childPinId: string) => void
+export type StatusChangeHandler = (pinId: string, newStatus: PinStatus, isChild?: boolean) => void

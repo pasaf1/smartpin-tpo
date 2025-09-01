@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         
         // Get count before deletion
         const { count: beforeCount } = await supabase
-          .from(step.table)
+          .from(step.table as any)
           .select('*', { count: 'exact', head: true })
         
         // Delete all records by getting all records first then deleting them
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         
         // First get all records to find the actual primary key values
         const { data: records, error: selectError } = await supabase
-          .from(step.table)
+          .from(step.table as any)
           .select('*')
         
         if (selectError) {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
             const ids = records.map(r => r.project_id).filter(Boolean)
             if (ids.length > 0) {
               const deleteResult = await supabase
-                .from(step.table)
+                .from(step.table as any)
                 .delete()
                 .in('project_id', ids)
               error = deleteResult.error
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
             if (records[0].id) {
               const ids = records.map(r => r.id).filter(Boolean)
               const deleteResult = await supabase
-                .from(step.table)
+                .from(step.table as any)
                 .delete()
                 .in('id', ids)
               error = deleteResult.error
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     for (const step of cleanupSteps) {
       try {
         const { count } = await supabase
-          .from(step.table)
+          .from(step.table as any)
           .select('*', { count: 'exact', head: true })
         
         finalCounts.push({
