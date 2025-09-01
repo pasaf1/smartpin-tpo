@@ -609,7 +609,7 @@ function generateTypesLocal() {
 function generateTypesProduction() {
   try {
     log('Attempting to generate types from production Supabase...');
-    execSync(\`npx supabase gen types typescript --project-id \${PROJECT_ID} > \${TYPES_FILE_PATH}\`, {
+    execSync(`npx supabase gen types typescript --project-id ${PROJECT_ID} > ${TYPES_FILE_PATH}`, {
       stdio: 'pipe',
       timeout: 60000 // 60 second timeout
     });
@@ -623,7 +623,7 @@ function generateTypesProduction() {
     log('Successfully generated types from production Supabase');
     return true;
   } catch (error) {
-    log(\`Production type generation failed: \${error.message}\`, 'warn');
+    log(`Production type generation failed: ${error.message}`, 'warn');
     return false;
   }
 }
@@ -669,7 +669,7 @@ function main() {
     try {
       const content = fs.readFileSync(TYPES_FILE_PATH, 'utf8');
       const lineCount = content.split('\\n').length;
-      log(\`Generated types file contains \${lineCount} lines\`);
+      log(`Generated types file contains ${lineCount} lines`);
       
       // Check for key types
       const hasDatabase = content.includes('export interface Database');
@@ -682,7 +682,7 @@ function main() {
         log('Warning: Types file may be missing expected content', 'warn');
       }
     } catch (error) {
-      log(\`Warning: Could not verify types file: \${error.message}\`, 'warn');
+      log(`Warning: Could not verify types file: ${error.message}`, 'warn');
     }
     
     process.exit(0);
@@ -694,7 +694,7 @@ function main() {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  log(\`Uncaught exception: \${error.message}\`, 'error');
+  log(`Uncaught exception: ${error.message}`, 'error');
   
   // Try to use fallback as last resort
   if (useFallbackTypes()) {
@@ -706,7 +706,7 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  log(\`Unhandled rejection at \${promise}: \${reason}\`, 'error');
+  log(`Unhandled rejection at ${promise}: ${reason}`, 'error');
 });
 
 // Run the main function
