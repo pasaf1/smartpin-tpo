@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
           // For other tables, try to identify the primary key
           else {
             // Check if records have 'id' field
-            if (records[0].id) {
+            if ((records[0] as any).id) {
               const ids = records.map((r: any) => r.id).filter(Boolean)
               const deleteResult = await supabase
                 .from(step.table as any)
