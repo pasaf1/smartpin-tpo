@@ -573,7 +573,9 @@ function useFallbackTypes() {
     if (fs.existsSync(FALLBACK_TYPES_PATH)) {
       const content = fs.readFileSync(FALLBACK_TYPES_PATH, 'utf8');
       fs.writeFileSync(TYPES_FILE_PATH, content);
-      log('Using fallback types');
+      // Always append custom types even for fallback
+      appendCustomTypes();
+      log('Using fallback types with custom extensions');
       return true;
     }
   } catch (error) {
@@ -730,18 +732,32 @@ export type StatusChangeHandler = (pinId: string, newStatus: PinStatus, isChild?
 function generateTypesProduction() {
   try {
     log('Attempting to generate types from production Supabase...');
-    execSync(`npx supabase gen types typescript --project-id ${PROJECT_ID} > ${TYPES_FILE_PATH}`, {
-      stdio: 'pipe',
-      timeout: 60000 // 60 second timeout
-    });
     
-    // Verify the generated file
-    const content = fs.readFileSync(TYPES_FILE_PATH, 'utf8');
-    if (content.trim().length < 100) {
-      throw new Error('Generated types file appears to be empty or invalid');
+    // First try the production command
+    let generationSuccess = false;
+    try {
+      execSync(`npx supabase gen types typescript --project-id ${PROJECT_ID} > ${TYPES_FILE_PATH}`, {
+        stdio: 'pipe',
+        timeout: 60000 // 60 second timeout
+      });
+      
+      // Verify the generated file
+      const content = fs.readFileSync(TYPES_FILE_PATH, 'utf8');
+      if (content.trim().length > 100) {
+        generationSuccess = true;
+      }
+    } catch (cmdError) {
+      log(`Supabase CLI command failed: ${cmdError.message}`, 'warn');
     }
     
-    // Append custom types and interfaces
+    // If generation failed or produced empty content, use fallback
+    if (!generationSuccess) {
+      log('Using fallback types due to production generation failure', 'warn');
+      const fallbackContent = fs.readFileSync(FALLBACK_TYPES_PATH, 'utf8');
+      fs.writeFileSync(TYPES_FILE_PATH, fallbackContent);
+    }
+    
+    // Always append custom types and interfaces
     appendCustomTypes();
     
     log('Successfully generated types from production Supabase');

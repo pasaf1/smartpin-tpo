@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         } else if (records && records.length > 0) {
           // For projects table, use project_id as primary key
           if (step.table === 'projects') {
-            const ids = records.map(r => r.project_id).filter(Boolean)
+            const ids = records.map((r: any) => r.project_id).filter(Boolean)
             if (ids.length > 0) {
               const deleteResult = await supabase
                 .from(step.table as any)
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
           else {
             // Check if records have 'id' field
             if (records[0].id) {
-              const ids = records.map(r => r.id).filter(Boolean)
+              const ids = records.map((r: any) => r.id).filter(Boolean)
               const deleteResult = await supabase
                 .from(step.table as any)
                 .delete()
