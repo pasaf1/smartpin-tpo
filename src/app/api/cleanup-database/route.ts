@@ -17,13 +17,9 @@ export async function POST(request: NextRequest) {
     console.log('🗑️ Starting database cleanup...')
 
     // Delete in reverse dependency order to avoid foreign key constraints
+    // Only include tables that actually exist and have data
     const cleanupSteps = [
-      { table: 'chats', description: 'Chat messages' },
-      { table: 'pin_images', description: 'Pin images' },
-      { table: 'pin_items', description: 'Pin items' },
-      { table: 'pin_children', description: 'Child pins' },
       { table: 'pins', description: 'Pins' },
-      { table: 'photos', description: 'Photos' },
       { table: 'roofs', description: 'Roofs' },
       { table: 'projects', description: 'Projects' }
     ]
@@ -39,11 +35,43 @@ export async function POST(request: NextRequest) {
           .from(step.table)
           .select('*', { count: 'exact', head: true })
         
-        // Delete all records
-        const { error } = await supabase
+        // Delete all records by getting all records first then deleting them
+        let error = null
+        
+        // First get all records to find the actual primary key values
+        const { data: records, error: selectError } = await supabase
           .from(step.table)
-          .delete()
-          .neq('id', '') // This deletes all records (id != empty string)
+          .select('*')
+        
+        if (selectError) {
+          error = selectError
+        } else if (records && records.length > 0) {
+          // For projects table, use project_id as primary key
+          if (step.table === 'projects') {
+            const ids = records.map(r => r.project_id).filter(Boolean)
+            if (ids.length > 0) {
+              const deleteResult = await supabase
+                .from(step.table)
+                .delete()
+                .in('project_id', ids)
+              error = deleteResult.error
+            }
+          }
+          // For other tables, try to identify the primary key
+          else {
+            // Check if records have 'id' field
+            if (records[0].id) {
+              const ids = records.map(r => r.id).filter(Boolean)
+              const deleteResult = await supabase
+                .from(step.table)
+                .delete()
+                .in('id', ids)
+              error = deleteResult.error
+            } else {
+              error = { message: 'Could not identify primary key for table ' + step.table }
+            }
+          }
+        }
         
         if (error) {
           console.error(`Error deleting from ${step.table}:`, error)
@@ -74,8 +102,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get final counts
+    // Get final counts after a brief delay to ensure deletions are committed
     console.log('🔍 Verifying cleanup...')
+    await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+    
     const finalCounts = []
     
     for (const step of cleanupSteps) {
