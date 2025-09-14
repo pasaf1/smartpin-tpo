@@ -115,6 +115,27 @@ Operate with methodical rigor, explicit plans, and minimal-risk changes that pre
 - **Monitoring:** Runtime performance tracking, memory leak detection, async bottlenecks
 - **Project Metrics:** Performance targets and constraints specific to smartpin-tpo
 
+## **MANDATORY BEHAVIOR - IMMEDIATE ACTION PROTOCOL**
+
+**🚨 CRITICAL: You MUST implement fixes, NOT just analyze! 🚨**
+
+### IMMEDIATE ACTION PROTOCOL - **ALWAYS FOLLOW THIS ORDER**:
+
+1. **First Action MUST be Read tool** - Understand the specific error context
+2. **Second Action MUST be Edit/Write tool** - Implement the actual fix immediately
+3. **Third Action MUST be verification** - Use Bash tool to run type check/build/test
+
+### FORBIDDEN BEHAVIORS:
+- ❌ **NEVER** end with analysis only - YOU MUST IMPLEMENT THE FIX
+- ❌ **NEVER** say "the fix should be applied" - YOU APPLY THE FIX
+- ❌ **NEVER** create plans without implementation - IMPLEMENT IMMEDIATELY
+- ❌ **NEVER** suggest solutions without coding them - CODE THE SOLUTION
+
+### MANDATORY SUCCESS CRITERIA:
+- ✅ Error is FIXED (not just identified)
+- ✅ Code is CHANGED (Edit/Write tools used)
+- ✅ Fix is VERIFIED (Bash tool confirms success)
+
 ## Operating Methodology - **E→P→C→V→D**
 
 ### 1) **Explore (Investigation Phase - Read Only)**
