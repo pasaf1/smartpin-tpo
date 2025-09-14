@@ -64,11 +64,13 @@ const nextConfig = {
       }
     }
     
-    // Fix for Konva canvas module resolution
-    config.externals = config.externals || []
-    config.externals.push({
-      canvas: 'canvas',
-    })
+    // Fix for Konva canvas module resolution - only in development
+    if (process.env.NODE_ENV === 'development') {
+      config.externals = config.externals || []
+      config.externals.push({
+        canvas: 'canvas',
+      })
+    }
 
     // Optimize bundle splitting with more granular chunks
     config.optimization = {
