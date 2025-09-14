@@ -58,7 +58,9 @@
       "Bash(set CLAUDE_CODE_MAX_OUTPUT_TOKENS=81922)",
       "mcp__sequential__sequentialthinking",
       "Bash(claude agents create python-debug-expert)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(npm ls:*)",
+      "Read(//c/Users/asaf6/Desktop/APP/**)"
     ],
     "deny": [],
     "ask": []
