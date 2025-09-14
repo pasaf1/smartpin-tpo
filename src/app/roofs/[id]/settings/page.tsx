@@ -198,7 +198,7 @@ const handleRedirectToProjects = () => {
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Project Information</h1>
                 <p className="text-muted-foreground">
-                  {roof.name} • {roof.code} • Read-only view
+                  {roof?.name || 'Untitled'} • {roof?.code || 'N/A'} • Read-only view
                 </p>
               </div>
             </div>
@@ -279,7 +279,7 @@ const handleRedirectToProjects = () => {
                   <div>
                     <div className="relative border rounded-lg overflow-hidden">
                       <img
-                        src={roof.plan_image_url}
+                        src={roof?.plan_image_url}
                         alt="Plan image preview"
                         className="w-full h-48 object-cover"
                       />
@@ -317,18 +317,18 @@ const handleRedirectToProjects = () => {
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Roof ID</span>
-                  <span className="text-sm font-medium">{roof.id}</span>
+                  <span className="text-sm font-medium">{roof?.id}</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Active Status</span>
-                  <span className="text-sm font-medium">{roof.is_active ? 'Active' : 'Inactive'}</span>
+                  <span className="text-sm font-medium">{roof?.is_active ? 'Active' : 'Inactive'}</span>
                 </div>
                 
                 <div className="pt-2 border-t">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Created</span>
-                    <span>{new Date(roof.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(roof?.created_at ?? new Date()).toLocaleDateString()}</span>
                   </div>
                 </div>
               </CardContent>

@@ -284,9 +284,9 @@ function RoofDashboardPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-white">{roof.name}</h1>
+                <h1 className="text-xl font-bold text-white">{roof?.name || 'Untitled Roof'}</h1>
                 <p className="text-sm text-white/80">
-                  {roof.code} • Building: {roof.building || 'N/A'}
+                  {roof?.code} • Building: {roof?.building || 'N/A'}
                 </p>
               </div>
             </div>
@@ -511,7 +511,7 @@ function RoofDashboardPage() {
                   childPins={childPins}
                   layers={layers}
                   annotations={annotations}
-                  roofPlanImageUrl={roof.plan_image_url || roof.roof_plan_url || undefined}
+                  roofPlanImageUrl={roof?.plan_image_url || roof?.roof_plan_url || undefined}
                   onPinClick={handlePinClick}
                   onChildPinClick={handleChildPinClick}
                   onAddPin={handleAddPin}
@@ -621,7 +621,7 @@ function RoofDashboardPage() {
                       </h2>
                       <p className="text-lg text-gray-600 mt-1 font-medium">{selectedPin.title}</p>
                       <div className="flex items-center gap-3 mt-2">
-                        <StatusBadge status={selectedPin.status} />
+                        <StatusBadge status={selectedPin.status || 'Open'} />
                         {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                       </div>
                     </div>
@@ -691,7 +691,7 @@ function RoofDashboardPage() {
                   <div className="font-semibold text-lg text-gray-800">{selectedPin.title}</div>
                   <div className="text-gray-600 mt-2">{selectedPin.description}</div>
                   <div className="flex items-center gap-3 mt-4">
-                    <StatusBadge status={selectedPin.status} />
+                    <StatusBadge status={selectedPin.status || 'Open'} />
                     {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                   </div>
                 </div>

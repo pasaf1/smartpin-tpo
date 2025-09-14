@@ -82,7 +82,7 @@ function RoofCard({ roof }: { roof: Roof }) {
                 Project ID: {roof.project_id}
               </div>
               <div className="text-white/60">
-                {formatDistanceToNow(new Date(roof.created_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(roof.created_at ?? new Date()), { addSuffix: true })}
               </div>
             </div>
           </div>
@@ -97,9 +97,9 @@ export default function RoofsPage() {
   const { data: roofs = [], isLoading, error } = useRoofs()
 
   const filteredRoofs = roofs.filter(roof =>
-    roof.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    roof.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (roof.building && roof.building.toLowerCase().includes(searchTerm.toLowerCase()))
+    roof?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    roof?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (roof?.building && roof.building.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   if (isLoading) {
