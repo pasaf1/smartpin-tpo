@@ -28,8 +28,8 @@ export {
   createVercelOptimizedKonva
 } from './vercel-optimizations'
 
-// Optimized components
-export { default as OptimizedKonvaComponents } from './optimized-components'
+// Optimized components (commented out due to JSX resolution issues)
+// export { default as OptimizedKonvaComponents } from './optimized-components'
 
 // Import types for internal use
 import { KonvaPerformanceMonitor, createProductionPerformanceMonitor } from './performance-monitor'
