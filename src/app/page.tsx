@@ -1031,7 +1031,7 @@ function HomePage() {
                                 </span>
                               </td>
                               <td className="p-3 text-sm text-slate-600">
-                                {new Date(project.created_at).toLocaleDateString()}
+                                {new Date(project.created_at ?? new Date()).toLocaleDateString()}
                               </td>
                               <td className="p-3 text-sm text-slate-600">
                                 {project.contractor || '—'}
