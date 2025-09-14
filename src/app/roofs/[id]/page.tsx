@@ -480,13 +480,13 @@ function RoofDashboardPage() {
                   pins={pins.map(pin => ({
                     ...pin,
                     layer_id: selectedLayerId || layers[0]?.id || '1',
-                    children_total: childPins.filter(cp => cp.parent_id === pin.id).length,
-                    children_open: childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Open').length,
-                    children_ready: childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'ReadyForInspection').length,
-                    children_closed: childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Closed').length,
-                    parent_mix_state: childPins.filter(cp => cp.parent_id === pin.id).length === 0 ? null :
-                                     childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Closed').length === childPins.filter(cp => cp.parent_id === pin.id).length ? 'ALL_CLOSED' :
-                                     childPins.filter(cp => cp.parent_id === pin.id && cp.status === 'Open').length === childPins.filter(cp => cp.parent_id === pin.id).length ? 'ALL_OPEN' : 'MIXED'
+                    children_total: childPins.filter(cp => cp.pin_id === pin.id).length,
+                    children_open: childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'Open').length,
+                    children_ready: childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'ReadyForInspection').length,
+                    children_closed: childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'Closed').length,
+                    parent_mix_state: childPins.filter(cp => cp.pin_id === pin.id).length === 0 ? null :
+                                     childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'Closed').length === childPins.filter(cp => cp.pin_id === pin.id).length ? 'ALL_CLOSED' :
+                                     childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'Open').length === childPins.filter(cp => cp.pin_id === pin.id).length ? 'ALL_OPEN' : 'MIXED'
                   }))}
                   childPins={childPins}
                   layers={layers}
@@ -495,7 +495,7 @@ function RoofDashboardPage() {
                   onPinClick={handlePinClick}
                   onChildPinClick={handleChildPinClick}
                   onAddPin={handleAddPin}
-                  onAddChildPin={(parentPin: PinWithRelations) => handleAddChildPin(parentPin, 0.5, 0.5)}
+                  onAddChildPin={(parentPinId: string, childData: any) => handleAddChildPin(parentPinId, childData)}
                   onAddAnnotation={handleAddAnnotation}
                   selectedLayerId={selectedLayerId || undefined}
                   selectedTool={selectedTool}
@@ -599,10 +599,9 @@ function RoofDashboardPage() {
                       <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                         Pin #{selectedPin.seq_number}
                       </h2>
-                      <p className="text-lg text-gray-600 mt-1 font-medium">{selectedPin.title}</p>
+                      <p className="text-lg text-gray-600 mt-1 font-medium">Zone: {selectedPin.zone || 'N/A'}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <StatusBadge status={selectedPin.status || 'Open'} />
-                        {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                       </div>
                     </div>
                   </div>
@@ -623,10 +622,10 @@ function RoofDashboardPage() {
               <div className="h-[calc(90vh-200px)] bg-gradient-to-br from-gray-50/50 to-white/50">
                 <BluebinPinDetailsCard
                   pin={selectedPin as any}
-                  childPins={childPins.filter(cp => cp.parent_id === selectedPin.id)}
+                  childPins={childPins.filter(cp => cp.pin_id === selectedPin.id)}
                   onClose={() => setSelectedPin(null)}
                   onStatusChange={handleStatusChange}
-                  onAddChildPin={(parentPin: PinWithRelations) => handleAddChildPin(parentPin, 0.5, 0.5)}
+                  onAddChildPin={(parentPinId: string, childData: any) => handleAddChildPin(parentPinId, childData)}
                   onUpdateChildPin={handleUpdateChildPin}
                   onDeleteChildPin={handleDeleteChildPin}
                   className="h-full border-0 bg-transparent"
@@ -668,11 +667,10 @@ function RoofDashboardPage() {
               <CardContent className="p-8 space-y-6 bg-gradient-to-br from-gray-50/50 to-white/50">
                 {/* Pin Details Summary */}
                 <div className="bg-white/80 rounded-2xl p-6 shadow-lg border border-gray-200/50">
-                  <div className="font-semibold text-lg text-gray-800">{selectedPin.title}</div>
-                  <div className="text-gray-600 mt-2">{selectedPin.description}</div>
+                  <div className="font-semibold text-lg text-gray-800">Pin #{selectedPin.seq_number}</div>
+                  <div className="text-gray-600 mt-2">Zone: {selectedPin.zone || 'N/A'}</div>
                   <div className="flex items-center gap-3 mt-4">
                     <StatusBadge status={selectedPin.status || 'Open'} />
-                    {selectedPin.severity && <SeverityBadge severity={selectedPin.severity} />}
                   </div>
                 </div>
 
@@ -753,13 +751,13 @@ function RoofDashboardPage() {
           {selectedPin && (
             <BluebinPinDetailsCard
               pin={selectedPin as any}
-              childPins={childPins.filter(cp => cp.parent_id === selectedPin.id)}
+              childPins={childPins.filter(cp => cp.pin_id === selectedPin.id)}
               onClose={() => {
                 setShowMobileDetails(false)
                 setSelectedPin(null)
               }}
               onStatusChange={handleStatusChange}
-              onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin, 0.5, 0.5)}
+              onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin.id, { child_code: '', normalized_x: 0.5, normalized_y: 0.5 })}
               onUpdateChildPin={handleUpdateChildPin}
               onDeleteChildPin={handleDeleteChildPin}
               className="border-0 bg-transparent"
