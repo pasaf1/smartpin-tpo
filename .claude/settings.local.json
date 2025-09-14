@@ -60,7 +60,8 @@
       "Bash(claude agents create python-debug-expert)",
       "Bash(git reset:*)",
       "Bash(npm ls:*)",
-      "Read(//c/Users/asaf6/Desktop/APP/**)"
+      "Read(//c/Users/asaf6/Desktop/APP/**)",
+      "Read(//c/Users/asaf6/.claude/**)"
     ],
     "deny": [],
     "ask": []
