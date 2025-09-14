@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useRoofs } from '@/lib/hooks/useRoofs'
-import type { Roof } from '@/lib/database.types'
+import type { Tables } from '@/lib/database.types'
 
-function RoofCard({ roof }: { roof: Roof }) {
+function RoofCard({ roof }: { roof: Tables<'roofs'> }) {
   const hasPlanImage = roof.plan_image_url && roof.plan_image_url.length > 0
 
   return (

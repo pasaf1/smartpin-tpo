@@ -75,7 +75,9 @@
       "Bash(ipconfig /flushdns)",
       "mcp__supabase__get_anon_key",
       "mcp__supabase__generate_typescript_types",
-      "Bash(timeout 30 curl -I https://smartpin-tpo.vercel.app)"
+      "Bash(timeout 30 curl -I https://smartpin-tpo.vercel.app)",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__filesystem__read_text_file"
     ],
     "deny": [],
     "ask": []
