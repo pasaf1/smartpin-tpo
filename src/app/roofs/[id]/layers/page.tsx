@@ -2,13 +2,13 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 
 interface LayersPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default function LayersPage({ params }: LayersPageProps) {
-  const { id } = params
+export default async function LayersPage({ params }: LayersPageProps) {
+  const { id } = await params
 
   // Validate the roof ID
   if (!id || typeof id !== 'string') {
@@ -65,9 +65,10 @@ export default function LayersPage({ params }: LayersPageProps) {
   )
 }
 
-export function generateMetadata({ params }: LayersPageProps) {
+export async function generateMetadata({ params }: LayersPageProps) {
+  const { id } = await params
   return {
-    title: `Roof Layers - ${params.id} | SmartPin TPO`,
-    description: `Configure roof layers for roof ID: ${params.id}`,
+    title: `Roof Layers - ${id} | SmartPin TPO`,
+    description: `Configure roof layers for roof ID: ${id}`,
   }
 }
