@@ -1,0 +1,21 @@
+# Python files
+*.py
+*.pyc
+__pycache__/
+.python-version
+pyproject.toml
+uv.lock
+
+# Non-Next.js directories
+agents/
+hybrid-agent-system/
+mcp-servers/
+.venv/
+
+# Database files
+*.sql
+supabase/migrations/
+
+# Development
+.vscode/
+scripts/*.sh

@@ -11,13 +11,17 @@ const nextConfig = {
   // Simplified experimental features for Vercel compatibility
   experimental: {
     optimizePackageImports: [
-      'lucide-react', 
-      '@tanstack/react-query'
+      'lucide-react',
+      '@tanstack/react-query',
+      'konva',
+      'react-konva'
     ],
     // Remove potentially problematic experimental features
     // webpackBuildWorker: true,
     // optimizeServerReact: true,
     scrollRestoration: true,
+    // Konva-specific optimizations
+    webpackBuildWorker: process.env.NODE_ENV === 'production',
   },
 
   // Remove turbopack config that can cause deployment issues
@@ -64,12 +68,28 @@ const nextConfig = {
       }
     }
     
-    // Fix for Konva canvas module resolution - only in development
-    if (process.env.NODE_ENV === 'development') {
-      config.externals = config.externals || []
-      config.externals.push({
-        canvas: 'canvas',
-      })
+    // Fix for Konva canvas module resolution - all environments for Vercel
+    config.externals = config.externals || []
+    config.externals.push({
+      canvas: 'canvas',
+      'node-canvas': 'node-canvas',
+    })
+
+    // Konva-specific optimizations for Vercel
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Optimize Konva imports
+      'konva/lib/shapes': 'konva/lib/shapes/index.js',
+      'konva/lib/filters': 'konva/lib/filters/index.js',
+    }
+
+    // Edge runtime compatibility
+    if (process.env.VERCEL_ENV || process.env.VERCEL) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+        'node-canvas': false,
+      }
     }
 
     // Optimize bundle splitting with more granular chunks
@@ -87,9 +107,17 @@ const nextConfig = {
             priority: 20,
             chunks: 'all',
           },
-          // Canvas and graphics libraries
+          // Canvas and graphics libraries - optimized for Vercel
+          konva: {
+            test: /[\\/]node_modules[\\/](konva|react-konva)[\\/]/,
+            name: 'konva',
+            priority: 30,
+            chunks: 'all',
+            enforce: true,
+            maxSize: 250000, // 250KB limit for better loading
+          },
           graphics: {
-            test: /[\\/]node_modules[\\/](konva|react-konva|fabric|html2canvas)[\\/]/,
+            test: /[\\/]node_modules[\\/](fabric|html2canvas)[\\/]/,
             name: 'graphics',
             priority: 20,
             chunks: 'all',
@@ -216,6 +244,12 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || '1.0.0',
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+    // Konva performance optimizations
+    NEXT_PUBLIC_KONVA_PERFORMANCE_MODE: process.env.NODE_ENV === 'production' ? 'true' : 'false',
+    NEXT_PUBLIC_ENABLE_CANVAS_OPTIMIZATION: 'true',
+    NEXT_PUBLIC_KONVA_PIXEL_RATIO: process.env.NODE_ENV === 'production' ? '2' : 'auto',
+    NEXT_PUBLIC_KONVA_MAX_MEMORY_MB: process.env.VERCEL ? '50' : '100',
+    NEXT_PUBLIC_ENABLE_VIEWPORT_CULLING: 'true',
   },
 
   // TypeScript configuration
