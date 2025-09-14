@@ -420,7 +420,7 @@ export function BluebinInteractiveRoofPlan({
                       y={canvasPos.y}
                       radius={pinSize}
                       fill={getSeverityColor(pin.severity)}
-                      stroke={isSelected ? "#ffffff" : getStatusColor(pin.status)}
+                      stroke={isSelected ? "#ffffff" : getStatusColor(pin.status ?? 'pending')}
                       strokeWidth={isSelected ? 4 : 2}
                       shadowColor="black"
                       shadowBlur={6}
@@ -443,7 +443,7 @@ export function BluebinInteractiveRoofPlan({
                     />
                     
                     {/* Child pin count indicator */}
-                    {pin.children_total > 0 && (
+                    {(pin.children_total ?? 0) > 0 && (
                       <Circle
                         x={canvasPos.x + pinSize * 0.7}
                         y={canvasPos.y - pinSize * 0.7}
@@ -455,11 +455,11 @@ export function BluebinInteractiveRoofPlan({
                       />
                     )}
                     
-                    {pin.children_total > 0 && (
+                    {(pin.children_total ?? 0) > 0 && (
                       <Text
                         x={canvasPos.x + pinSize * 0.7}
                         y={canvasPos.y - pinSize * 0.7 - 4}
-                        text={pin.children_total.toString()}
+                        text={(pin.children_total ?? 0).toString()}
                         fontSize={isMobile ? 8 : 6}
                         fontStyle="bold"
                         fill="white"

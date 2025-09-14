@@ -271,7 +271,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
                     </div>
                   ) : (
                   <div className="text-sm leading-relaxed">
-                    {(msg.text ?? '').split(/(@\w+)/).map((part, index) => {
+                    {(msg.text ?? '').split(/(@\w+)/).map((part: string, index: number) => {
                       if (part.match(/^@\w+$/)) {
                         const username = part.substring(1);
                         const isMentioned = user && (

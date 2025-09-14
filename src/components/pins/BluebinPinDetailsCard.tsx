@@ -155,8 +155,8 @@ export function BluebinPinDetailsCard({
                 Pin {pin.seq_number} Details
               </h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getStatusColor(pin.status))}>
-                  {pin.status}
+                <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getStatusColor(pin.status ?? 'pending'))}>
+                  {pin.status ?? 'pending'}
                 </span>
                 <span className="text-sm text-luxury-600">
                   {pin.zone && `Zone: ${pin.zone}`}
@@ -235,7 +235,7 @@ export function BluebinPinDetailsCard({
                   <div className="flex justify-between">
                     <span className="text-luxury-600">Status:</span>
                     <StatusSelect
-                      currentStatus={pin.status}
+                      currentStatus={pin.status ?? 'pending'}
                       onStatusChange={(status) => handleStatusChange(status)}
                       disabled={isUpdating}
                     />
@@ -278,8 +278,8 @@ export function BluebinPinDetailsCard({
                     </span>
                   </div>
                   <div className="text-sm text-luxury-600">
-                    Progress: {pin.children_total > 0 ? 
-                      Math.round((pin.children_closed / pin.children_total) * 100) : 0}% complete
+                    Progress: {(pin.children_total ?? 0) > 0 ?
+                      Math.round(((pin.children_closed ?? 0) / (pin.children_total ?? 1)) * 100) : 0}% complete
                   </div>
                 </div>
               </div>
@@ -318,7 +318,7 @@ export function BluebinPinDetailsCard({
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm",
-                            getSeverityColor(childPin.severity)
+                            getSeverityColor(childPin.severity ?? 'medium')
                           )}>
                             {childPin.seq || childPin.child_code.split('.')[1] || childPin.seq || childPin.child_code}
                           </div>
@@ -328,13 +328,13 @@ export function BluebinPinDetailsCard({
                             </div>
                             <div className="text-sm text-luxury-600">
                               {childPin.defect_layer && `${childPin.defect_layer} • `}
-                              Created {new Date(childPin.created_at).toLocaleDateString()}
+                              Created {new Date(childPin.created_at ?? new Date()).toLocaleDateString()}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getStatusColor(childPin.status || childPin.status_child))}>
-                            {childPin.status || childPin.status_child}
+                          <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getStatusColor((childPin.status || childPin.status_child) ?? 'pending'))}>
+                            {(childPin.status || childPin.status_child) ?? 'pending'}
                           </span>
                           <svg 
                             className={cn(
@@ -360,7 +360,7 @@ export function BluebinPinDetailsCard({
                             <div>
                               <label className="block text-sm font-medium text-luxury-700 mb-1">Status</label>
                               <StatusSelect
-                                currentStatus={childPin.status || childPin.status_child}
+                                currentStatus={(childPin.status || childPin.status_child) ?? 'pending'}
                                 onStatusChange={(status) => handleStatusChange(status, childPin)}
                                 disabled={isUpdating}
                               />
