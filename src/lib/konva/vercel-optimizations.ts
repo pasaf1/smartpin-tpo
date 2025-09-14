@@ -319,9 +319,9 @@ export class VercelKonvaOptimizer {
         }, 100)
       })
     ]).then(([stage, layer, additional]) => ({
-      Stage: stage.Stage || stage.default?.Stage,
-      Layer: layer.Layer || layer.default?.Layer,
-      ...additional.reduce((acc: any, curr: any) => ({ ...acc, ...curr }), {})
+      Stage: stage.Stage,
+      Layer: layer.Layer,
+      ...(Array.isArray(additional) ? additional.reduce((acc: any, curr: any) => ({ ...acc, ...curr }), {}) : {})
     }))
   }
 
@@ -330,9 +330,9 @@ export class VercelKonvaOptimizer {
 
     // Check for Vercel Edge Runtime specific globals
     return (
-      typeof globalThis.EdgeRuntime !== 'undefined' ||
-      typeof process !== 'undefined' && process.env.VERCEL_REGION !== undefined ||
-      navigator.userAgent.includes('Vercel-Edge-Runtime')
+      typeof (globalThis as any).EdgeRuntime !== 'undefined' ||
+      (typeof process !== 'undefined' && process.env.VERCEL_REGION !== undefined) ||
+      (typeof navigator !== 'undefined' && navigator.userAgent.includes('Vercel-Edge-Runtime'))
     )
   }
 }

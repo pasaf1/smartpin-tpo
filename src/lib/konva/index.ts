@@ -227,11 +227,7 @@ export interface OptimizedKonvaProps {
   enableMobileOptimizations?: boolean
 }
 
-// Export types
-export type {
-  ProductionKonvaConfig,
-  OptimizedKonvaProps
-}
+// Types are already exported above, removing duplicate exports
 
 // Default export for convenience
 export default {

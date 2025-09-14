@@ -136,7 +136,7 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
                   scope: message.scope,
                   scope_id: message.scope_id,
                   mentions: message.mentions ?? undefined,
-                  created_at: message.created_at,
+                  created_at: message.created_at ?? new Date().toISOString(),
                   roof_id: roofId, // Use roofId directly since message does not have roof_id
                   message_type: "text" as const
                 };

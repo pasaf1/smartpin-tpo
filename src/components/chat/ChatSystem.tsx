@@ -230,7 +230,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
                       {'Viewer'}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(msg.created_at), 'MMM d, HH:mm')}
+                      {format(new Date(msg.created_at || new Date()), 'MMM d, HH:mm')}
                     </span>
                     {canManageMessage(msg.created_by) && (
                       <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">

@@ -39,7 +39,7 @@ export const queryKeys = {
   photoAnalytics: (pinId?: string) => ['photos', 'analytics', pinId || 'all'] as const,
   
   chat: ['chat'] as const,
-  chatMessages: (scope: PinChat['scope'], scopeId?: string) => 
+  chatMessages: (scope: Chat['scope'], scopeId?: string) =>
     ['chat', scope, scopeId || 'global'] as const
 }
 
@@ -234,7 +234,7 @@ export function useSendChatMessage() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (chat: PinChatInsert) => db.chat.send(chat),
+    mutationFn: (chat: ChatInsert) => db.chat.send(chat),
     onSuccess: (data) => {
       // Invalidate the relevant chat query
       queryClient.invalidateQueries({ 

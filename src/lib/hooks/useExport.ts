@@ -110,7 +110,7 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       return {
         id: pin.id,
         seq_number: pin.seq_number,
-        status: pin.status,
+        status: pin.status ?? 'Open',
         issue_type: (pin as any).issue_type,
         defect_type: (pin as any).defect_type,
         defect_layer: (pin as any).defect_layer,
@@ -302,7 +302,7 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       const pdfPin = {
         id: pin.id,
         seq_number: pin.seq_number,
-        status: pin.status,
+        status: pin.status ?? 'Open',
         issue_type: (pin as any).issue_type,
         defect_type: (pin as any).defect_type,
         defect_layer: (pin as any).defect_layer,
@@ -324,7 +324,7 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
         opening_photo_url: (child as any).opening_photo_url,
         closing_photo_url: (child as any).closing_photo_url,
         defect_type: child.defect_type || undefined,
-        created_at: child.created_at
+        created_at: child.created_at ?? new Date().toISOString()
       }))
 
       setExportProgress(70)
@@ -376,7 +376,7 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       const pdfPins = pins.map(pin => ({
         id: pin.id,
         seq_number: pin.seq_number,
-        status: pin.status,
+        status: pin.status ?? 'Open',
         issue_type: (pin as any).issue_type,
         defect_type: (pin as any).defect_type,
         defect_layer: (pin as any).defect_layer,

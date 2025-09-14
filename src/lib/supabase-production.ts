@@ -16,7 +16,7 @@ import type {
   PinInsert,
   PinChildInsert,
   PhotoInsert,
-  PinPinChatInsert
+  PinChatInsert
 } from './database.types'
 
 // Production-ready database operations with proper error handling and types
@@ -350,7 +350,7 @@ export class SupabaseService {
   }
 
   // Chat operations (multi-scope)
-  async getChatMessages(scope: PinChat['scope'], scopeId?: string): Promise<Chat[]> {
+  async getChatMessages(scope: Chat['scope'], scopeId?: string): Promise<Chat[]> {
 
     const query = this.client
       .from('chats')
@@ -374,7 +374,7 @@ export class SupabaseService {
     return data || []
   }
 
-  async sendChatMessage(chat: PinPinChatInsert): Promise<Chat> {
+  async sendChatMessage(chat: ChatInsert): Promise<Chat> {
 
     const { data, error } = await this.client
       .from('chats')
@@ -496,7 +496,7 @@ export class SupabaseService {
       .subscribe()
   }
 
-  subscribeToChatUpdates(scope: PinChat['scope'], scopeId: string | null, callback: (payload: any) => void) {
+  subscribeToChatUpdates(scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) {
 
     const filter = scopeId 
       ? `scope=eq.${scope}.and.scope_id=eq.${scopeId}`
@@ -557,12 +557,12 @@ export const db = {
   },
   
   chat: {
-    getMessages: (scope: PinChat['scope'], scopeId?: string) => 
+    getMessages: (scope: Chat['scope'], scopeId?: string) =>
       supabaseService.getChatMessages(scope, scopeId),
-    send: (chat: PinPinChatInsert) => supabaseService.sendChatMessage(chat),
+    send: (chat: ChatInsert) => supabaseService.sendChatMessage(chat),
   update: (messageId: string, text: string) => supabaseService.updateChatMessage(messageId, text),
   remove: (messageId: string) => supabaseService.deleteChatMessage(messageId),
-    subscribe: (scope: PinChat['scope'], scopeId: string | null, callback: (payload: any) => void) =>
+    subscribe: (scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) =>
       supabaseService.subscribeToChatUpdates(scope, scopeId, callback)
   },
   
