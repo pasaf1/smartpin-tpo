@@ -154,7 +154,7 @@ export async function GET() {
     for (const table of tables) {
       try {
         const { count } = await supabase
-          .from(table)
+          .from(table as any)
           .select('*', { count: 'exact', head: true })
         
         counts.push({
