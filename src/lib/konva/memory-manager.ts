@@ -298,7 +298,7 @@ export class KonvaMemoryManager {
     // Force browser to release memory
     setTimeout(() => {
       // Create and destroy a large array to trigger GC
-      let dummy = new Array(1000000).fill(0)
+      let dummy: any[] | null = new Array(1000000).fill(0)
       dummy = null
     }, 100)
   }

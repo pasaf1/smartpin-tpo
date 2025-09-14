@@ -137,8 +137,8 @@ export function PinItemsTable({
     const terms = new Set<string>()
     baseFilteredData.forEach(item => {
       if (item.description) terms.add(item.description)
-      terms.add(item.status)
-      terms.add(item.severity)
+      if (item.status) terms.add(item.status)
+      if (item.severity) terms.add(item.severity)
     })
     return Array.from(terms)
   }, [baseFilteredData])
@@ -219,9 +219,9 @@ export function PinItemsTable({
         header: 'Status',
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            <StatusBadge status={row.original.status} />
+            <StatusBadge status={row.original.status || 'Open'} />
             <Select
-              value={row.original.status}
+              value={row.original.status || 'Open'}
               onValueChange={(value) =>
                 handleStatusChange(row.original.id, value as 'Open' | 'ReadyForInspection' | 'Closed')
               }
@@ -259,7 +259,7 @@ export function PinItemsTable({
       {
         accessorKey: 'severity',
         header: 'Severity',
-        cell: ({ row }) => <SeverityBadge severity={row.original.severity} />,
+        cell: ({ row }) => <SeverityBadge severity={row.original.severity || 'Medium'} />,
         size: 100,
         filterFn: 'equals',
       },
@@ -279,9 +279,9 @@ export function PinItemsTable({
         header: 'Opened',
         cell: ({ row }) => (
           <div className="text-xs text-muted-foreground font-mono">
-            {new Date(row.original.opened_at).toLocaleDateString()}
+            {new Date(row.original.opened_at ?? new Date()).toLocaleDateString()}
             <br />
-            {new Date(row.original.opened_at).toLocaleTimeString([], {
+            {new Date(row.original.opened_at ?? new Date()).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
             })}

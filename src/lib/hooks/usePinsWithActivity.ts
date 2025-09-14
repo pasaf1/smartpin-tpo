@@ -101,8 +101,8 @@ export function useUpdatePinWithActivity() {
             seq_number: newPin.seq_number,
             roof_id: newPin.roof_id
           },
-          oldPin.status,
-          updates.status,
+          oldPin.status || 'Open',
+          updates.status || 'Open',
           reason
         )
       }
@@ -167,8 +167,8 @@ export function useUpdatePinStatusWithActivity() {
           seq_number: newPin.seq_number,
           roof_id: newPin.roof_id
         },
-        oldPin.status,
-        status,
+        oldPin.status || 'Open',
+        status || 'Open',
         reason
       )
 

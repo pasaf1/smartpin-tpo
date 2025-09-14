@@ -1,7 +1,7 @@
 interface ExportablePin {
   id: string
   seq_number: number
-  status: string
+  status: string | null
   issue_type?: string
   defect_type?: string
   defect_layer?: string
@@ -231,7 +231,7 @@ export class CSVExporter {
     const row = [
       pin.id,
       pin.seq_number.toString(),
-      pin.status,
+      pin.status || 'Unknown',
       pin.issue_type || '',
       pin.defect_type || '',
       pin.defect_layer || '',
@@ -414,6 +414,7 @@ export class CSVExporter {
         case 'ReadyToInspect': acc[type].ready++; break
         case 'Closed': acc[type].closed++; break
         case 'InDispute': acc[type].dispute++; break
+        default: acc[type].open++; break // Treat null/unknown as Open
       }
       
       return acc

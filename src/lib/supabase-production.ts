@@ -7,14 +7,16 @@ import type {
   Pin, 
   PinChild, 
   Photo, 
-  Chat, 
+  PinChat,
+  Chat,
+  ChatInsert,
   User,
   ProjectInsert,
   RoofInsert,
   PinInsert,
   PinChildInsert,
   PhotoInsert,
-  ChatInsert
+  PinPinChatInsert
 } from './database.types'
 
 // Production-ready database operations with proper error handling and types
@@ -348,7 +350,7 @@ export class SupabaseService {
   }
 
   // Chat operations (multi-scope)
-  async getChatMessages(scope: Chat['scope'], scopeId?: string): Promise<Chat[]> {
+  async getChatMessages(scope: PinChat['scope'], scopeId?: string): Promise<Chat[]> {
 
     const query = this.client
       .from('chats')
@@ -372,7 +374,7 @@ export class SupabaseService {
     return data || []
   }
 
-  async sendChatMessage(chat: ChatInsert): Promise<Chat> {
+  async sendChatMessage(chat: PinPinChatInsert): Promise<Chat> {
 
     const { data, error } = await this.client
       .from('chats')
@@ -494,7 +496,7 @@ export class SupabaseService {
       .subscribe()
   }
 
-  subscribeToChatUpdates(scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) {
+  subscribeToChatUpdates(scope: PinChat['scope'], scopeId: string | null, callback: (payload: any) => void) {
 
     const filter = scopeId 
       ? `scope=eq.${scope}.and.scope_id=eq.${scopeId}`
@@ -555,12 +557,12 @@ export const db = {
   },
   
   chat: {
-    getMessages: (scope: Chat['scope'], scopeId?: string) => 
+    getMessages: (scope: PinChat['scope'], scopeId?: string) => 
       supabaseService.getChatMessages(scope, scopeId),
-    send: (chat: ChatInsert) => supabaseService.sendChatMessage(chat),
+    send: (chat: PinPinChatInsert) => supabaseService.sendChatMessage(chat),
   update: (messageId: string, text: string) => supabaseService.updateChatMessage(messageId, text),
   remove: (messageId: string) => supabaseService.deleteChatMessage(messageId),
-    subscribe: (scope: Chat['scope'], scopeId: string | null, callback: (payload: any) => void) =>
+    subscribe: (scope: PinChat['scope'], scopeId: string | null, callback: (payload: any) => void) =>
       supabaseService.subscribeToChatUpdates(scope, scopeId, callback)
   },
   

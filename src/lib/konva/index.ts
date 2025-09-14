@@ -31,6 +31,13 @@ export {
 // Optimized components
 export { default as OptimizedKonvaComponents } from './optimized-components'
 
+// Import types for internal use
+import { KonvaPerformanceMonitor, createProductionPerformanceMonitor } from './performance-monitor'
+import { KonvaMemoryManager, createProductionMemoryManager } from './memory-manager'
+import { ViewportCuller, createViewportCuller } from './viewport-culling'
+import { MobileKonvaOptimizer, createMobileKonvaOptimizer, isMobileDevice, getMobileCanvasSettings } from './mobile-optimizations'
+import { VercelKonvaOptimizer, createVercelOptimizedKonva } from './vercel-optimizations'
+
 /**
  * All-in-one optimization configuration for production
  */

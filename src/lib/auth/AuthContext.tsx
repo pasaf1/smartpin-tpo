@@ -3,17 +3,17 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
-import type { UserRole } from '../database.types'
+import type { Role } from '../database.types'
 
 interface UserProfile {
   id: string
   auth_user_id: string | null
   email: string
-  role: UserRole
+  role: Role | null
   full_name: string
   address: string | null
   birth_date: string | null
-  created_at: string
+  created_at: string | null
 }
 
 interface AuthContextType {
@@ -23,7 +23,7 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
-  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<void>
+  signUp: (email: string, password: string, fullName: string, role: Role) => Promise<void>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
 }
@@ -320,7 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
+  const signUp = async (email: string, password: string, fullName: string, role: Role) => {
     setLoading(true)
     try {
       const { data, error } = await supabase.auth.signUp({

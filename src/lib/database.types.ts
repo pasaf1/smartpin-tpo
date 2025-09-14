@@ -1127,3 +1127,8 @@ export type AddChildPinHandler = (parentPin: PinWithRelations, x?: number, y?: n
 export type UpdateChildPinHandler = (childPin: ChildPinWithUIFields) => void
 export type DeleteChildPinHandler = (childPinId: string) => void
 export type StatusChangeHandler = (pinId: string, newStatus: PinStatus, isChild?: boolean) => void
+
+// Chat types for the chats table
+export type Chat = Database["public"]["Tables"]["chats"]["Row"]
+export type ChatInsert = Database["public"]["Tables"]["chats"]["Insert"]
+export type ChatUpdate = Database["public"]["Tables"]["chats"]["Update"]

@@ -70,13 +70,15 @@ export class VercelKonvaOptimizer {
       preloadDelay: config?.preloadDelay ?? 1000
     }
 
+    const optimizerInstance = this
+
     return class LazyKonvaCanvas {
       private observer: IntersectionObserver | null = null
       private isLoaded = false
       private loadPromise: Promise<any> | null = null
 
       constructor(private element: HTMLElement) {
-        if (this.config.enableLazyLoading) {
+        if (lazyConfig.enablePreload) {
           this.setupIntersectionObserver(lazyConfig)
         } else {
           this.loadCanvas()
@@ -120,7 +122,7 @@ export class VercelKonvaOptimizer {
         if (this.isLoaded || this.loadPromise) return this.loadPromise
 
         this.isLoaded = true
-        this.loadPromise = this.getDynamicKonvaImport()
+        this.loadPromise = optimizerInstance.getDynamicKonvaImport()
 
         try {
           return await this.loadPromise
@@ -135,7 +137,7 @@ export class VercelKonvaOptimizer {
       private async preloadCanvas() {
         if (!this.isLoaded && !this.loadPromise) {
           // Create the import but don't mark as loaded
-          this.loadPromise = this.getDynamicKonvaImport()
+          this.loadPromise = optimizerInstance.getDynamicKonvaImport()
         }
       }
 
@@ -297,18 +299,18 @@ export class VercelKonvaOptimizer {
   private createOptimizedKonvaImport() {
     // Progressive loading: load core first, then additional components
     return Promise.all([
-      import('react-konva/lib/Stage').catch(() => import('react-konva')),
-      import('react-konva/lib/Layer').catch(() => import('react-konva')),
+      import('react-konva').then(module => ({ Stage: module.Stage })),
+      import('react-konva').then(module => ({ Layer: module.Layer })),
       new Promise(resolve => {
         // Delay loading of non-essential components
         setTimeout(async () => {
           try {
             const additional = await Promise.all([
-              import('react-konva/lib/Group').catch(() => ({})),
-              import('react-konva/lib/Circle').catch(() => ({})),
-              import('react-konva/lib/Text').catch(() => ({})),
-              import('react-konva/lib/Image').catch(() => ({})),
-              import('react-konva/lib/Rect').catch(() => ({}))
+              import('react-konva').then(module => ({ Group: module.Group })).catch(() => ({})),
+              import('react-konva').then(module => ({ Circle: module.Circle })).catch(() => ({})),
+              import('react-konva').then(module => ({ Text: module.Text })).catch(() => ({})),
+              import('react-konva').then(module => ({ Image: module.Image })).catch(() => ({})),
+              import('react-konva').then(module => ({ Rect: module.Rect })).catch(() => ({}))
             ])
             resolve(additional)
           } catch {
@@ -328,7 +330,7 @@ export class VercelKonvaOptimizer {
 
     // Check for Vercel Edge Runtime specific globals
     return (
-      typeof EdgeRuntime !== 'undefined' ||
+      typeof globalThis.EdgeRuntime !== 'undefined' ||
       typeof process !== 'undefined' && process.env.VERCEL_REGION !== undefined ||
       navigator.userAgent.includes('Vercel-Edge-Runtime')
     )
@@ -349,7 +351,7 @@ export function createDynamicKonvaComponent(
 
   return dynamic(
     () => import('@/lib/konva/optimized-components').then(mod => ({
-      default: mod[componentName] || mod.default
+      default: (mod as any)[componentName] || mod.default
     })),
     {
       ssr: options.ssr ?? false,

@@ -9,12 +9,14 @@ import type {
   Pin, 
   PinChild, 
   Photo, 
+  PinChat,
   Chat,
+  ChatInsert,
   ProjectInsert,
   PinInsert,
   PinChildInsert,
   PhotoInsert,
-  ChatInsert
+  PinChatInsert
 } from '../database.types'
 
 // Query keys factory
@@ -37,7 +39,7 @@ export const queryKeys = {
   photoAnalytics: (pinId?: string) => ['photos', 'analytics', pinId || 'all'] as const,
   
   chat: ['chat'] as const,
-  chatMessages: (scope: Chat['scope'], scopeId?: string) => 
+  chatMessages: (scope: PinChat['scope'], scopeId?: string) => 
     ['chat', scope, scopeId || 'global'] as const
 }
 
@@ -232,7 +234,7 @@ export function useSendChatMessage() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (chat: ChatInsert) => db.chat.send(chat),
+    mutationFn: (chat: PinChatInsert) => db.chat.send(chat),
     onSuccess: (data) => {
       // Invalidate the relevant chat query
       queryClient.invalidateQueries({ 
@@ -336,10 +338,10 @@ export function useRoofDashboard(roofId: string) {
     openPins: pinsQuery.data.filter(p => p.status === 'Open').length,
     readyPins: pinsQuery.data.filter(p => p.status === 'ReadyForInspection').length,
     closedPins: pinsQuery.data.filter(p => p.status === 'Closed').length,
-    totalChildren: pinsQuery.data.reduce((sum, pin) => sum + pin.children_total, 0),
-    openChildren: pinsQuery.data.reduce((sum, pin) => sum + pin.children_open, 0),
-    readyChildren: pinsQuery.data.reduce((sum, pin) => sum + pin.children_ready, 0),
-    closedChildren: pinsQuery.data.reduce((sum, pin) => sum + pin.children_closed, 0),
+    totalChildren: pinsQuery.data.reduce((sum, pin) => sum + (pin.children_total ?? 0), 0),
+    openChildren: pinsQuery.data.reduce((sum, pin) => sum + (pin.children_open ?? 0), 0),
+    readyChildren: pinsQuery.data.reduce((sum, pin) => sum + (pin.children_ready ?? 0), 0),
+    closedChildren: pinsQuery.data.reduce((sum, pin) => sum + (pin.children_closed ?? 0), 0),
   } : null
   
   return {
