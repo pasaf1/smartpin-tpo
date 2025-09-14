@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!supabaseUrl) {
     return NextResponse.json({ enabled: false, error: 'NEXT_PUBLIC_SUPABASE_URL not set' }, { status: 500 })
@@ -9,7 +9,9 @@ export async function GET() {
   // Try to call the Supabase authorize endpoint for Google. If provider is disabled
   // Supabase returns a 400 with a message like "Unsupported provider: provider is not enabled"
   try {
-    const redirectTo = 'http://localhost:3000/'
+    // Get the current request URL to determine the correct redirect URL
+    const requestUrl = new URL(request.url)
+    const redirectTo = `${requestUrl.protocol}//${requestUrl.host}/auth/callback`
     const checkUrl = `${supabaseUrl.replace(/\/$/, '')}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(
       redirectTo
     )}`

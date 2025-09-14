@@ -70,10 +70,14 @@ export async function GET(request: NextRequest) {
     // Test Google OAuth URL
     let googleOAuthTest = null
     try {
+      // Get the current request URL to determine the correct redirect URL
+      const requestUrl = new URL(request.url)
+      const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/callback`,
+          redirectTo: `${baseUrl}/auth/callback`,
           skipBrowserRedirect: true
         }
       })
