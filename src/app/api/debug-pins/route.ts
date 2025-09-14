@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
         count: pins?.length || 0,
         hasCoordinates: pins?.filter(p => p.x !== null && p.y !== null).length || 0,
         statuses: pins?.reduce((acc, p) => {
-          acc[p.status] = (acc[p.status] || 0) + 1
+          const status = p.status ?? 'null'
+          acc[status] = (acc[status] || 0) + 1
           return acc
         }, {} as Record<string, number>) || {}
       },
