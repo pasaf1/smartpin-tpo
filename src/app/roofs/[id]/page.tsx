@@ -24,7 +24,7 @@ import ChatInterface from '@/components/chat/ChatInterface'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
 import { RealtimeStatus } from '@/components/realtime/ConnectionStatus'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations, PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler, ChildPinWithUIFields } from '@/lib/database.types'
+import type { PinWithRelations, PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler, ChildPinWithUIFields, TablesInsert } from '@/lib/database.types'
 import { DockedChat } from '@/components/chat/DockedChat'
 
 function RoofDashboardPage() {
@@ -115,10 +115,7 @@ function RoofDashboardPage() {
   }
 
   const handlePinClick: PinClickHandler = (pin) => {
-    setSelectedPin({
-      ...pin,
-      layer_id: pin.layer_id || selectedLayerId || layers[0]?.id || '1'
-    } as PinWithRelations)
+    setSelectedPin(pin)
     setClosurePhotoItemId(null)
     setShowPinPopup(false)
     if (isMobile) {
@@ -148,56 +145,39 @@ function RoofDashboardPage() {
     }
   }
 
-  const handleAddChildPin: AddChildPinHandler = async (parentPin, x = 0.5, y = 0.5) => {
+  const handleAddChildPin: AddChildPinHandler = async (parentPinId, childData) => {
     // Create child pin logic
     const newChildPin: ChildPinWithUIFields = {
       child_id: Date.now().toString(),
-      pin_id: parentPin.id,
-      child_code: `${parentPin.seq_number}.${childPins.filter(cp => cp.pin_id === parentPin.id).length + 1}`,
-      zone: null,
-      defect_type: 'General',
-      severity: 'Medium' as const,
-      status_child: 'Open' as const,
-      due_date: null,
-      open_date: new Date().toISOString(),
-      closed_date: null,
-      openpic_id: null,
-      closurepic_id: null,
-      notes: null,
+      pin_id: parentPinId,
+      child_code: childData.child_code,
+      zone: childData.zone || null,
+      defect_type: childData.defect_type || null,
+      severity: childData.severity || null,
+      status_child: 'Open',
+      due_date: childData.due_date || null,
+      open_date: childData.open_date || null,
+      closed_date: childData.closed_date || null,
+      openpic_id: childData.openpic_id || null,
+      closurepic_id: childData.closurepic_id || null,
+      notes: childData.notes || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      // UI compatibility fields
-      id: Date.now().toString(),
-      parent_id: parentPin.id,
-      seq: `${parentPin.seq_number}.${childPins.filter(cp => cp.pin_id === parentPin.id).length + 1}`,
-      x,
-      y,
-      status: 'Open',
-      title: null,
-      description: null,
-      open_pic_url: null,
-      close_pic_url: null,
-      metadata: {},
-      defect_layer: undefined
+      updated_at: new Date().toISOString()
     }
     setChildPins([...childPins, newChildPin])
   }
 
-  const handleStatusChange: StatusChangeHandler = (pinId, newStatus, isChild = false) => {
-    if (isChild) {
-      setChildPins(childPins.map(cp => cp.id === pinId ? { ...cp, status: newStatus } : cp))
-    } else {
-      // Update parent pin status logic
-      console.log('Update parent pin status:', pinId, newStatus)
-    }
+  const handleStatusChange: StatusChangeHandler = async (pinId, newStatus) => {
+    // Update parent pin status logic
+    console.log('Update parent pin status:', pinId, newStatus)
   }
 
-  const handleUpdateChildPin: UpdateChildPinHandler = (childPin) => {
-    setChildPins(childPins.map(cp => cp.id === childPin.id ? childPin : cp))
+  const handleUpdateChildPin: UpdateChildPinHandler = async (childId, updates) => {
+    setChildPins(childPins.map(cp => cp.child_id === childId ? { ...cp, ...updates } : cp))
   }
 
-  const handleDeleteChildPin = (childPinId: string) => {
-    setChildPins(childPins.filter(cp => cp.id !== childPinId))
+  const handleDeleteChildPin: DeleteChildPinHandler = async (childId) => {
+    setChildPins(childPins.filter(cp => cp.child_id !== childId))
   }
 
   const handleAddAnnotation = (annotation: Omit<{ 

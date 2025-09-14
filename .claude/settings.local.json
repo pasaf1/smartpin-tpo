@@ -74,7 +74,8 @@
       "mcp__playwright__browser_click",
       "Bash(ipconfig /flushdns)",
       "mcp__supabase__get_anon_key",
-      "mcp__supabase__generate_typescript_types"
+      "mcp__supabase__generate_typescript_types",
+      "Bash(timeout 30 curl -I https://smartpin-tpo.vercel.app)"
     ],
     "deny": [],
     "ask": []
