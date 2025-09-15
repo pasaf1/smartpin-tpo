@@ -230,9 +230,11 @@ export interface OptimizedKonvaProps {
 // Types are already exported above, removing duplicate exports
 
 // Default export for convenience
-export default {
+const KonvaUtils = {
   initializeProductionKonva,
   setupKonvaForProduction,
   createEnvironmentOptimizedConfig,
   getOptimizedCanvasDimensions
 }
+
+export default KonvaUtils

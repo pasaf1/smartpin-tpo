@@ -10,9 +10,11 @@ import { useConnectionStatus } from '@/lib/hooks/useRealTimeUpdates'
 interface ConnectionStatusProps {
   className?: string
   variant?: 'badge' | 'card' | 'inline'
+  roofId?: string
+  showDetails?: boolean
 }
 
-export function ConnectionStatus({ className, variant = 'badge' }: ConnectionStatusProps) {
+export function ConnectionStatus({ className, variant = 'badge', roofId, showDetails }: ConnectionStatusProps) {
   const { status, lastConnected, isOnline } = useConnectionStatus()
 
   const getStatusConfig = () => {

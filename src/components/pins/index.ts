@@ -355,7 +355,7 @@ export { BluebinPinDetailsCard } from './BluebinPinDetailsCard'
 export * as PinSystem from './index'
 
 // Default export for convenience
-export default {
+const PinSystemExports = {
   // Components
   PinDetailsModal,
   PinHierarchyManager,
@@ -373,3 +373,5 @@ export default {
   // Version
   VERSION: PIN_SYSTEM_VERSION
 }
+
+export default PinSystemExports

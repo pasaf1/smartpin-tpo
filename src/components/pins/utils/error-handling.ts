@@ -66,7 +66,7 @@ export class PinErrorBoundary extends React.Component<PinErrorBoundaryProps, Pin
   render() {
     if (this.state.hasError && this.state.error) {
       const FallbackComponent = this.props.fallback || DefaultErrorFallback
-      return <FallbackComponent error={this.state.error} retry={this.retry} />
+      return React.createElement(FallbackComponent, { error: this.state.error, retry: this.retry })
     }
 
     return this.props.children
@@ -75,46 +75,38 @@ export class PinErrorBoundary extends React.Component<PinErrorBoundaryProps, Pin
 
 // Default error fallback component
 const DefaultErrorFallback: React.FC<{ error: Error; retry: () => void }> = ({ error, retry }) => (
-  <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-    <div className="flex items-center gap-3 mb-4">
-      <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-red-900">Pin System Error</h3>
-        <p className="text-sm text-red-600">Something went wrong with the pin component</p>
-      </div>
-    </div>
-
-    <div className="mb-4">
-      <details className="text-sm">
-        <summary className="cursor-pointer text-red-700 font-medium mb-2">Error Details</summary>
-        <div className="bg-white p-3 rounded border border-red-200 font-mono text-xs text-red-800 overflow-auto">
-          {error.message}
-          {process.env.NODE_ENV === 'development' && error.stack && (
-            <pre className="mt-2 text-xs opacity-75">{error.stack}</pre>
-          )}
-        </div>
-      </details>
-    </div>
-
-    <div className="flex gap-3">
-      <button
-        onClick={retry}
-        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-      >
-        Try Again
-      </button>
-      <button
-        onClick={() => window.location.reload()}
-        className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
-      >
-        Reload Page
-      </button>
-    </div>
-  </div>
+  React.createElement('div', { className: 'p-6 bg-red-50 border border-red-200 rounded-lg' },
+    React.createElement('div', { className: 'flex items-center gap-3 mb-4' },
+      React.createElement('div', { className: 'w-10 h-10 bg-red-500 rounded-full flex items-center justify-center' },
+        React.createElement('svg', { className: 'w-6 h-6 text-white', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+          React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '2', d: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' })
+        )
+      ),
+      React.createElement('div', null,
+        React.createElement('h3', { className: 'text-lg font-semibold text-red-900' }, 'Pin System Error'),
+        React.createElement('p', { className: 'text-sm text-red-600' }, 'Something went wrong with the pin component')
+      )
+    ),
+    React.createElement('div', { className: 'mb-4' },
+      React.createElement('details', { className: 'text-sm' },
+        React.createElement('summary', { className: 'cursor-pointer text-red-700 font-medium mb-2' }, 'Error Details'),
+        React.createElement('div', { className: 'bg-white p-3 rounded border border-red-200 font-mono text-xs text-red-800 overflow-auto' },
+          error.message,
+          process.env.NODE_ENV === 'development' && error.stack && React.createElement('pre', { className: 'mt-2 text-xs opacity-75' }, error.stack)
+        )
+      )
+    ),
+    React.createElement('div', { className: 'flex gap-3' },
+      React.createElement('button', {
+        onClick: retry,
+        className: 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
+      }, 'Try Again'),
+      React.createElement('button', {
+        onClick: () => window.location.reload(),
+        className: 'px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors'
+      }, 'Reload Page')
+    )
+  )
 )
 
 // Error handling utilities
