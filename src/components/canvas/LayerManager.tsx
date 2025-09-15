@@ -182,3 +182,5 @@ export function LayerManager({
     </div>
   )
 }
+
+export default LayerManager

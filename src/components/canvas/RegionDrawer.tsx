@@ -293,3 +293,5 @@ export function RegionDrawer({
     </div>
   )
 }
+
+export default RegionDrawer

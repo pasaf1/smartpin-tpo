@@ -189,3 +189,5 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
     </g>
   )
 }
+
+export default PinMarker

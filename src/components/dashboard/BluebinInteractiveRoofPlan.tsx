@@ -292,7 +292,7 @@ export function BluebinInteractiveRoofPlan({
         layerId: selectedLayerId
       })
     } else if (selectedTool === 'childPin' && selectedPin && onAddChildPin) {
-      onAddChildPin(selectedPin, normalizedPos.x, normalizedPos.y)
+      onAddChildPin(selectedPin.id, { x: normalizedPos.x, y: normalizedPos.y })
       setIsAddingChildPin(false)
       // Broadcast child pin creation
       broadcastChildPinOperation('create', {

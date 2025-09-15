@@ -150,3 +150,5 @@ export function ProximityIndicator({
     </g>
   )
 }
+
+export default ProximityIndicator
