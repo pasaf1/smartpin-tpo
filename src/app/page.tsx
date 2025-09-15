@@ -10,8 +10,7 @@ import { BluebinInteractiveRoofPlan } from '@/components/dashboard/BluebinIntera
 import { MobileBottomSheet } from '@/components/ui/MobileBottomSheet'
 import { MobileFAB, defaultBluebinTools } from '@/components/ui/MobileFAB'
 import { BluebinPinDetailsCard } from '@/components/pins/BluebinPinDetailsCard'
-import { PinItemsTable } from '@/components/tables/PinItemsTable'
-import { ExportDialog } from '@/components/export/ExportDialog'
+import { PinItemsTable, ExportDialog } from '@/components/shared'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { SeverityBadge } from '@/components/ui/severity-badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -22,7 +21,7 @@ import { useChat } from '@/lib/hooks/useChat'
 import { useUsers, withAuth } from '@/lib/hooks/useAuth'
 import ChatInterface from '@/components/chat/ChatInterface'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
-import { RealtimeStatus } from '@/components/realtime/ConnectionStatus'
+import { ConnectionStatus as RealtimeStatus } from '@/components/shared'
 import { cn } from '@/lib/utils'
 import { DockedChat } from '@/components/chat/DockedChat'
 import { toast } from 'sonner'
@@ -32,8 +31,6 @@ import type { Database } from '@/lib/database.types'
 type Pin = Database['public']['Tables']['pins']['Row']
 type PinInsert = Database['public']['Tables']['pins']['Insert']
 type PinUpdate = Database['public']['Tables']['pins']['Update']
-type Layer = Database['public']['Tables']['layers']['Row']
-type Annotation = Database['public']['Tables']['annotations']['Row']
 
 interface PinWithRelations extends Pin {
   pin_items?: any[]
@@ -41,23 +38,7 @@ interface PinWithRelations extends Pin {
   children?: ChildPin[]
 }
 
-interface ChildPin {
-  id: string
-  pin_id: string
-  seq: string
-  x: number
-  y: number
-  status: 'Open' | 'ReadyForInspection' | 'Closed'
-  zone?: string | null
-  severity?: string | null
-  title?: string | null
-  description?: string | null
-  open_pic_url?: string | null
-  close_pic_url?: string | null
-  metadata?: Record<string, any>
-  created_at: string
-  updated_at: string
-}
+type ChildPin = Database['public']['Tables']['pin_children']['Row']
 
 function RoofDashboardPage() {
   const params = useParams()
@@ -72,8 +53,7 @@ function RoofDashboardPage() {
   const [selectedTool, setSelectedTool] = useState<'pin' | 'childPin' | 'annotation' | 'text' | 'measure'>('pin')
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
   const [childPins, setChildPins] = useState<ChildPin[]>([])
-  const [layers, setLayers] = useState<Layer[]>([])
-  const [annotations, setAnnotations] = useState<Annotation[]>([])
+  // Removed layers and annotations - tables don't exist in database
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileDetails, setShowMobileDetails] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
@@ -102,37 +82,23 @@ function RoofDashboardPage() {
     }
   }, [])
 
-  // Initialize default layer
+  // Initialize default layer ID (simplified without database layers table)
   useEffect(() => {
-    if (!selectedLayerId && layers.length === 0) {
-      const defaultLayer: Layer = {
-        id: 'default-layer',
-        roof_id: roofId,
-        name: 'Quality Control',
-        type: 'pins',
-        visible: true,
-        locked: false,
-        z_index: 1,
-        opacity: 1.0,
-        write_roles: ['Admin', 'QA_Manager'],
-        settings: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      setLayers([defaultLayer])
-      setSelectedLayerId(defaultLayer.id)
+    if (!selectedLayerId) {
+      setSelectedLayerId('default-layer')
     }
-  }, [roofId, selectedLayerId, layers])
+  }, [selectedLayerId])
   
   // Handlers
   const handlePinCreate = useCallback(async (x: number, y: number) => {
     try {
+      const maxSeqNumber = Math.max(0, ...pins.map(p => p.seq_number || 0))
       const newPin: PinInsert = {
         roof_id: roofId,
+        seq_number: maxSeqNumber + 1,
         x: x,
         y: y,
-        status: 'Open',
-        layer_id: selectedLayerId || undefined
+        status: 'Open'
       }
       await createPinMutation.mutateAsync(newPin)
       toast.success('Pin created successfully')
@@ -140,7 +106,7 @@ function RoofDashboardPage() {
       console.error('Failed to create pin:', error)
       toast.error('Failed to create pin')
     }
-  }, [roofId, selectedLayerId, createPinMutation])
+  }, [roofId, pins, createPinMutation])
 
   const handlePinClick = useCallback((pin: PinWithRelations) => {
     setSelectedPin(pin)
@@ -173,28 +139,28 @@ function RoofDashboardPage() {
       if (!parentPin) return
 
       const existingChildren = childPins.filter(cp => cp.pin_id === parentPinId)
-      const nextSeq = `${parentPin.seq_number}.${existingChildren.length + 1}`
-      
+      const nextCode = `${parentPin.seq_number}.${existingChildren.length + 1}`
+
       const newChildPin: ChildPin = {
-        id: crypto.randomUUID(),
+        child_id: crypto.randomUUID(),
         pin_id: parentPinId,
-        seq: nextSeq,
-        x: childData.x || 0.5,
-        y: childData.y || 0.5,
-        status: 'Open',
+        child_code: nextCode,
         zone: childData.zone || null,
-        severity: childData.severity || null,
-        title: childData.title || null,
-        description: childData.description || null,
-        open_pic_url: childData.open_pic_url || null,
-        close_pic_url: childData.close_pic_url || null,
-        metadata: childData.metadata || {},
+        defect_type: childData.defect_type || null,
+        severity: childData.severity || 'Medium',
+        status_child: 'Open',
+        due_date: null,
+        open_date: new Date().toISOString(),
+        closed_date: null,
+        openpic_id: null,
+        closurepic_id: null,
+        notes: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
-      
+
       setChildPins(prev => [...prev, newChildPin])
-      toast.success(`Child pin ${nextSeq} created`)
+      toast.success(`Child pin ${nextCode} created`)
     } catch (error) {
       console.error('Failed to add child pin:', error)
       toast.error('Failed to add child pin')
@@ -205,7 +171,9 @@ function RoofDashboardPage() {
     try {
       await updatePinMutation.mutateAsync({
         id: pinId,
-        status: newStatus
+        updates: {
+          status: newStatus
+        }
       })
       toast.success('Status updated successfully')
     } catch (error) {
@@ -215,26 +183,18 @@ function RoofDashboardPage() {
   }, [updatePinMutation])
 
   const handleUpdateChildPin = useCallback(async (childId: string, updates: Partial<ChildPin>) => {
-    setChildPins(prev => prev.map(cp => 
-      cp.id === childId ? { ...cp, ...updates, updated_at: new Date().toISOString() } : cp
+    setChildPins(prev => prev.map(cp =>
+      cp.child_id === childId ? { ...cp, ...updates, updated_at: new Date().toISOString() } : cp
     ))
     toast.success('Child pin updated')
   }, [])
 
   const handleDeleteChildPin = useCallback(async (childId: string) => {
-    setChildPins(prev => prev.filter(cp => cp.id !== childId))
+    setChildPins(prev => prev.filter(cp => cp.child_id !== childId))
     toast.success('Child pin deleted')
   }, [])
 
-  const handleAddAnnotation = useCallback((annotation: Omit<Annotation, 'id' | 'created_at' | 'updated_at'>) => {
-    const newAnnotation: Annotation = {
-      ...annotation,
-      id: crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-    setAnnotations(prev => [...prev, newAnnotation])
-  }, [])
+  // Removed annotation handler - annotations table doesn't exist
 
   const handleClosurePhotoUpload = useCallback(async () => {
     if (!selectedPin || !closurePhotoItemId) return
@@ -469,21 +429,20 @@ function RoofDashboardPage() {
                   roofId={roofId}
                   pins={pins.map(pin => ({
                     ...pin,
-                    layer_id: pin.layer_id || selectedLayerId || 'default-layer',
                     children_total: childPins.filter(cp => cp.pin_id === pin.id).length,
-                    children_open: childPins.filter(cp => cp.pin_id === pin.id && cp.status === 'Open').length,
-                    children_ready: childPins.filter(cp => cp.pin_id === pin.id && cp.status === 'ReadyForInspection').length,
-                    children_closed: childPins.filter(cp => cp.pin_id === pin.id && cp.status === 'Closed').length
+                    children_open: childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'Open').length,
+                    children_ready: childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'ReadyForInspection').length,
+                    children_closed: childPins.filter(cp => cp.pin_id === pin.id && cp.status_child === 'Closed').length
                   }))}
                   childPins={childPins}
-                  layers={layers}
-                  annotations={annotations}
+                  layers={[]}
+                  annotations={[]}
                   roofPlanImageUrl={roof?.plan_image_url || roof?.roof_plan_url || undefined}
                   onPinClick={handlePinClick}
                   onChildPinClick={handleChildPinClick}
                   onAddPin={handleAddPin}
                   onAddChildPin={handleAddChildPin}
-                  onAddAnnotation={handleAddAnnotation}
+                  onAddAnnotation={() => {}} // No-op since annotations table doesn't exist
                   selectedLayerId={selectedLayerId || undefined}
                   selectedTool={selectedTool}
                   className="w-full h-full"
@@ -555,7 +514,6 @@ function RoofDashboardPage() {
                 showPagination={true}
                 enableVirtualization={true}
                 showClosureButtons={true}
-                statusFilter={statusFilter}
                 onClosurePhotoClick={(pinItemId) => {
                   setClosurePhotoItemId(pinItemId)
                   setShowPinPopup(true)
@@ -624,7 +582,13 @@ function RoofDashboardPage() {
                   childPins={childPins.filter(cp => cp.pin_id === selectedPin.id)}
                   onClose={() => setSelectedPin(null)}
                   onStatusChange={handleStatusChange}
-                  onAddChildPin={(childData) => handleAddChildPin(selectedPin.id, childData)}
+                  onAddChildPin={async (childData) => {
+                    if (typeof childData === 'string') {
+                      await handleAddChildPin(selectedPin.id, {})
+                    } else {
+                      await handleAddChildPin(selectedPin.id, childData)
+                    }
+                  }}
                   onUpdateChildPin={handleUpdateChildPin}
                   onDeleteChildPin={handleDeleteChildPin}
                   className="h-full border-0 bg-transparent"
@@ -740,7 +704,13 @@ function RoofDashboardPage() {
                 setSelectedPin(null)
               }}
               onStatusChange={handleStatusChange}
-              onAddChildPin={(childData) => handleAddChildPin(selectedPin.id, childData)}
+              onAddChildPin={async (childData) => {
+                if (typeof childData === 'string') {
+                  await handleAddChildPin(selectedPin.id, {})
+                } else {
+                  await handleAddChildPin(selectedPin.id, childData)
+                }
+              }}
               onUpdateChildPin={handleUpdateChildPin}
               onDeleteChildPin={handleDeleteChildPin}
               className="border-0 bg-transparent"

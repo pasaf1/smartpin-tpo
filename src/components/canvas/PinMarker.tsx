@@ -24,7 +24,7 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
   
   // Use seq_number from the database
   const displaySequence = pin.seq_number
-  const displayTitle = pin.title || `Pin ${displaySequence}`
+  const displayTitle = `Pin ${displaySequence}`
   
   // Pin configuration based on parent/child status
   const pinConfig = {
@@ -55,7 +55,7 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
   const colors = statusColors[pin.status as keyof typeof statusColors] || statusColors.Open
 
   // Severity indicator (small dot on the pin)
-    const severityColors: Record<NonNullable<ExtendedPin['severity']>, string> = {
+    const severityColors: Record<string, string> = {
     Low: '#10b981',
     Medium: '#f59e0b', 
     High: '#ef4444',
@@ -130,18 +130,7 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
         {pin.seq_number}
       </text>
 
-      {/* Severity indicator (small dot) */}
-      {pin.severity && (
-        <circle
-          cx={pinConfig.size / 2 - 3}
-          cy={-pinConfig.size / 2 + 3}
-          r="3"
-          fill={severityColors[pin.severity]}
-          stroke="white"
-          strokeWidth="1"
-          className="pointer-events-none"
-        />
-      )}
+      {/* Severity indicator removed - pins don't have severity property */}
 
       {/* Child count indicator for parent pins */}
       {isParent && hasChildren && (
@@ -196,32 +185,7 @@ export function PinMarker({ pin, isSelected, onClick, editable = true }: PinMark
         className="hover:fill-white hover:opacity-10 transition-all duration-150"
       />
 
-      {/* Title tooltip (only visible on hover) */}
-      {pin.title && (
-        <g className="opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <rect
-            x="-40"
-            y={pinConfig.size / 2 + 8}
-            width="80"
-            height="20"
-            rx="4"
-            fill="rgba(0, 0, 0, 0.9)"
-            stroke="rgba(255, 255, 255, 0.2)"
-            strokeWidth="1"
-          />
-          <text
-            x="0"
-            y={pinConfig.size / 2 + 18}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize="10"
-            fill="white"
-            className="select-none"
-          >
-            {pin.title.length > 12 ? `${pin.title.slice(0, 12)}...` : pin.title}
-          </text>
-        </g>
-      )}
+      {/* Title tooltip removed - pins don't have title property */}
     </g>
   )
 }

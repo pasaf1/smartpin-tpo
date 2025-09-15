@@ -21,7 +21,7 @@ import { SeverityBadge } from '@/components/ui/severity-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { SmartSearchInput } from '@/components/search/SmartSearchInput'
+import { SmartSearchInput } from './SmartSearchInput'
 import { performSemanticSearch, type SearchWeights } from '@/lib/utils/nlp-search'
 import {
   Table,
