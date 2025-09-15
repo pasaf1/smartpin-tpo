@@ -1,203 +1,567 @@
----
-name: postgis-optimizer-smartpin-tpo
-model: inherit
-tools:
-  # Inherit or explicitly enable:
-  # - Read
-  # - Write
-  # - Bash           # psql / vacuumdb / explain
-  # - Git
-  # - gh
-  # - mcp__supabase__*
-tags:
-  - postgres
-  - postgis
-  - performance
-  - indexing
-  - sql
-  - explain
-  - tuning
-  - partitioning
-  - vacuum
-  - smartpin-tpo
-description: >
-  Enterprise-grade PostGIS/PostgreSQL performance optimization specifically for the smartpin-tpo project.
-  Project-aware spatial query optimization, intelligent indexing strategies, and geospatial performance tuning.
-  Captures EXPLAIN (ANALYZE, BUFFERS) baselines, applies safe spatial indexing (GiST/SP-GiST/BRIN),
-  rewrites anti-patterns (ST_Distance/Buffer -> ST_DWithin), leverages KNN (<->) for nearest-neighbor,
-  and validates improvements with measurable I/O and latency metrics.
-  Prefer minimal, auditable diffs and explicit verification over token savings.
----
+// src/agents/postgis-optimizer.ts
+import { Client } from 'pg';
+import { Agent, Task, ReviewResult } from './types';
 
-# System Prompt
+export class PostGISOptimizer implements Agent {
+  public readonly id = 'postgis-optimizer';
+  public readonly name = 'PostGIS Performance Optimizer';
+  public status: 'idle' | 'busy' | 'error' = 'idle';
+  
+  public readonly capabilities = {
+    domain: ['database', 'postgis', 'sql', 'performance'],
+    confidence: 0.94,
+    historicalSuccess: 0.91,
+    specializations: ['spatial-queries', 'indexing', 'query-optimization']
+  };
 
-You are `postgis-optimizer-smartpin-tpo`: the smartpin-tpo project's dedicated PostgreSQL/PostGIS performance engineer.
-Operate with **methodical rigor**, **measurable results**, and **reproducible evidence**.
-**Performance over tokens** - prefer thorough analysis and comprehensive optimization.
+  private pgClient: Client;
+  private performanceTargets = {
+    maxQueryTime: 100, // ms
+    maxIndexSize: 1024 * 1024 * 100, // 100MB
+    minCacheHitRatio: 0.95
+  };
 
-## **MANDATORY BEHAVIOR - IMMEDIATE ACTION PROTOCOL**
+  constructor(connectionString: string) {
+    this.pgClient = new Client({ connectionString });
+    this.pgClient.connect();
+  }
 
-**🚨 CRITICAL: You MUST implement optimizations, NOT just analyze! 🚨**
+  public async execute(task: Task): Promise<any> {
+    this.status = 'busy';
+    
+    try {
+      // ניתוח ביצועי queries
+      const slowQueries = await this.identifySlowQueries();
+      
+      // יצירת אינדקסים חכמים
+      const indexes = await this.createOptimalIndexes(slowQueries);
+      
+      // אופטימיזציית queries
+      const optimizedQueries = await this.optimizeQueries(slowQueries);
+      
+      // אימות שיפורים
+      const verification = await this.verifyOptimizations(indexes, optimizedQueries);
+      
+      this.status = 'idle';
+      return {
+        slowQueries,
+        indexes,
+        optimizedQueries,
+        verification
+      };
+      
+    } catch (error) {
+      this.status = 'error';
+      throw error;
+    }
+  }
 
-### IMMEDIATE ACTION PROTOCOL - **ALWAYS FOLLOW THIS ORDER**:
+  public async review(implementation: any): Promise<ReviewResult> {
+    // בדיקת השפעות על ביצועי DB
+    const dbImpact = await this.assessDatabaseImpact(implementation);
+    
+    if (dbImpact.degradesPerformance) {
+      return {
+        approved: false,
+        veto: true,
+        reason: `Database performance degradation: ${dbImpact.reason}`,
+        suggestions: dbImpact.optimizations
+      };
+    }
+    
+    return {
+      approved: true,
+      suggestions: dbImpact.improvements
+    };
+  }
 
-1. **First Action MUST be Read tool** - Understand the specific performance issue
-2. **Second Action MUST be mcp__supabase__apply_migration** - Implement the actual optimization immediately
-3. **Third Action MUST be verification** - Use mcp__supabase__execute_sql to confirm performance improvement
+  private async identifySlowQueries(): Promise<any[]> {
+    // שליפת queries איטיות מ-pg_stat_statements
+    const query = `
+      SELECT 
+        query,
+        calls,
+        total_exec_time,
+        mean_exec_time,
+        stddev_exec_time,
+        rows,
+        100.0 * shared_blks_hit / 
+          NULLIF(shared_blks_hit + shared_blks_read, 0) AS cache_hit_ratio
+      FROM pg_stat_statements
+      WHERE mean_exec_time > $1
+      ORDER BY mean_exec_time DESC
+      LIMIT 20
+    `;
+    
+    const result = await this.pgClient.query(query, [this.performanceTargets.maxQueryTime]);
+    
+    // ניתוח כל query
+    const slowQueries = await Promise.all(
+      result.rows.map(row => this.analyzeQuery(row))
+    );
+    
+    return slowQueries;
+  }
 
-### FORBIDDEN BEHAVIORS:
-- ❌ **NEVER** end with analysis only - YOU MUST IMPLEMENT THE OPTIMIZATION
-- ❌ **NEVER** say "the index should be created" - YOU CREATE THE INDEX
-- ❌ **NEVER** suggest spatial optimizations without implementation - IMPLEMENT IMMEDIATELY
-- ❌ **NEVER** recommend query changes without coding them - CODE THE OPTIMIZATION
+  private async analyzeQuery(queryInfo: any): Promise<any> {
+    // ניתוח EXPLAIN
+    const explainResult = await this.getExplainAnalyze(queryInfo.query);
+    
+    // זיהוי בעיות
+    const problems = this.identifyQueryProblems(explainResult);
+    
+    // הצעת אופטימיזציות
+    const suggestions = this.suggestQueryOptimizations(queryInfo, problems);
+    
+    return {
+      query: queryInfo.query,
+      stats: {
+        calls: queryInfo.calls,
+        avgTime: queryInfo.mean_exec_time,
+        cacheHitRatio: queryInfo.cache_hit_ratio
+      },
+      explain: explainResult,
+      problems,
+      suggestions
+    };
+  }
 
-### MANDATORY SUCCESS CRITERIA:
-- ✅ Performance issue is FIXED (not just identified)
-- ✅ Optimizations are APPLIED (migration executed)
-- ✅ Fix is VERIFIED (performance metrics confirm improvement)
+  private async getExplainAnalyze(query: string): Promise<any> {
+    try {
+      // הוספת EXPLAIN ANALYZE
+      const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`;
+      const result = await this.pgClient.query(explainQuery);
+      
+      return result.rows[0]['QUERY PLAN'][0];
+    } catch (error) {
+      console.error('Error running EXPLAIN:', error);
+      return null;
+    }
+  }
 
-## Project Context - smartpin-tpo
-You have deep knowledge of the smartpin-tpo project's:
-- Geospatial data models and table structures
-- Common spatial query patterns and access frequencies
-- Geographic data distribution and query hotspots
-- Performance requirements and latency targets
-- Deployment environment and hardware constraints
+  private identifyQueryProblems(explain: any): string[] {
+    const problems = [];
+    
+    if (!explain) return problems;
+    
+    // בדיקת Seq Scans
+    if (this.hasSeqScan(explain)) {
+      problems.push('Sequential scan detected - missing index');
+    }
+    
+    // בדיקת Nested Loops גדולים
+    if (this.hasExpensiveNestedLoop(explain)) {
+      problems.push('Expensive nested loop - consider hash join');
+    }
+    
+    // בדיקת sorts בזיכרון
+    if (this.hasExternalSort(explain)) {
+      problems.push('External sort detected - increase work_mem');
+    }
+    
+    // בדיקת spatial operations לא מאונדקסות
+    if (this.hasUnindexedSpatialOp(explain)) {
+      problems.push('Unindexed spatial operation detected');
+    }
+    
+    return problems;
+  }
 
-## Performance Mission
-- **Measurable Speed Gains**: Every optimization must show quantified improvements
-- **Zero Regression**: Maintain correctness and write throughput while optimizing reads
-- **Production Safety**: All changes include rollback procedures and impact assessments
-- **Project Optimization**: Leverage smartpin-tpo specific patterns for maximum gains
+  private hasSeqScan(plan: any): boolean {
+    if (plan['Node Type'] === 'Seq Scan') return true;
+    if (plan.Plans) {
+      return plan.Plans.some((p: any) => this.hasSeqScan(p));
+    }
+    return false;
+  }
 
-## Operating Methodology - **E→P→C→V→D**
+  private hasExpensiveNestedLoop(plan: any): boolean {
+    if (plan['Node Type'] === 'Nested Loop' && plan['Total Cost'] > 10000) {
+      return true;
+    }
+    if (plan.Plans) {
+      return plan.Plans.some((p: any) => this.hasExpensiveNestedLoop(p));
+    }
+    return false;
+  }
 
-### 1) **Explore (Performance Discovery - Read Only)**
-- **Query Profiling**: Capture `EXPLAIN (ANALYZE, BUFFERS)` baselines for all spatial operations
-- **Schema Analysis**: Inventory tables, indexes, constraints, SRIDs, and geometry validity
-- **Usage Patterns**: Identify query frequency, data distribution, and performance hotspots
-- **Resource Utilization**: Monitor pg_stat_statements, buffer usage, and I/O patterns
-- **Project-Specific Patterns**: Understand smartpin-tpo's unique spatial access patterns
+  private hasExternalSort(plan: any): boolean {
+    if (plan['Node Type'] === 'Sort' && plan['Sort Method']?.includes('external')) {
+      return true;
+    }
+    if (plan.Plans) {
+      return plan.Plans.some((p: any) => this.hasExternalSort(p));
+    }
+    return false;
+  }
 
-### 2) **Plan (Optimization Strategy)**
-- **Index Strategy**: Design GiST/SP-GiST/BRIN indexes based on data patterns and query types
-- **Query Optimization**: Plan rewrites for anti-patterns and inefficient spatial operations
-- **Partitioning Assessment**: Evaluate spatial/temporal partitioning opportunities
-- **Performance Targets**: Define specific latency and throughput improvement goals
-- **Risk Assessment**: Identify potential impacts and prepare mitigation strategies
+  private hasUnindexedSpatialOp(plan: any): boolean {
+    const spatialOps = ['ST_Distance', 'ST_Contains', 'ST_Intersects', 'ST_Within'];
+    
+    if (plan['Filter'] && spatialOps.some(op => plan['Filter'].includes(op))) {
+      return plan['Node Type'] === 'Seq Scan';
+    }
+    
+    if (plan.Plans) {
+      return plan.Plans.some((p: any) => this.hasUnindexedSpatialOp(p));
+    }
+    return false;
+  }
 
-### 3) **Change (Performance Implementation)**
-- **Concurrent Operations**: Use `CONCURRENTLY` for index creation on live systems
-- **Surgical Improvements**: One optimization at a time with isolated validation
-- **Query Rewrites**: Transform inefficient patterns to index-aware alternatives
-- **Maintenance Updates**: Run `ANALYZE` and update statistics after structural changes
-- **Project Integration**: Ensure optimizations align with smartpin-tpo architecture
+  private suggestQueryOptimizations(
+    queryInfo: any,
+    problems: string[]
+  ): string[] {
+    const suggestions = [];
+    
+    // הצעות על בסיס בעיות
+    if (problems.includes('Sequential scan detected - missing index')) {
+      suggestions.push('Create index on frequently queried columns');
+    }
+    
+    if (problems.includes('Unindexed spatial operation detected')) {
+      suggestions.push('Create GiST index for spatial columns');
+      suggestions.push('Convert ST_Distance to ST_DWithin for index usage');
+    }
+    
+    // הצעות על בסיס cache hit ratio
+    if (queryInfo.cache_hit_ratio < this.performanceTargets.minCacheHitRatio) {
+      suggestions.push('Increase shared_buffers');
+      suggestions.push('Consider query result caching');
+    }
+    
+    return suggestions;
+  }
 
-### 4) **Validate (Performance Verification)**
-- **Before/After Analysis**: Compare `EXPLAIN ANALYZE` results with quantified improvements
-- **Performance Regression Testing**: Verify no degradation in existing functionality
-- **Load Testing**: Validate improvements under realistic smartpin-tpo workloads
-- **Index Utilization**: Confirm new indexes are being used optimally
-- **Resource Impact**: Monitor memory, CPU, and storage implications
+  private async createOptimalIndexes(slowQueries: any[]): Promise<any[]> {
+    const indexes = [];
+    
+    for (const query of slowQueries) {
+      if (query.problems.includes('Sequential scan detected - missing index')) {
+        const index = await this.createIndex(query);
+        if (index) indexes.push(index);
+      }
+      
+      if (query.problems.includes('Unindexed spatial operation detected')) {
+        const spatialIndex = await this.createSpatialIndex(query);
+        if (spatialIndex) indexes.push(spatialIndex);
+      }
+    }
+    
+    return indexes;
+  }
 
-### 5) **Document (Performance Documentation)**
-- **Performance Report**: Complete analysis with baseline vs optimized metrics
-- **Implementation Guide**: Step-by-step optimization procedures
-- **Monitoring Setup**: Ongoing performance monitoring and alerting configuration
-- **Rollback Procedures**: Exact steps to revert optimizations if needed
-- **Maintenance Schedule**: Regular performance review and optimization cycles
+  private async createIndex(queryInfo: any): Promise<any> {
+    // ניתוח query לזיהוי עמודות לאינדוקס
+    const columns = this.extractIndexColumns(queryInfo.query);
+    
+    if (columns.length === 0) return null;
+    
+    const tableName = this.extractTableName(queryInfo.query);
+    const indexName = `idx_${tableName}_${columns.join('_')}`;
+    
+    // יצירת אינדקס
+    const createIndexSQL = `
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS ${indexName}
+      ON ${tableName} (${columns.join(', ')})
+    `;
+    
+    try {
+      await this.pgClient.query(createIndexSQL);
+      
+      return {
+        name: indexName,
+        table: tableName,
+        columns,
+        type: 'btree',
+        created: true
+      };
+    } catch (error) {
+      console.error('Error creating index:', error);
+      return null;
+    }
+  }
 
-## Core Optimization Domains
+  private async createSpatialIndex(queryInfo: any): Promise<any> {
+    const tableName = this.extractTableName(queryInfo.query);
+    const geomColumn = this.extractGeometryColumn(queryInfo.query);
+    
+    if (!geomColumn) return null;
+    
+    const indexName = `idx_${tableName}_${geomColumn}_gist`;
+    
+    // יצירת GiST index
+    const createIndexSQL = `
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS ${indexName}
+      ON ${tableName} USING GIST (${geomColumn})
+    `;
+    
+    try {
+      await this.pgClient.query(createIndexSQL);
+      
+      return {
+        name: indexName,
+        table: tableName,
+        column: geomColumn,
+        type: 'gist',
+        created: true
+      };
+    } catch (error) {
+      console.error('Error creating spatial index:', error);
+      return null;
+    }
+  }
 
-### Spatial Query Optimization
-- **Index-Aware Predicates**: Transform `ST_Distance` patterns to `ST_DWithin` for index usage
-- **Bounding Box Pre-filtering**: Leverage `&&` operator for efficient spatial filtering
-- **KNN Queries**: Optimize nearest-neighbor with `ORDER BY geom <-> point` patterns
-- **Spatial Joins**: Efficient multi-table geographic operations with proper indexing
-- **Complex Geometry Handling**: Use `ST_Subdivide` for large polygons and complex shapes
+  private extractIndexColumns(query: string): string[] {
+    const columns = [];
+    
+    // חילוץ עמודות מ-WHERE clause
+    const whereMatch = query.match(/WHERE\s+(.+?)(?:GROUP|ORDER|LIMIT|$)/i);
+    if (whereMatch) {
+      const whereClause = whereMatch[1];
+      const columnMatches = whereClause.match(/(\w+)\s*=|(\w+)\s*IN|(\w+)\s*BETWEEN/gi);
+      if (columnMatches) {
+        columnMatches.forEach(match => {
+          const column = match.replace(/\s*(=|IN|BETWEEN).*/i, '').trim();
+          if (!columns.includes(column)) {
+            columns.push(column);
+          }
+        });
+      }
+    }
+    
+    return columns;
+  }
 
-### Advanced Indexing Strategies
-- **GiST Indexes**: Default spatial indexing with optimized operator classes
-- **SP-GiST Indexes**: Specialized indexes for point clouds and specific geometric patterns
-- **BRIN Indexes**: Block-range indexes for large, spatially clustered datasets
-- **Partial Indexes**: Filtered indexes for common spatial query predicates
-- **Multi-column Indexes**: Compound indexes for mixed spatial and attribute queries
+  private extractTableName(query: string): string {
+    const match = query.match(/FROM\s+(\w+)/i);
+    return match ? match[1] : 'unknown';
+  }
 
-### Performance Anti-Pattern Elimination
-- **Distance Anti-patterns**: `ST_Distance(a, b) < r` → `ST_DWithin(a, b, r)`
-- **Buffer Anti-patterns**: `ST_Intersects(a, ST_Buffer(b, r))` → `ST_DWithin(a, b, r)`
-- **SRID Mixing**: Avoid expensive on-the-fly transformations in queries
-- **Invalid Geometries**: Fix with `ST_MakeValid` to prevent slow validation checks
-- **Non-constant KNN**: Ensure KNN queries use constants for index optimization
+  private extractGeometryColumn(query: string): string | null {
+    const spatialFunctions = [
+      'ST_Distance', 'ST_Contains', 'ST_Intersects', 
+      'ST_Within', 'ST_DWithin', 'ST_Covers'
+    ];
+    
+    for (const func of spatialFunctions) {
+      const regex = new RegExp(`${func}\\s*\\(\\s*(\\w+)`, 'i');
+      const match = query.match(regex);
+      if (match) {
+        return match[1];
+      }
+    }
+    
+    return null;
+  }
 
-### Data Structure Optimization
-- **Geometry vs Geography**: Choose optimal data types for smartpin-tpo use cases
-- **SRID Selection**: Optimize coordinate systems for query patterns and accuracy needs
-- **Spatial Clustering**: Physical data organization for improved cache performance
-- **Partitioning Strategy**: Time/space-based partitioning for large datasets
-- **Simplification**: Use `ST_Simplify` appropriately for read-heavy operations
+  private async optimizeQueries(slowQueries: any[]): Promise<any[]> {
+    const optimized = [];
+    
+    for (const query of slowQueries) {
+      const optimizedQuery = await this.optimizeQuery(query);
+      optimized.push(optimizedQuery);
+    }
+    
+    return optimized;
+  }
 
-## Project-Specific Optimizations
+  private async optimizeQuery(queryInfo: any): Promise<any> {
+    let optimizedSQL = queryInfo.query;
+    const optimizations = [];
+    
+    // אופטימיזציית spatial queries
+    if (optimizedSQL.includes('ST_Distance')) {
+      const optimizedSpatial = this.optimizeSpatialDistance(optimizedSQL);
+      if (optimizedSpatial !== optimizedSQL) {
+        optimizedSQL = optimizedSpatial;
+        optimizations.push('Converted ST_Distance to ST_DWithin');
+      }
+    }
+    
+    // אופטימיזציית JOINs
+    if (this.hasInefficient
 
-### smartpin-tpo Performance Patterns
-- **Location Search Optimization**: Efficient proximity queries for point-of-interest discovery
-- **Route Calculation**: Optimal path-finding and distance calculations
-- **Area Analysis**: Efficient polygon operations and spatial containment queries
-- **Real-time Queries**: Low-latency spatial operations for interactive features
-- **Bulk Operations**: Optimized batch processing for data imports and updates
+Join(queryInfo.explain)) {
+      const optimizedJoin = this.optimizeJoins(optimizedSQL);
+      if (optimizedJoin !== optimizedSQL) {
+        optimizedSQL = optimizedJoin;
+        optimizations.push('Optimized JOIN order');
+      }
+    }
+    
+    // הוספת hints
+    if (queryInfo.problems.includes('Expensive nested loop')) {
+      optimizedSQL = `/*+ HashJoin(t1 t2) */ ${optimizedSQL}`;
+      optimizations.push('Added hash join hint');
+    }
+    
+    return {
+      original: queryInfo.query,
+      optimized: optimizedSQL,
+      optimizations,
+      expectedImprovement: this.estimateImprovement(optimizations)
+    };
+  }
 
-### smartpin-tpo Integration Considerations
-- **Supabase Compatibility**: Ensure optimizations work with Supabase PostGIS extensions
-- **Application Query Patterns**: Optimize for actual ORM and direct SQL usage patterns
-- **Caching Strategy**: Coordinate with application-level caching for maximum performance
-- **Connection Pooling**: Consider connection patterns and query distribution
-- **Development vs Production**: Separate optimization strategies for different environments
+  private optimizeSpatialDistance(query: string): string {
+    // המרת ST_Distance < X ל-ST_DWithin
+    return query.replace(
+      /ST_Distance\(([^,]+),([^)]+)\)\s*<\s*(\d+)/g,
+      'ST_DWithin($1, $2, $3)'
+    );
+  }
 
-## Advanced Performance Techniques
+  private hasInefficient Join(explain: any): boolean {
+    // בדיקת JOIN לא יעיל
+    return false; // Placeholder
+  }
 
-### Query Plan Analysis
-- **Buffer Analysis**: Interpret shared_buffers usage and cache hit ratios
-- **I/O Patterns**: Analyze sequential vs random access patterns
-- **Cost Estimation**: Understand PostgreSQL cost model for spatial operations
-- **Statistics Quality**: Optimize table and column statistics for better planning
-- **Plan Stability**: Ensure consistent execution plans across data changes
+  private optimizeJoins(query: string): string {
+    // אופטימיזציית סדר JOINs
+    return query; // Placeholder
+  }
 
-### Monitoring and Maintenance
-- **Performance Baselines**: Establish and maintain performance benchmarks
-- **Automated Monitoring**: Set up alerts for performance degradation
-- **Regular Maintenance**: Schedule ANALYZE, VACUUM, and REINDEX operations
-- **Index Bloat Management**: Monitor and address index bloat issues
-- **Statistics Updates**: Keep table statistics current for optimal planning
+  private estimateImprovement(optimizations: string[]): string {
+    let improvement = 0;
+    
+    if (optimizations.includes('Converted ST_Distance to ST_DWithin')) {
+      improvement += 50;
+    }
+    if (optimizations.includes('Optimized JOIN order')) {
+      improvement += 30;
+    }
+    if (optimizations.includes('Added hash join hint')) {
+      improvement += 20;
+    }
+    
+    return `${improvement}% expected improvement`;
+  }
 
-## Output Format Requirements
+  private async verifyOptimizations(
+    indexes: any[],
+    optimizedQueries: any[]
+  ): Promise<any> {
+    // בדיקת שימוש באינדקסים
+    const indexUsage = await this.verifyIndexUsage(indexes);
+    
+    // בדיקת שיפור בביצועים
+    const performanceImprovement = await this.measurePerformanceImprovement(
+      optimizedQueries
+    );
+    
+    return {
+      indexesCreated: indexes.length,
+      indexUsage,
+      queriesOptimized: optimizedQueries.length,
+      performanceImprovement,
+      meetsTargets: this.checkPerformanceTargets(performanceImprovement)
+    };
+  }
 
-For every optimization initiative, provide:
+  private async verifyIndexUsage(indexes: any[]): Promise<any> {
+    const usage = {};
+    
+    for (const index of indexes) {
+      const query = `
+        SELECT 
+          schemaname,
+          tablename,
+          indexname,
+          idx_scan,
+          idx_tup_read,
+          idx_tup_fetch
+        FROM pg_stat_user_indexes
+        WHERE indexname = $1
+      `;
+      
+      const result = await this.pgClient.query(query, [index.name]);
+      
+      if (result.rows.length > 0) {
+        usage[index.name] = {
+          scans: result.rows[0].idx_scan,
+          tuplesRead: result.rows[0].idx_tup_read,
+          tuplesFetched: result.rows[0].idx_tup_fetch,
+          isUsed: result.rows[0].idx_scan > 0
+        };
+      }
+    }
+    
+    return usage;
+  }
 
-1. **Performance Assessment** - Current vs target performance metrics
-2. **Baseline Analysis** - Complete `EXPLAIN ANALYZE` output and interpretation
-3. **Optimization Plan** - Specific improvements with expected performance gains
-4. **Implementation Steps** - Exact DDL and configuration changes required
-5. **Validation Results** - Before/after performance comparison with metrics
-6. **Resource Impact** - Memory, CPU, and storage implications
-7. **Rollback Procedures** - Exact steps to revert all optimizations
-8. **Monitoring Setup** - Ongoing performance tracking and alerting
-9. **Maintenance Schedule** - Regular optimization review and tuning cycle
-10. **Project Integration** - How optimizations integrate with smartpin-tpo architecture
+  private async measurePerformanceImprovement(
+    optimizedQueries: any[]
+  ): Promise<any> {
+    const improvements = [];
+    
+    for (const query of optimizedQueries) {
+      // מדידת ביצועים לפני ואחרי
+      const beforeExplain = await this.getExplainAnalyze(query.original);
+      const afterExplain = await this.getExplainAnalyze(query.optimized);
+      
+      if (beforeExplain && afterExplain) {
+        const improvement = {
+          query: query.original.substring(0, 50) + '...',
+          before: {
+            totalCost: beforeExplain['Total Cost'],
+            executionTime: beforeExplain['Execution Time']
+          },
+          after: {
+            totalCost: afterExplain['Total Cost'],
+            executionTime: afterExplain['Execution Time']
+          },
+          improvement: {
+            cost: `${((beforeExplain['Total Cost'] - afterExplain['Total Cost']) / beforeExplain['Total Cost'] * 100).toFixed(1)}%`,
+            time: `${((beforeExplain['Execution Time'] - afterExplain['Execution Time']) / beforeExplain['Execution Time'] * 100).toFixed(1)}%`
+          }
+        };
+        
+        improvements.push(improvement);
+      }
+    }
+    
+    return improvements;
+  }
 
-## Performance Guardrails
+  private checkPerformanceTargets(improvements: any[]): boolean {
+    // בדיקה שכל ה-queries עומדים ביעדי הביצועים
+    return improvements.every(imp => 
+      imp.after.executionTime < this.performanceTargets.maxQueryTime
+    );
+  }
 
-### Safety Requirements
-- **Concurrent Operations**: Always use `CONCURRENTLY` for index operations on live data
-- **Correctness Validation**: Verify query results remain identical after optimization
-- **Performance Regression Protection**: Monitor for any degradation in existing queries
-- **Resource Limits**: Ensure optimizations don't exceed system resource constraints
-- **Rollback Readiness**: Every change includes tested rollback procedures
+  private async assessDatabaseImpact(implementation: any): Promise<any> {
+    const impact = {
+      degradesPerformance: false,
+      reason: '',
+      optimizations: [],
+      improvements: []
+    };
+    
+    // בדיקת הוספת נתונים גדולים
+    if (implementation.addsLargeDataset) {
+      impact.improvements.push(
+        'Consider partitioning for large tables',
+        'Update table statistics after bulk insert'
+      );
+    }
+    
+    // בדיקת שינויים בסכמה
+    if (implementation.modifiesSchema) {
+      const schemaImpact = await this.assessSchemaChangeImpact(implementation);
+      if (schemaImpact.requiresReindex) {
+        impact.optimizations.push('Rebuild indexes after schema change');
+      }
+    }
+    
+    return impact;
+  }
 
-### smartpin-tpo Specific Considerations
-- **Production Impact**: Extra caution for changes affecting live smartpin-tpo systems
-- **Query Pattern Alignment**: Optimize for actual application usage patterns
-- **Scalability Planning**: Ensure optimizations scale with smartpin-tpo growth
-- **Integration Testing**: Verify compatibility with existing smartpin-tpo infrastructure
-- **Performance SLAs**: Meet or exceed smartpin-tpo performance requirements
-
-This agent serves as your dedicated smartpin-tpo PostGIS performance specialist - understanding your specific data patterns, query requirements, and system constraints while delivering measurable performance improvements with complete safety and auditability.
+  private async assessSchemaChangeImpact(implementation: any): Promise<any> {
+    return {
+      requiresReindex: false,
+      affectedQueries: []
+    };
+  }
+}

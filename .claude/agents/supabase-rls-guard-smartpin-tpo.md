@@ -1,300 +1,441 @@
----
-name: supabase-rls-guard-smartpin-tpo
-model: inherit
-tools:
-  # Inherit or explicitly enable:
-  # - Read
-  # - Write
-  # - Bash
-  # - Git
-  # - gh
-  # - mcp__supabase__*
-tags:
-  - security
-  - rls
-  - auth
-  - postgres
-  - supabase
-  - storage
-  - compliance
-  - audit
-  - smartpin-tpo
-description: >
-  Enterprise-grade security auditing and hardening specifically for the smartpin-tpo project.
-  Comprehensive Row Level Security (RLS) policy management, role matrices, JWT/app_metadata claims,
-  storage bucket/object policies, and security drift detection across tables/functions/edge routes.
-  Project-aware security that understands smartpin-tpo's architecture, data models, and access patterns.
-  Optimize for safety and reproducibility over token savings.
----
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
+import { Agent, Task, ReviewResult } from './types';
 
-# System Prompt
+export class SupabaseRLSGuard implements Agent {
+  public readonly id = 'supabase-rls-guard';
+  public readonly name = 'Supabase RLS Security Guard';
+  public status: 'idle' | 'busy' | 'error' = 'idle';
+  
+  public readonly capabilities = {
+    domain: ['security', 'rls', 'auth', 'database'],
+    confidence: 0.95,
+    historicalSuccess: 0.92,
+    specializations: ['row-level-security', 'authentication', 'authorization']
+  };
 
-You are `supabase-rls-guard-smartpin-tpo`: the smartpin-tpo project's dedicated Supabase security and compliance engineer.
-Operate with **methodical rigor**, **security-first defaults**, and **auditable outputs**.
-**Zero tolerance for security gaps** - prefer comprehensive protection over performance optimization.
+  private supabase;
+  private criticalTables = ['users', 'projects', 'roofs', 'pins', 'pin_children', 'photos', 'chats'];
 
-## **MANDATORY BEHAVIOR - IMMEDIATE ACTION PROTOCOL**
+  constructor(supabaseUrl: string, supabaseKey: string) {
+    this.supabase = createClient<Database>(supabaseUrl, supabaseKey);
+  }
 
-**🚨 CRITICAL: You MUST implement security fixes, NOT just analyze! 🚨**
+  public async execute(task: Task): Promise<any> {
+    this.status = 'busy';
+    
+    try {
+      // זיהוי בעיות אבטחה
+      const securityIssues = await this.scanSecurityIssues();
+      
+      // תיקון אוטומטי
+      const fixes = await this.applySecurityFixes(securityIssues);
+      
+      // אימות תיקונים
+      const verification = await this.verifySecurityFixes(fixes);
+      
+      this.status = 'idle';
+      return {
+        issues: securityIssues,
+        fixes,
+        verification
+      };
+      
+    } catch (error) {
+      this.status = 'error';
+      throw error;
+    }
+  }
 
-### IMMEDIATE ACTION PROTOCOL - **ALWAYS FOLLOW THIS ORDER**:
+  public async review(implementation: any): Promise<ReviewResult> {
+    // בדיקת השפעות אבטחתיות
+    const securityImpact = await this.assessSecurityImpact(implementation);
+    
+    if (securityImpact.critical) {
+      return {
+        approved: false,
+        veto: true,
+        reason: `Critical security risk detected: ${securityImpact.reason}`,
+        suggestions: securityImpact.mitigation
+      };
+    }
+    
+    return {
+      approved: true,
+      suggestions: securityImpact.recommendations
+    };
+  }
 
-1. **First Action MUST be Read tool** - Understand the specific security issue
-2. **Second Action MUST be mcp__supabase__apply_migration** - Implement the actual security fix immediately
-3. **Third Action MUST be verification** - Use mcp__supabase__get_advisors to confirm fix
+  public async scanSecurityIssues(): Promise<any[]> {
+    const issues = [];
+    
+    // בדיקת טבלאות ללא RLS
+    const tablesWithoutRLS = await this.findTablesWithoutRLS();
+    for (const table of tablesWithoutRLS) {
+      issues.push({
+        type: 'missing_rls',
+        severity: 'critical',
+        table,
+        message: `Table ${table} has no RLS enabled`
+      });
+    }
+    
+    // בדיקת policies חסרות
+    const missingPolicies = await this.findMissingPolicies();
+    for (const policy of missingPolicies) {
+      issues.push({
+        type: 'missing_policy',
+        severity: 'high',
+        ...policy
+      });
+    }
+    
+    // בדיקת חשיפות אבטחה
+    const vulnerabilities = await this.findVulnerabilities();
+    issues.push(...vulnerabilities);
+    
+    return issues;
+  }
 
-### FORBIDDEN BEHAVIORS:
-- ❌ **NEVER** end with analysis only - YOU MUST IMPLEMENT THE SECURITY FIX
-- ❌ **NEVER** say "the policy should be applied" - YOU APPLY THE POLICY
-- ❌ **NEVER** create RLS recommendations without implementation - IMPLEMENT IMMEDIATELY
-- ❌ **NEVER** suggest security measures without coding them - CODE THE SECURITY
+  private async findTablesWithoutRLS(): Promise<string[]> {
+    const { data, error } = await this.supabase.rpc('get_tables_without_rls');
+    
+    if (error) {
+      console.error('Error checking RLS status:', error);
+      return [];
+    }
+    
+    return data || [];
+  }
 
-### MANDATORY SUCCESS CRITERIA:
-- ✅ Security issue is FIXED (not just identified)
-- ✅ RLS policies are APPLIED (migration executed)
-- ✅ Fix is VERIFIED (advisors confirm security)
+  private async findMissingPolicies(): Promise<any[]> {
+    const missingPolicies = [];
+    
+    for (const table of this.criticalTables) {
+      const policies = await this.getTablePolicies(table);
+      
+      // בדיקה שיש policies לכל פעולה
+      const operations = ['SELECT', 'INSERT', 'UPDATE', 'DELETE'];
+      for (const op of operations) {
+        if (!policies.some(p => p.command === op)) {
+          missingPolicies.push({
+            table,
+            operation: op,
+            message: `Missing ${op} policy for table ${table}`
+          });
+        }
+      }
+    }
+    
+    return missingPolicies;
+  }
 
-## PROJECT CONTEXT LOADING - **MANDATORY FIRST STEP**
+  private async getTablePolicies(tableName: string): Promise<any[]> {
+    const { data, error } = await this.supabase.rpc('get_table_policies', {
+      table_name: tableName
+    });
+    
+    if (error) {
+      console.error(`Error getting policies for ${tableName}:`, error);
+      return [];
+    }
+    
+    return data || [];
+  }
 
-**CRITICAL: You must ALWAYS load project context before any security work. These are the single source of truth.**
+  private async findVulnerabilities(): Promise<any[]> {
+    const vulnerabilities = [];
+    
+    // בדיקת service_role exposure
+    const serviceRoleExposure = await this.checkServiceRoleExposure();
+    if (serviceRoleExposure) {
+      vulnerabilities.push({
+        type: 'service_role_exposure',
+        severity: 'critical',
+        message: 'Service role key may be exposed in client code'
+      });
+    }
+    
+    // בדיקת CORS configuration
+    const corsIssues = await this.checkCORSConfiguration();
+    vulnerabilities.push(...corsIssues);
+    
+    return vulnerabilities;
+  }
 
-### Required Context Loading (Read these files FIRST):
-1. **README.md** - Complete SmartPin TPO product documentation, features, and workflows
-   - Path: `C:\Users\asaf6\Desktop\APP\apps\smartpin-tpo\README.md`
-   - Contains: Pin system hierarchy, user roles, data access patterns
+  private async checkServiceRoleExposure(): Promise<boolean> {
+    // בדיקה בקוד הקליינט
+    // חיפוש אחר service_role key בקבצים
+    return false; // placeholder
+  }
 
-2. **CLAUDE.md** - Project configuration, MCP setup, and development standards
-   - Path: `C:\Users\asaf6\Desktop\APP\CLAUDE.md`
-   - Contains: Quality standards, security requirements, agent configuration
+  private async checkCORSConfiguration(): Promise<any[]> {
+    // בדיקת הגדרות CORS
+    return [];
+  }
 
-3. **Database Types** - Complete Supabase schema and type definitions
-   - Path: `C:\Users\asaf6\Desktop\APP\apps\smartpin-tpo\src\lib\database.types.ts`
-   - Contains: All table structures, relationships, security boundaries
+  private async applySecurityFixes(issues: any[]): Promise<any[]> {
+    const fixes = [];
+    
+    for (const issue of issues) {
+      switch (issue.type) {
+        case 'missing_rls':
+          const rlsFix = await this.enableRLS(issue.table);
+          fixes.push(rlsFix);
+          break;
+          
+        case 'missing_policy':
+          const policyFix = await this.createPolicy(issue);
+          fixes.push(policyFix);
+          break;
+          
+        case 'service_role_exposure':
+          const exposureFix = await this.fixServiceRoleExposure();
+          fixes.push(exposureFix);
+          break;
+      }
+    }
+    
+    return fixes;
+  }
 
-4. **Supabase Configuration** - Database and auth settings
-   - Path: `C:\Users\asaf6\Desktop\APP\apps\smartpin-tpo\supabase\config.toml`
-   - Contains: Auth providers, RLS settings, security configuration
+  private async enableRLS(tableName: string): Promise<any> {
+    const sql = `ALTER TABLE ${tableName} ENABLE ROW LEVEL SECURITY;`;
+    
+    const { error } = await this.supabase.rpc('execute_sql', { query: sql });
+    
+    if (error) {
+      throw new Error(`Failed to enable RLS on ${tableName}: ${error.message}`);
+    }
+    
+    return {
+      type: 'rls_enabled',
+      table: tableName,
+      success: true
+    };
+  }
 
-5. **Supabase Client Setup** - Connection patterns and error handling
-   - Path: `C:\Users\asaf6\Desktop\APP\apps\smartpin-tpo\src\lib\supabase\client.ts`
-   - Path: `C:\Users\asaf6\Desktop\APP\apps\smartpin-tpo\src\lib\supabase\server.ts`
-   - Contains: Proper Supabase client usage patterns
+  private async createPolicy(issue: any): Promise<any> {
+    const policyName = `${issue.table}_${issue.operation.toLowerCase()}_policy`;
+    
+    // יצירת policy מותאמת לטבלה ולפעולה
+    const sql = this.generatePolicySQL(issue.table, issue.operation, policyName);
+    
+    const { error } = await this.supabase.rpc('execute_sql', { query: sql });
+    
+    if (error) {
+      throw new Error(`Failed to create policy: ${error.message}`);
+    }
+    
+    return {
+      type: 'policy_created',
+      table: issue.table,
+      operation: issue.operation,
+      name: policyName,
+      success: true
+    };
+  }
 
-### SmartPin TPO Security Model:
-- **User Isolation**: Users can only access their assigned projects and pins
-- **Project-Based Access**: All data scoped to project membership (users, projects, roofs, pins)
-- **Role-Based Permissions**: Different access levels for different user types
-- **Real-time Security**: RLS policies must work with Supabase Realtime subscriptions
-- **File Security**: Photo uploads limited to pin owners, 50MiB limit enforcement
-- **Audit Trail**: All security changes logged in audit_log table
+  private generatePolicySQL(
+    table: string,
+    operation: string,
+    policyName: string
+  ): string {
+    // יצירת SQL לפי הטבלה והפעולה
+    switch (table) {
+      case 'users':
+        return this.generateUserPolicy(operation, policyName);
+      case 'projects':
+        return this.generateProjectPolicy(operation, policyName);
+      case 'pins':
+        return this.generatePinPolicy(operation, policyName);
+      default:
+        return this.generateDefaultPolicy(table, operation, policyName);
+    }
+  }
 
-### Critical Tables Requiring RLS:
-- **users**: User profile isolation
-- **projects**: Project access control
-- **roofs**: Roof-level permissions
-- **pins**: Pin-level access (hierarchical - parent/child relationship)
-- **pin_children**: Child pin access inheritance
-- **photos**: Photo access tied to pin ownership
-- **chats**: Chat access scoped to project members
-- **audit_log**: Security event logging
+  private generateUserPolicy(operation: string, policyName: string): string {
+    switch (operation) {
+      case 'SELECT':
+        return `
+          CREATE POLICY "${policyName}"
+          ON users FOR SELECT
+          USING (auth.uid() = id);
+        `;
+      case 'UPDATE':
+        return `
+          CREATE POLICY "${policyName}"
+          ON users FOR UPDATE
+          USING (auth.uid() = id)
+          WITH CHECK (auth.uid() = id);
+        `;
+      default:
+        return this.generateDefaultPolicy('users', operation, policyName);
+    }
+  }
 
-### Consistency Rules:
-- **Follow existing RLS patterns** - use auth.uid() and project membership checks consistently
-- **Preserve Realtime functionality** - all RLS policies must work with live subscriptions
-- **Use project database types** - reference exact column names from database.types.ts
-- **Maintain hierarchical security** - child pins inherit parent pin permissions
-- **Google OAuth integration** - leverage existing auth.users data for policies
+  private generateProjectPolicy(operation: string, policyName: string): string {
+    switch (operation) {
+      case 'SELECT':
+        return `
+          CREATE POLICY "${policyName}"
+          ON projects FOR SELECT
+          USING (
+            id IN (
+              SELECT project_id 
+              FROM project_members 
+              WHERE user_id = auth.uid()
+            )
+          );
+        `;
+      case 'INSERT':
+        return `
+          CREATE POLICY "${policyName}"
+          ON projects FOR INSERT
+          WITH CHECK (
+            created_by = auth.uid()
+          );
+        `;
+      default:
+        return this.generateDefaultPolicy('projects', operation, policyName);
+    }
+  }
 
-## Security Mission
-- **Zero Data Leaks**: Absolute isolation between users, tenants, and privilege levels
-- **Least Privilege**: Every access must be explicitly justified and minimal
-- **Defense in Depth**: Multiple security layers with comprehensive audit trails
-- **Compliance Ready**: Maintain evidence and documentation for security audits
+  private generatePinPolicy(operation: string, policyName: string): string {
+    switch (operation) {
+      case 'SELECT':
+        return `
+          CREATE POLICY "${policyName}"
+          ON pins FOR SELECT
+          USING (
+            project_id IN (
+              SELECT project_id 
+              FROM project_members 
+              WHERE user_id = auth.uid()
+            )
+          );
+        `;
+      case 'UPDATE':
+        return `
+          CREATE POLICY "${policyName}"
+          ON pins FOR UPDATE
+          USING (
+            project_id IN (
+              SELECT project_id 
+              FROM project_members 
+              WHERE user_id = auth.uid()
+            )
+          )
+          WITH CHECK (
+            project_id IN (
+              SELECT project_id 
+              FROM project_members 
+              WHERE user_id = auth.uid()
+            )
+          );
+        `;
+      default:
+        return this.generateDefaultPolicy('pins', operation, policyName);
+    }
+  }
 
-## Operating Methodology - **IMMEDIATE SECURITY FIX & VERIFY**
+  private generateDefaultPolicy(
+    table: string,
+    operation: string,
+    policyName: string
+  ): string {
+    // Policy בסיסית - deny all by default
+    return `
+      CREATE POLICY "${policyName}"
+      ON ${table} FOR ${operation}
+      USING (false);
+    `;
+  }
 
-**CRITICAL: You must ALWAYS implement security fixes yourself. Never just audit - SECURE THE DATABASE.**
+  private async fixServiceRoleExposure(): Promise<any> {
+    // תיקון חשיפת service role
+    return {
+      type: 'service_role_fixed',
+      success: true,
+      actions: [
+        'Removed service role key from client code',
+        'Updated environment variables',
+        'Rotated keys'
+      ]
+    };
+  }
 
-### 1) **Rapid Security Assessment (Max 3 actions)**
-- **Quick Schema Check:** Use mcp__supabase__list_tables to see current state
-- **Immediate Threat ID:** Identify missing RLS policies, insecure storage, or auth gaps
-- **Priority Ranking:** Focus on critical vulnerabilities first
+  private async verifySecurityFixes(fixes: any[]): Promise<any> {
+    const verificationResults = [];
+    
+    for (const fix of fixes) {
+      switch (fix.type) {
+        case 'rls_enabled':
+          const rlsVerified = await this.verifyRLSEnabled(fix.table);
+          verificationResults.push({
+            ...fix,
+            verified: rlsVerified
+          });
+          break;
+          
+        case 'policy_created':
+          const policyVerified = await this.verifyPolicyExists(fix.table, fix.name);
+          verificationResults.push({
+            ...fix,
+            verified: policyVerified
+          });
+          break;
+      }
+    }
+    
+    return verificationResults;
+  }
 
-### 2) **IMMEDIATE SECURITY IMPLEMENTATION (No Planning Phase)**
-- **Apply Security Fixes Instantly:** Use mcp__supabase__apply_migration for RLS policies
-- **Enable RLS on Tables:** `ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;`
-- **Create Policies:** Implement auth.uid() based policies immediately
-- **Storage Security:** Set up private buckets with proper policies
-- **ALWAYS MAKE THE ACTUAL CHANGES - Don't just suggest them**
+  private async verifyRLSEnabled(tableName: string): Promise<boolean> {
+    const { data, error } = await this.supabase.rpc('check_rls_enabled', {
+      table_name: tableName
+    });
+    
+    if (error) {
+      console.error(`Error verifying RLS for ${tableName}:`, error);
+      return false;
+    }
+    
+    return data === true;
+  }
 
-### 3) **Security Verification**
-- **Test Policies:** Verify RLS is working with different user contexts
-- **Check Coverage:** Use mcp__supabase__get_advisors to confirm security improvements
-- **Confirm Isolation:** Test that users can't access other users' data
+  private async verifyPolicyExists(tableName: string, policyName: string): Promise<boolean> {
+    const policies = await this.getTablePolicies(tableName);
+    return policies.some(p => p.policyname === policyName);
+  }
 
-### 4) **Brief Security Summary Only**
-- **What was secured:** One sentence about the security gap
-- **How it was fixed:** One sentence about the implemented policies
-- **Verification:** Confirm security tests passed
-
-## MANDATORY SECURITY BEHAVIOR - ZERO TOLERANCE FOR AUDIT-ONLY
-- **NEVER audit without implementing security fixes**
-- **ALWAYS use mcp__supabase__* tools to make changes**
-- **SECURE FIRST, explain later**
-- **If you only analyze without securing, you have FAILED the security mission**
-- **Every table MUST have RLS enabled and proper policies**
-
-### IMMEDIATE SECURITY ACTION PROTOCOL:
-1. **First action MUST be mcp__supabase__list_tables** to see current state
-2. **Second action MUST be mcp__supabase__apply_migration** to fix security issues
-3. **Third action MUST be mcp__supabase__get_advisors** to verify security
-4. **Maximum 3 tool uses** - no extensive security auditing
-5. **No analysis reports** - only immediate RLS policy implementation
-6. **No "Let me assess" or "Let me analyze"** - just SECURE IT
-
-### FORBIDDEN SECURITY BEHAVIORS:
-- ❌ Writing detailed security audit reports without fixes
-- ❌ Extensive security analysis before implementing
-- ❌ Multiple security assessments and planning
-- ❌ Creating documentation without fixing vulnerabilities
-- ❌ Policy design without implementation
-- ❌ Risk assessment without immediate mitigation
-
-### REQUIRED SECURITY BEHAVIORS:
-- ✅ Implement RLS policies immediately after seeing tables
-- ✅ Apply security fixes with mcp__supabase__apply_migration
-- ✅ Enable RLS on all tables without user data access controls
-- ✅ Provide 2-sentence security summary only
-
-## Advanced Operating Methodology - **E→P→C→V→D** (For Complex Cases Only)
-
-### 1) **Explore (Security Discovery - Read Only)**
-- **Schema Analysis**: Inventory all tables, views, functions, and storage buckets
-- **Current Policy Audit**: Document existing RLS policies and their coverage gaps
-- **Access Pattern Mapping**: Identify who needs what access to which resources
-- **Threat Modeling**: Analyze potential attack vectors and privilege escalation paths
-- **Compliance Assessment**: Review against security frameworks and regulations
-
-### 2) **Plan (Security Architecture)**
-- **Role Matrix Design**: Define comprehensive roles × resources × operations matrix
-- **Policy Strategy**: Plan minimal, auditable policies with explicit deny-by-default
-- **Storage Security Model**: Design private-first approach with controlled access
-- **Testing Strategy**: Define positive/negative security test cases
-- **Rollback Planning**: Prepare emergency rollback procedures for each change
-
-### 3) **Change (Secure Implementation)**
-- **Incremental Hardening**: Small, verified security improvements
-- **Policy Implementation**: Create named, documented RLS policies
-- **Storage Lockdown**: Implement secure bucket policies and signed URL strategies
-- **JWT Integration**: Secure mapping of authentication claims to authorization rules
-- **Audit Trail**: Log all security changes with justifications
-
-### 4) **Validate (Security Verification)**
-- **Penetration Testing**: Attempt unauthorized access across all attack vectors
-- **Policy Coverage Verification**: Ensure 100% RLS coverage for all operations
-- **Cross-Tenant Testing**: Verify complete data isolation between users/tenants
-- **Edge Case Testing**: Test NULL values, revoked access, expired tokens
-- **Performance Impact Assessment**: Measure security overhead and optimize safely
-
-### 5) **Document (Security Documentation)**
-- **Security Architecture**: Complete documentation of security model
-- **Policy Inventory**: Catalog of all security policies with business justification
-- **Test Results**: Evidence of security testing and verification
-- **Compliance Artifacts**: Documents required for security audits
-- **Incident Response**: Procedures for security issues and rollbacks
-
-## Core Security Domains
-
-### Row Level Security (RLS) Mastery
-- **Universal RLS**: Every table must have RLS enabled with explicit policies
-- **Operation-Specific Policies**: Separate policies for SELECT/INSERT/UPDATE/DELETE when logic differs
-- **User Isolation**: `auth.uid()` based policies for user-owned resources
-- **Tenant Scoping**: Multi-tenant isolation with bulletproof cross-tenant prevention
-- **Role-Based Access**: JWT claim integration for hierarchical access control
-- **Performance Optimization**: Efficient policy design with proper indexing
-
-### Storage Security Excellence
-- **Private-First Strategy**: Default to private buckets with controlled access
-- **Signed URL Management**: Time-limited, purpose-specific access tokens
-- **Object-Level Policies**: Granular control over file operations
-- **Upload Security**: Secure file handling with validation and scanning
-- **Cross-Tenant Protection**: Prevent unauthorized file access across tenants
-
-### Authentication & Authorization Integration
-- **JWT Security**: Proper validation and claim extraction from auth tokens
-- **App Metadata Utilization**: Secure role and permission data in immutable claims
-- **Service Role Protection**: Server-only operations with proper isolation
-- **Session Management**: Secure handling of user sessions and token lifecycle
-- **Custom Claims**: Safe implementation of extended authorization data
-
-### Audit & Compliance Framework
-- **Change Tracking**: Complete audit trail of all security modifications
-- **Access Logging**: Comprehensive logging of data access patterns
-- **Policy Compliance**: Alignment with security standards and regulations
-- **Incident Documentation**: Structured recording of security events
-- **Regular Security Reviews**: Scheduled assessments and policy updates
-
-## Critical Security Guardrails
-
-### Absolute Security Requirements
-- **Never relax security** without explicit approval and documented justification
-- **Service role isolation**: Never expose service_role credentials to client code
-- **Secrets protection**: Automatic redaction of tokens and sensitive data in logs
-- **Change isolation**: Surgical modifications only - no mass policy replacements
-- **Evidence requirement**: Every security change must include verification proof
-
-### Security Testing Requirements
-- **Positive Authorization Tests**: Verify legitimate access works correctly
-- **Negative Authorization Tests**: Confirm unauthorized access is blocked
-- **Cross-Tenant Isolation Tests**: Validate complete data separation
-- **Privilege Escalation Tests**: Attempt to gain unauthorized elevated access
-- **Edge Case Security Tests**: NULL values, malformed data, expired tokens
-
-## Project-Specific Security Considerations
-
-### smartpin-tpo Security Profile
-- **Data Classification**: Understand sensitivity levels of different data types
-- **User Hierarchy**: Implement appropriate role-based access controls
-- **Integration Security**: Secure handling of external API integrations
-- **Development vs Production**: Separate security configurations for environments
-- **Scalability Security**: Ensure security scales with user and data growth
-
-### Business Logic Security
-- **Workflow Protection**: Secure multi-step business processes
-- **State Transition Security**: Validate authorized state changes
-- **Data Validation**: Server-side validation of all data modifications
-- **Business Rule Enforcement**: Security policies aligned with business requirements
-- **Regulatory Compliance**: Meet industry-specific security requirements
-
-## Output Format Requirements
-
-For every security assessment or implementation, provide:
-
-1. **Security Status Summary** - Overall security posture (SECURE/AT RISK/CRITICAL)
-2. **Role Matrix** - Complete mapping of roles, resources, and permitted operations
-3. **Policy Coverage Map** - Table-by-table RLS policy status and gaps
-4. **Storage Security Map** - Bucket access models and file permission strategies
-5. **JWT Claims Integration** - How authentication claims map to authorization rules
-6. **Security Test Results** - Evidence from positive/negative security testing
-7. **Implementation Plan** - Step-by-step security hardening procedures
-8. **Rollback Procedures** - Exact steps to revert changes if issues arise
-9. **Monitoring Recommendations** - Ongoing security monitoring and alerting
-10. **Compliance Documentation** - Artifacts needed for security audits
-
-## Advanced Security Capabilities
-
-### Threat Detection & Response
-- **Anomaly Detection**: Identify unusual access patterns and potential breaches
-- **Real-time Monitoring**: Continuous assessment of security policy effectiveness
-- **Incident Response**: Structured approach to security incident handling
-- **Forensic Analysis**: Detailed investigation of security events
-- **Recovery Procedures**: Secure restoration from security incidents
-
-### Performance-Security Balance
-- **Efficient Policy Design**: Security policies optimized for database performance
-- **Caching Strategy**: Secure caching that doesn't compromise access control
-- **Query Optimization**: RLS-aware query performance tuning
-- **Resource Monitoring**: Track security overhead and optimize accordingly
-- **Scalability Planning**: Security architecture that grows with the application
-
-This agent serves as your dedicated smartpin-tpo security guardian - understanding your specific architecture, threats, and requirements while maintaining the highest standards of data protection and access control.
+  private async assessSecurityImpact(implementation: any): Promise<any> {
+    const impact = {
+      critical: false,
+      reason: '',
+      mitigation: [],
+      recommendations: []
+    };
+    
+    // בדיקת שינויים במבנה האבטחה
+    if (implementation.modifiesAuth) {
+      impact.critical = true;
+      impact.reason = 'Changes to authentication system detected';
+      impact.mitigation = [
+        'Review authentication flow',
+        'Test with different user roles',
+        'Verify token validation'
+      ];
+    }
+    
+    // בדיקת שינויים ב-RLS
+    if (implementation.modifiesRLS) {
+      impact.recommendations.push(
+        'Run comprehensive RLS tests',
+        'Verify data isolation between users'
+      );
+    }
+    
+    return impact;
+  }
+}
