@@ -315,7 +315,7 @@ export function BluebinInteractiveRoofPlan({
 
   // Child pin click handler
   const handleChildPinClick = useCallback((childPin: ChildPinWithUIFields) => {
-    const parentPin = pins.find(p => p.id === (childPin.parent_id || childPin.pin_id))
+    const parentPin = pins.find(p => p.id === childPin.pin_id)
     if (parentPin) {
       onChildPinClick(childPin, parentPin)
     }
