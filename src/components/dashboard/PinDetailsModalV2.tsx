@@ -19,6 +19,8 @@ export function PinDetailsModalV2({ pinId, isOpen, onClose }: Props) {
   const { data: pinWithChildren } = usePinWithChildren(pinId || '')
   const createChild = useCreatePinChild(pinId || '')
   const updateStatus = useUpdatePinChildStatus(pinId || '')
+  // ✅ FIXED: Hook now called unconditionally before early return
+  const attachDyn = useAttachChildPhotoDynamic(pinId || '')
 
   const summary = useMemo(() => {
     if (!pinWithChildren) return { total: 0, closed: 0 }
@@ -37,8 +39,6 @@ export function PinDetailsModalV2({ pinId, isOpen, onClose }: Props) {
     setPhotoTarget({ childId, kind })
     fileInputRef.current?.click()
   }
-
-  const attachDyn = useAttachChildPhotoDynamic(pinId || '')
   const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !photoTarget || !pinId) return

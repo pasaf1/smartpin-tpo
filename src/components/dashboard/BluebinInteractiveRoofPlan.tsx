@@ -6,7 +6,11 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import { cn } from '@/lib/utils'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
 import { getSupabase } from '@/lib/supabase'
+import { getChildPinId, getChildPinStatus } from '@/lib/pins/childPinAdapters'
 import type { PinWithRelations, ChildPinWithUIFields, PinClickHandler, AddChildPinHandler } from '@/lib/database.types'
+
+// UIChildPin is same as ChildPinWithUIFields
+type UIChildPin = ChildPinWithUIFields
 
 // Mobile-first responsive constants
 const MOBILE_BREAKPOINT = 768
@@ -80,17 +84,17 @@ export function BluebinInteractiveRoofPlan({
   const [roofImage, setRoofImage] = useState<HTMLImageElement | null>(null)
   const [selectedPin, setSelectedPin] = useState<PinWithRelations | null>(null)
   const [isAddingChildPin, setIsAddingChildPin] = useState(false)
-  
+
   // Mobile touch handling
   const [lastTouchDistance, setLastTouchDistance] = useState(0)
   const [lastTouchPosition, setLastTouchPosition] = useState<{x: number, y: number} | null>(null)
   const [isDragging, setIsDragging] = useState(false)
-  
+
   const stageRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // BLUEBIN real-time sync integration
-  const { 
+  const {
     isConnected,
     activeUsers,
     broadcast,
@@ -127,9 +131,9 @@ export function BluebinInteractiveRoofPlan({
     const updateDimensions = () => {
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect()
-        setDimensions({ 
-          width: Math.max(width, isMobile ? 320 : 600), 
-          height: Math.max(height, isMobile ? 480 : 400) 
+        setDimensions({
+          width: Math.max(width, isMobile ? 320 : 600),
+          height: Math.max(height, isMobile ? 480 : 400)
         })
       }
     }
@@ -157,10 +161,11 @@ export function BluebinInteractiveRoofPlan({
   }, [selectedTool, selectedLayerId, updateSelectedTool])
 
   // Utility functions
-  const getSeverityColor = (severity: string | null | undefined): string => {
-    switch (severity) {
+  const getSeverityColor = (severity: string | number | null | undefined): string => {
+    const sev = severity != null ? String(severity) : undefined
+    switch (sev) {
       case 'Critical': return '#dc2626'
-      case 'High': return '#f97316' 
+      case 'High': return '#f97316'
       case 'Medium': return '#eab308'
       case 'Low': return '#10b981'
       default: return '#6b7280'
@@ -193,7 +198,7 @@ export function BluebinInteractiveRoofPlan({
       const touch1 = touches[0]
       const touch2 = touches[1]
       const distance = Math.sqrt(
-        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientX - touch1.clientX, 2) +
         Math.pow(touch2.clientY - touch1.clientY, 2)
       )
       setLastTouchDistance(distance)
@@ -211,7 +216,7 @@ export function BluebinInteractiveRoofPlan({
       const touch1 = touches[0]
       const touch2 = touches[1]
       const distance = Math.sqrt(
-        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientX - touch1.clientX, 2) +
         Math.pow(touch2.clientY - touch1.clientY, 2)
       )
 
@@ -250,10 +255,10 @@ export function BluebinInteractiveRoofPlan({
       y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale
     }
 
-    const newScale = e.evt.deltaY < 0 
+    const newScale = e.evt.deltaY < 0
       ? Math.min(oldScale * scaleBy, MAX_SCALE)
       : Math.max(oldScale / scaleBy, MIN_SCALE)
-    
+
     setScale(newScale)
     stage.scale({ x: newScale, y: newScale })
 
@@ -276,9 +281,9 @@ export function BluebinInteractiveRoofPlan({
       x: (pointerPosition.x - position.x) / scale,
       y: (pointerPosition.y - position.y) / scale
     }
-    
+
     // Check if within bounds
-    if (canvasPos.x < 0 || canvasPos.x > dimensions.width || 
+    if (canvasPos.x < 0 || canvasPos.x > dimensions.width ||
         canvasPos.y < 0 || canvasPos.y > dimensions.height) return
 
     const normalizedPos = canvasToNormalized(canvasPos)
@@ -286,9 +291,9 @@ export function BluebinInteractiveRoofPlan({
     if (selectedTool === 'pin' && onAddPin && selectedLayerId) {
       onAddPin(normalizedPos.x, normalizedPos.y, selectedLayerId)
       // Broadcast to other users using BLUEBIN real-time manager
-      broadcastPinOperation('create', { 
-        x: normalizedPos.x, 
-        y: normalizedPos.y, 
+      broadcastPinOperation('create', {
+        x: normalizedPos.x,
+        y: normalizedPos.y,
         layerId: selectedLayerId
       })
     } else if (selectedTool === 'childPin' && selectedPin && onAddChildPin) {
@@ -307,7 +312,7 @@ export function BluebinInteractiveRoofPlan({
   const handlePinClick = useCallback((pin: PinWithRelations) => {
     setSelectedPin(pin)
     onPinClick(pin)
-    
+
     if (selectedTool === 'childPin') {
       setIsAddingChildPin(true)
     }
@@ -321,6 +326,9 @@ export function BluebinInteractiveRoofPlan({
     }
   }, [childPins, pins, onChildPinClick])
 
+  // Normalize child pins for UI usage (childPins are already in UIChildPin format)
+  const uiChildPins: UIChildPin[] = childPins
+
   // Render visible layers with pins
   const visibleLayers = layers.filter(layer => layer.visible).sort((a, b) => a.z_index - b.z_index)
   const visiblePins = pins.filter(pin => {
@@ -328,7 +336,7 @@ export function BluebinInteractiveRoofPlan({
     // TODO: Implement proper layer system integration with database schema
     return true
   })
-  const visibleChildPins = childPins.filter(childPin => {
+  const visibleChildPins = uiChildPins.filter(childPin => {
     const parent = pins.find(p => p.id === childPin.pin_id)
     if (!parent) return false
     // Note: Parent pins don't have layer_id in current schema - show all child pins
@@ -338,7 +346,7 @@ export function BluebinInteractiveRoofPlan({
   const pinSize = isMobile ? MOBILE_PIN_SIZE : DESKTOP_PIN_SIZE
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className={cn("relative bg-gradient-to-br from-luxury-50 to-luxury-100 rounded-xl overflow-hidden", className)}
       style={{ width: '100%', height: '100%', minHeight: isMobile ? '400px' : '500px' }}
@@ -354,8 +362,8 @@ export function BluebinInteractiveRoofPlan({
       {/* Tool indicator for mobile */}
       {isMobile && (
         <div className="absolute top-2 right-2 z-10 bg-black/70 text-white px-3 py-2 rounded-full text-sm font-medium">
-          {selectedTool === 'childPin' && isAddingChildPin 
-            ? `Adding child to Pin ${selectedPin?.seq_number}` 
+          {selectedTool === 'childPin' && isAddingChildPin
+            ? `Adding child to Pin ${selectedPin?.seq_number}`
             : `Tool: ${selectedTool}`}
         </div>
       )}
@@ -380,16 +388,16 @@ export function BluebinInteractiveRoofPlan({
         {/* Base layer with roof image */}
         <Layer>
           {/* Background */}
-          <Rect 
-            x={0} 
-            y={0} 
-            width={dimensions.width} 
-            height={dimensions.height} 
-            fill="#f8fafc" 
-            stroke="#cbd5e1" 
+          <Rect
+            x={0}
+            y={0}
+            width={dimensions.width}
+            height={dimensions.height}
+            fill="#f8fafc"
+            stroke="#cbd5e1"
             strokeWidth={2}
           />
-          
+
           {/* Roof plan image */}
           {roofImage && (
             <Image
@@ -412,7 +420,7 @@ export function BluebinInteractiveRoofPlan({
               .map(pin => {
                 const canvasPos = normalizedToCanvas({ x: pin.x, y: pin.y })
                 const isSelected = selectedPin?.id === pin.id
-                
+
                 return (
                   <Group key={pin.id}>
                     {/* Pin marker */}
@@ -429,7 +437,7 @@ export function BluebinInteractiveRoofPlan({
                       onClick={() => handlePinClick(pin)}
                       onTap={() => handlePinClick(pin)}
                     />
-                    
+
                     {/* Pin number */}
                     <Text
                       x={canvasPos.x}
@@ -442,20 +450,20 @@ export function BluebinInteractiveRoofPlan({
                       width={pinSize * 2}
                       offsetX={pinSize}
                     />
-                    
+
                     {/* Child pin count indicator */}
                     {(pin.children_total ?? 0) > 0 && (
                       <Circle
                         x={canvasPos.x + pinSize * 0.7}
                         y={canvasPos.y - pinSize * 0.7}
                         radius={isMobile ? 8 : 6}
-                        fill={pin.parent_mix_state === 'ALL_CLOSED' ? '#10b981' : 
+                        fill={pin.parent_mix_state === 'ALL_CLOSED' ? '#10b981' :
                               pin.parent_mix_state === 'MIXED' ? '#f97316' : '#dc2626'}
                         stroke="#ffffff"
                         strokeWidth={2}
                       />
                     )}
-                    
+
                     {(pin.children_total ?? 0) > 0 && (
                       <Text
                         x={canvasPos.x + pinSize * 0.7}
@@ -472,7 +480,7 @@ export function BluebinInteractiveRoofPlan({
                   </Group>
                 )
               })}
-            
+
             {/* Render child pins for this layer */}
             {visibleChildPins
               .filter(childPin => {
@@ -485,7 +493,7 @@ export function BluebinInteractiveRoofPlan({
                 const parentX = parent?.x || 0.5
                 const parentY = parent?.y || 0.5
                 const canvasPos = normalizedToCanvas({ x: parentX, y: parentY })
-                
+
                 return (
                   <Group key={childPin.id}>
                     <Circle
@@ -493,12 +501,12 @@ export function BluebinInteractiveRoofPlan({
                       y={canvasPos.y}
                       radius={pinSize * 0.6}
                       fill={getSeverityColor(childPin.severity)}
-                      stroke={getStatusColor(childPin.status || 'Open')}
+                      stroke={getStatusColor(childPin.status)}
                       strokeWidth={2}
-                      onClick={() => handleChildPinClick(childPin)}
-                      onTap={() => handleChildPinClick(childPin)}
+                      onClick={() => handleChildPinClick(childPin as any)}
+                      onTap={() => handleChildPinClick(childPin as any)}
                     />
-                    
+
                     <Text
                       x={canvasPos.x}
                       y={canvasPos.y - 4}

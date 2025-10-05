@@ -60,10 +60,7 @@ function RoofDashboardPage() {
   
   // Data fetching hooks
   const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
-  const { data: pins = [], isLoading: pinsLoading } = usePins(roofId) as { 
-    data: PinWithRelations[], 
-    isLoading: boolean 
-  }
+  const { data: pins = [], isLoading: pinsLoading } = usePins(roofId)
   const { data: pinItems = [] } = useAllPinItems(roofId)
   const { messages } = useChat(roofId, selectedPin?.id)
   const { data: users = [] } = useUsers()
@@ -582,7 +579,7 @@ function RoofDashboardPage() {
                   childPins={childPins.filter(cp => cp.pin_id === selectedPin.id)}
                   onClose={() => setSelectedPin(null)}
                   onStatusChange={handleStatusChange}
-                  onAddChildPin={async (childData) => {
+                  onAddChildPin={async (childData: string | Partial<Database['public']['Tables']['pin_children']['Insert']>) => {
                     if (typeof childData === 'string') {
                       await handleAddChildPin(selectedPin.id, {})
                     } else {
@@ -704,7 +701,7 @@ function RoofDashboardPage() {
                 setSelectedPin(null)
               }}
               onStatusChange={handleStatusChange}
-              onAddChildPin={async (childData) => {
+              onAddChildPin={async (childData: string | Partial<Database['public']['Tables']['pin_children']['Insert']>) => {
                 if (typeof childData === 'string') {
                   await handleAddChildPin(selectedPin.id, {})
                 } else {

@@ -4,11 +4,11 @@
  */
 
 // Interactive Canvas Components
-export { default as BluebinInteractiveRoofPlan } from './BluebinInteractiveRoofPlan'
-export { default as OptimizedBluebinInteractiveRoofPlan } from './OptimizedBluebinInteractiveRoofPlan'
+export { BluebinInteractiveRoofPlan } from './BluebinInteractiveRoofPlan'
+export { OptimizedBluebinInteractiveRoofPlan } from './OptimizedBluebinInteractiveRoofPlan'
 
 // Pin Details Modal
-export { default as PinDetailsModalV2 } from './PinDetailsModalV2'
+export { PinDetailsModalV2 } from './PinDetailsModalV2'
 
 // Dashboard Utilities
-export { default as FilterPanel } from './FilterPanel'
+export { FilterPanel } from './FilterPanel'

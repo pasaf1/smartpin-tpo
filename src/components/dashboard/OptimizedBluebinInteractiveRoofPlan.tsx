@@ -318,8 +318,9 @@ export function OptimizedBluebinInteractiveRoofPlan({
     }
 
     const filteredPins = pins.filter(pin => {
-      const pinLayer = layers.find(l => l.id === pin.layer_id)
-      if (!pinLayer?.visible) return false
+      // Note: Pins don't have layer_id in current schema - show all pins for now
+      // const pinLayer = layers.find(l => l.id === pin.layer_id)
+      // if (!pinLayer?.visible) return false
 
       const canvasPos = normalizedToCanvas({ x: pin.x, y: pin.y })
       return viewportCuller.current.isInViewport(canvasPos, viewport, scale)

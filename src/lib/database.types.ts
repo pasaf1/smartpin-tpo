@@ -724,44 +724,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string | null
-          id: string
-          updated_at: string | null
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id: string
-          updated_at?: string | null
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          updated_at?: string | null
-          username?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
     }
     Views: {
       v_parent_pin_status_summary: {
@@ -1060,34 +1022,7 @@ export const Constants = {
   },
 } as const
 
-// Additional common types used in the application
-export type PinWithRelations = Tables<"pins"> & {
-  pin_children?: Tables<"pin_children">[]
-  photos?: Tables<"photos">[]
-  roof?: Tables<"roofs">
-  opened_by_user?: Tables<"users">
-}
-
-export type PinClickHandler = (pin: PinWithRelations) => void
-
-export type AddChildPinHandler = (
-  pinId: string,
-  childData: Omit<Tables<"pin_children">["Insert"], "pin_id">
-) => Promise<void>
-
-export type UpdateChildPinHandler = (
-  childId: string,
-  updates: Tables<"pin_children">["Update"]
-) => Promise<void>
-
-export type DeleteChildPinHandler = (childId: string) => Promise<void>
-
-export type StatusChangeHandler = (
-  pinId: string,
-  newStatus: Database["public"]["Enums"]["pin_status"]
-) => Promise<void>
-
-export type ChildPinWithUIFields = Tables<"pin_children"> & {
-  isEditing?: boolean
-  isNew?: boolean
-}
+// Re-export relation types and handlers
+export type { PinWithRelations, IssueRowStatus } from './types/relations'
+export type { ChildPinWithUIFields, PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler } from './types/handlers'
+export type { TablesInsert } from './types/tables'
