@@ -4,7 +4,7 @@ import React, { ReactNode } from 'react'
 import { Search, Settings, User, Bell, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
-import { ConnectionStatus } from '@/components/realtime/ConnectionStatus'
+import { ConnectionStatus } from '@/components/shared/ConnectionStatus'
 import { ChatDock } from '@/components/chat/ChatDock'
 import { useAuth } from '@/lib/hooks/useAuth'
 

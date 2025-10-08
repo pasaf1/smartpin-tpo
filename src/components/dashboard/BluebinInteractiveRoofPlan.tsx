@@ -6,7 +6,6 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import { cn } from '@/lib/utils'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
 import { getSupabase } from '@/lib/supabase'
-import { getChildPinId, getChildPinStatus } from '@/lib/pins/childPinAdapters'
 import type { PinWithRelations, ChildPinWithUIFields, PinClickHandler, AddChildPinHandler } from '@/lib/database.types'
 
 // UIChildPin is same as ChildPinWithUIFields
@@ -297,7 +296,7 @@ export function BluebinInteractiveRoofPlan({
         layerId: selectedLayerId
       })
     } else if (selectedTool === 'childPin' && selectedPin && onAddChildPin) {
-      onAddChildPin(selectedPin.id, { x: normalizedPos.x, y: normalizedPos.y })
+      onAddChildPin(selectedPin, normalizedPos.x, normalizedPos.y)
       setIsAddingChildPin(false)
       // Broadcast child pin creation
       broadcastChildPinOperation('create', {
@@ -501,7 +500,7 @@ export function BluebinInteractiveRoofPlan({
                       y={canvasPos.y}
                       radius={pinSize * 0.6}
                       fill={getSeverityColor(childPin.severity)}
-                      stroke={getStatusColor(childPin.status)}
+                      stroke={getStatusColor(childPin.status_child || 'Open')}
                       strokeWidth={2}
                       onClick={() => handleChildPinClick(childPin as any)}
                       onTap={() => handleChildPinClick(childPin as any)}

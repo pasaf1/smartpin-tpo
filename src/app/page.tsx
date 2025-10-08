@@ -25,20 +25,12 @@ import { ConnectionStatus as RealtimeStatus } from '@/components/shared'
 import { cn } from '@/lib/utils'
 import { DockedChat } from '@/components/chat/DockedChat'
 import { toast } from 'sonner'
-import type { Database } from '@/lib/database.types'
+import type { Database, PinWithRelations, ChildPinWithUIFields } from '@/lib/database.types'
 
 // Type definitions
 type Pin = Database['public']['Tables']['pins']['Row']
 type PinInsert = Database['public']['Tables']['pins']['Insert']
 type PinUpdate = Database['public']['Tables']['pins']['Update']
-
-interface PinWithRelations extends Pin {
-  pin_items?: any[]
-  photos?: any[]
-  children?: ChildPin[]
-}
-
-type ChildPin = Database['public']['Tables']['pin_children']['Row']
 
 function RoofDashboardPage() {
   const params = useParams()
@@ -52,7 +44,7 @@ function RoofDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Open' | 'ReadyForInspection' | 'Closed'>('all')
   const [selectedTool, setSelectedTool] = useState<'pin' | 'childPin' | 'annotation' | 'text' | 'measure'>('pin')
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
-  const [childPins, setChildPins] = useState<ChildPin[]>([])
+  const [childPins, setChildPins] = useState<ChildPinWithUIFields[]>([])
   // Removed layers and annotations - tables don't exist in database
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileDetails, setShowMobileDetails] = useState(false)
@@ -114,7 +106,7 @@ function RoofDashboardPage() {
     }
   }, [isMobile])
 
-  const handleChildPinClick = useCallback((childPin: ChildPin, parentPin: PinWithRelations) => {
+  const handleChildPinClick = useCallback((childPin: ChildPinWithUIFields, parentPin: PinWithRelations) => {
     setSelectedPin(parentPin)
     if (isMobile) {
       setShowMobileDetails(true)
@@ -129,22 +121,21 @@ function RoofDashboardPage() {
     await handlePinCreate(x, y)
   }, [handlePinCreate])
 
-  const handleAddChildPin = useCallback(async (parentPinId: string, childData: Partial<ChildPin>) => {
+  const handleAddChildPin = useCallback(async (parentPin: PinWithRelations, x?: number, y?: number) => {
     try {
       // Create child pin logic
-      const parentPin = pins.find(p => p.id === parentPinId)
       if (!parentPin) return
 
-      const existingChildren = childPins.filter(cp => cp.pin_id === parentPinId)
+      const existingChildren = childPins.filter(cp => cp.pin_id === parentPin.id)
       const nextCode = `${parentPin.seq_number}.${existingChildren.length + 1}`
 
-      const newChildPin: ChildPin = {
+      const newChildPin: ChildPinWithUIFields = {
         child_id: crypto.randomUUID(),
-        pin_id: parentPinId,
+        pin_id: parentPin.id,
         child_code: nextCode,
-        zone: childData.zone || null,
-        defect_type: childData.defect_type || null,
-        severity: childData.severity || 'Medium',
+        zone: null,
+        defect_type: null,
+        severity: 'Medium',
         status_child: 'Open',
         due_date: null,
         open_date: new Date().toISOString(),
@@ -153,7 +144,9 @@ function RoofDashboardPage() {
         closurepic_id: null,
         notes: null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        x,
+        y
       }
 
       setChildPins(prev => [...prev, newChildPin])
@@ -162,7 +155,7 @@ function RoofDashboardPage() {
       console.error('Failed to add child pin:', error)
       toast.error('Failed to add child pin')
     }
-  }, [pins, childPins])
+  }, [childPins])
 
   const handleStatusChange = useCallback(async (pinId: string, newStatus: Pin['status']) => {
     try {
@@ -179,9 +172,9 @@ function RoofDashboardPage() {
     }
   }, [updatePinMutation])
 
-  const handleUpdateChildPin = useCallback(async (childId: string, updates: Partial<ChildPin>) => {
+  const handleUpdateChildPin = useCallback((childPin: ChildPinWithUIFields) => {
     setChildPins(prev => prev.map(cp =>
-      cp.child_id === childId ? { ...cp, ...updates, updated_at: new Date().toISOString() } : cp
+      cp.child_id === childPin.child_id ? { ...cp, ...childPin, updated_at: new Date().toISOString() } : cp
     ))
     toast.success('Child pin updated')
   }, [])
@@ -580,11 +573,7 @@ function RoofDashboardPage() {
                   onClose={() => setSelectedPin(null)}
                   onStatusChange={handleStatusChange}
                   onAddChildPin={async (childData: string | Partial<Database['public']['Tables']['pin_children']['Insert']>) => {
-                    if (typeof childData === 'string') {
-                      await handleAddChildPin(selectedPin.id, {})
-                    } else {
-                      await handleAddChildPin(selectedPin.id, childData)
-                    }
+                    await handleAddChildPin(selectedPin)
                   }}
                   onUpdateChildPin={handleUpdateChildPin}
                   onDeleteChildPin={handleDeleteChildPin}
@@ -702,11 +691,7 @@ function RoofDashboardPage() {
               }}
               onStatusChange={handleStatusChange}
               onAddChildPin={async (childData: string | Partial<Database['public']['Tables']['pin_children']['Insert']>) => {
-                if (typeof childData === 'string') {
-                  await handleAddChildPin(selectedPin.id, {})
-                } else {
-                  await handleAddChildPin(selectedPin.id, childData)
-                }
+                await handleAddChildPin(selectedPin)
               }}
               onUpdateChildPin={handleUpdateChildPin}
               onDeleteChildPin={handleDeleteChildPin}

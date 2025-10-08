@@ -3,7 +3,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { usePinWithChildren, useCreatePinChild, useUpdatePinChildStatus, useChildPhotos, useAttachChildPhotoDynamic } from '@/lib/hooks/usePinChildren'
-import type { PinChild } from '@/lib/database.types'
+import type { Database } from '@/lib/database.types'
+
+type PinChild = Database["public"]["Tables"]["pin_children"]["Row"]
 
 interface Props {
   pinId: string | null

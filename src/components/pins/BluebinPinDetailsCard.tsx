@@ -146,7 +146,7 @@ export function BluebinPinDetailsCard({
           <div className="flex items-center gap-4">
             <div className={cn(
               "w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg",
-              getSeverityColor(pin.severity || 'Low')
+              "bg-luxury-600"  // Parent pins use status-based color, not severity
             )}>
               {pin.seq_number}
             </div>
@@ -240,12 +240,7 @@ export function BluebinPinDetailsCard({
                       disabled={isUpdating}
                     />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-luxury-600">Severity:</span>
-                    <span className={cn("px-2 py-1 text-xs font-medium rounded-full text-white", getSeverityColor(pin.severity || 'Low'))}>
-                      {pin.severity}
-                    </span>
-                  </div>
+                  {/* Severity only applies to child pins, not parent pins */}
                   <div className="flex justify-between">
                     <span className="text-luxury-600">Position:</span>
                     <span className="text-luxury-900 font-mono text-sm">

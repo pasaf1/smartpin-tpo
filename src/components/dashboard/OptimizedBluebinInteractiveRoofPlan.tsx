@@ -339,8 +339,9 @@ export function OptimizedBluebinInteractiveRoofPlan({
       const parent = pins.find(p => p.id === (childPin.parent_id || childPin.pin_id))
       if (!parent) return false
 
-      const layer = layers.find(l => l.id === parent.layer_id)
-      if (!layer?.visible) return false
+      // Layer filtering removed - layers table doesn't exist in schema
+      // const layer = layers.find(l => l.id === parent.layer_id)
+      // if (!layer?.visible) return false
 
       const canvasPos = normalizedToCanvas({ x: childPin.x || 0.5, y: childPin.y || 0.5 })
       return viewportCuller.current.isInViewport(canvasPos, viewport, scale)

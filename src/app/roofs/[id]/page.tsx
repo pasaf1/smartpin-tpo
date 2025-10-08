@@ -144,24 +144,29 @@ function RoofDashboardPage() {
     }
   }
 
-  const handleAddChildPin: AddChildPinHandler = async (parentPinId, childData) => {
+  const handleAddChildPin: AddChildPinHandler = async (parentPin, x, y) => {
     // Create child pin logic
+    const existingChildren = childPins.filter(cp => cp.pin_id === parentPin.id)
+    const nextCode = `${parentPin.seq_number}.${existingChildren.length + 1}`
+
     const newChildPin: ChildPinWithUIFields = {
       child_id: Date.now().toString(),
-      pin_id: parentPinId,
-      child_code: childData.child_code,
-      zone: childData.zone || null,
-      defect_type: childData.defect_type || null,
-      severity: childData.severity || null,
+      pin_id: parentPin.id,
+      child_code: nextCode,
+      zone: null,
+      defect_type: null,
+      severity: null,
       status_child: 'Open',
-      due_date: childData.due_date || null,
-      open_date: childData.open_date || null,
-      closed_date: childData.closed_date || null,
-      openpic_id: childData.openpic_id || null,
-      closurepic_id: childData.closurepic_id || null,
-      notes: childData.notes || null,
+      due_date: null,
+      open_date: new Date().toISOString(),
+      closed_date: null,
+      openpic_id: null,
+      closurepic_id: null,
+      notes: null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      x,
+      y
     }
     setChildPins([...childPins, newChildPin])
   }
@@ -171,8 +176,8 @@ function RoofDashboardPage() {
     console.log('Update parent pin status:', pinId, newStatus)
   }
 
-  const handleUpdateChildPin: UpdateChildPinHandler = async (childId, updates) => {
-    setChildPins(childPins.map(cp => cp.child_id === childId ? { ...cp, ...updates } : cp))
+  const handleUpdateChildPin: UpdateChildPinHandler = (childPin) => {
+    setChildPins(childPins.map(cp => cp.child_id === childPin.child_id ? { ...cp, ...childPin, updated_at: new Date().toISOString() } : cp))
   }
 
   const handleDeleteChildPin: DeleteChildPinHandler = async (childId) => {
@@ -494,7 +499,7 @@ function RoofDashboardPage() {
                   onPinClick={handlePinClick}
                   onChildPinClick={handleChildPinClick}
                   onAddPin={handleAddPin}
-                  onAddChildPin={(parentPinId: string, childData: any) => handleAddChildPin(parentPinId, childData)}
+                  onAddChildPin={handleAddChildPin}
                   onAddAnnotation={handleAddAnnotation}
                   selectedLayerId={selectedLayerId || undefined}
                   selectedTool={selectedTool}
@@ -624,7 +629,7 @@ function RoofDashboardPage() {
                   childPins={childPins.filter(cp => cp.pin_id === selectedPin.id)}
                   onClose={() => setSelectedPin(null)}
                   onStatusChange={handleStatusChange}
-                  onAddChildPin={(parentPinId: string, childData: any) => handleAddChildPin(parentPinId, childData)}
+                  onAddChildPin={handleAddChildPin}
                   onUpdateChildPin={handleUpdateChildPin}
                   onDeleteChildPin={handleDeleteChildPin}
                   className="h-full border-0 bg-transparent"
@@ -756,7 +761,7 @@ function RoofDashboardPage() {
                 setSelectedPin(null)
               }}
               onStatusChange={handleStatusChange}
-              onAddChildPin={(parentPin: any) => handleAddChildPin(parentPin.id, { child_code: '', normalized_x: 0.5, normalized_y: 0.5 })}
+              onAddChildPin={handleAddChildPin}
               onUpdateChildPin={handleUpdateChildPin}
               onDeleteChildPin={handleDeleteChildPin}
               className="border-0 bg-transparent"
