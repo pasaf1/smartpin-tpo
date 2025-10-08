@@ -90,16 +90,7 @@ export function PinSystemDemo() {
     const updatedPin = {
       ...selectedPin,
       status: newStatus,
-      updatedAt: new Date().toISOString(),
-      statusHistory: [
-        {
-          status: newStatus,
-          changedAt: new Date().toISOString(),
-          changedBy: currentUser.name,
-          reason
-        },
-        ...selectedPin.statusHistory
-      ]
+      updated_at: new Date().toISOString()
     }
 
     setPins(prev => prev.map(pin =>
@@ -121,22 +112,12 @@ export function PinSystemDemo() {
     // Simulate photo upload
     await new Promise(resolve => setTimeout(resolve, 2000))
 
-    const newPhoto = {
-      id: `photo-${Date.now()}`,
-      url: URL.createObjectURL(photo),
-      thumbnailUrl: URL.createObjectURL(photo),
-      type,
-      fileName: photo.name,
-      fileSize: photo.size,
-      mimeType: photo.type,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: currentUser.id
-    }
+    const photoUrl = URL.createObjectURL(photo)
 
     const updatedPin = {
       ...selectedPin,
-      photos: [...selectedPin.photos, newPhoto],
-      updatedAt: new Date().toISOString()
+      documentation_photos: [...(selectedPin.documentation_photos || []), photoUrl],
+      updated_at: new Date().toISOString()
     }
 
     setPins(prev => prev.map(pin =>
@@ -153,42 +134,9 @@ export function PinSystemDemo() {
   const handleChildPinCreate = async (childData: Partial<SmartPin>) => {
     if (!selectedPin) return
 
-    console.log('Creating child pin:', childData)
+    console.log('Creating child pin (demo):', childData)
 
-    // Create child pin
-    const childPin = PinUtils.createPin({
-      id: `child-${Date.now()}`,
-      roofId: selectedPin.roofId,
-      seqNumber: 0, // Will be auto-assigned
-      hierarchy: {
-        parentId: selectedPin.id,
-        parentSeqNumber: selectedPin.seqNumber,
-        childSeqNumber: selectedPin.children.length + 1,
-        depth: 1,
-        fullHierarchyCode: `${selectedPin.seqNumber}.${selectedPin.children.length + 1}`
-      },
-      ...childData,
-      createdBy: currentUser.id
-    }) as SmartPin
-
-    // Update parent pin with new child
-    const updatedPin = {
-      ...selectedPin,
-      children: [...selectedPin.children, childPin],
-      childrenStats: {
-        ...selectedPin.childrenStats,
-        total: selectedPin.childrenStats.total + 1,
-        open: selectedPin.childrenStats.open + 1
-      },
-      updatedAt: new Date().toISOString()
-    }
-
-    setPins(prev => prev.map(pin =>
-      pin.id === selectedPin.id ? updatedPin : pin
-    ))
-
-    setSelectedPin(updatedPin)
-
+    // Demo: just log the action
     if (haptic.isSupported) {
       haptic.success()
     }
@@ -220,19 +168,19 @@ export function PinSystemDemo() {
             <div className="bg-gradient-to-r from-luxury-50 to-luxury-100 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${PinUtils.getSeverityColorClass(demoPin.severity)}`}>
-                    {demoPin.seqNumber}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${PinUtils.getSeverityColor(demoPin.severity, 'bg')}`}>
+                    {demoPin.seq_number}
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-luxury-900">
-                      {PinUtils.getDisplayName(demoPin)}
+                      Pin #{demoPin.seq_number}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${PinUtils.getStatusColorClass(demoPin.status)}`}>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${PinUtils.getStatusColor(demoPin.status, 'badge')}`}>
                         {demoPin.status}
                       </span>
                       <span className="text-sm text-luxury-600">
-                        Zone: {demoPin.position.zone}
+                        Zone: {demoPin.zone}
                       </span>
                     </div>
                   </div>
@@ -245,33 +193,29 @@ export function PinSystemDemo() {
               {/* Statistics */}
               <div className="mt-4 grid grid-cols-4 gap-4">
                 <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-luxury-900">{demoPin.childrenStats.total}</div>
+                  <div className="text-2xl font-bold text-luxury-900">{demoPin.children_total}</div>
                   <div className="text-xs text-luxury-600">Total</div>
                 </div>
                 <div className="bg-red-100/70 backdrop-blur-sm rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-red-800">{demoPin.childrenStats.open}</div>
+                  <div className="text-2xl font-bold text-red-800">{demoPin.children_open}</div>
                   <div className="text-xs text-red-600">Open</div>
                 </div>
                 <div className="bg-yellow-100/70 backdrop-blur-sm rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-yellow-800">{demoPin.childrenStats.readyForInspection}</div>
+                  <div className="text-2xl font-bold text-yellow-800">{demoPin.children_ready}</div>
                   <div className="text-xs text-yellow-600">Ready</div>
                 </div>
                 <div className="bg-green-100/70 backdrop-blur-sm rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-green-800">{demoPin.childrenStats.closed}</div>
+                  <div className="text-2xl font-bold text-green-800">{demoPin.children_closed}</div>
                   <div className="text-xs text-green-600">Closed</div>
                 </div>
               </div>
             </div>
 
             <div className="p-6">
-              <p className="text-luxury-700 text-sm leading-relaxed mb-4">
-                {demoPin.description}
-              </p>
-
               <div className="flex items-center justify-between text-sm text-luxury-500">
-                <span>Created: {new Date(demoPin.createdAt).toLocaleDateString()}</span>
-                <span>Photos: {demoPin.photos.length}</span>
-                <span>Progress: {PinUtils.calculateCompletion(demoPin)}%</span>
+                <span>Created: {new Date(demoPin.created_at).toLocaleDateString()}</span>
+                <span>Photos: {(demoPin.documentation_photos || []).length}</span>
+                <span>Progress: {demoPin.completion_percentage}%</span>
               </div>
             </div>
           </div>
@@ -313,106 +257,42 @@ export function PinSystemDemo() {
 // Demo data
 const demoPin: SmartPin = {
   id: 'pin-demo-1',
-  seqNumber: 1,
-  roofId: 'roof-demo',
-  hierarchy: {
-    parentId: null,
-    depth: 0,
-    fullHierarchyCode: '1'
-  },
-  position: {
-    x: 0.5,
-    y: 0.3,
-    zone: 'Zone A',
-    building: 'Building 1'
-  },
+  seq_number: 1,
+  roof_id: 'roof-demo',
+  x: 0.5,
+  y: 0.3,
+  zone: 'Zone A',
   status: 'Open',
   severity: 'High',
-  defectType: 'Membrane Separation',
-  defectLayer: 'TPO_Membrane',
-  defectCategory: 'INCR',
-  description: 'Significant membrane separation observed along the eastern edge of the building. The TPO membrane has pulled away from the substrate creating a potential water infiltration point. Immediate repair required to prevent structural damage.',
-  notes: 'Weather conditions during inspection: Dry, 72°F. Area accessible via ladder.',
-  createdAt: '2024-01-15T10:30:00Z',
-  updatedAt: '2024-01-15T14:45:00Z',
-  openedAt: '2024-01-15T10:30:00Z',
-  dueDate: '2024-01-20T17:00:00Z',
-  createdBy: 'inspector-1',
-  children: [
-    {
-      id: 'child-1',
-      seqNumber: 0,
-      roofId: 'roof-demo',
-      hierarchy: {
-        parentId: 'pin-demo-1',
-        parentSeqNumber: 1,
-        childSeqNumber: 1,
-        depth: 1,
-        fullHierarchyCode: '1.1'
-      },
-      position: { x: 0.51, y: 0.31, zone: 'Zone A' },
-      status: 'Open',
-      severity: 'Medium',
-      defectType: 'Edge Lifting',
-      description: 'Minor edge lifting at seam connection',
-      createdAt: '2024-01-15T11:00:00Z',
-      updatedAt: '2024-01-15T11:00:00Z',
-      createdBy: 'inspector-1',
-      children: [],
-      photos: [],
-      activities: [],
-      childrenStats: { total: 0, open: 0, readyForInspection: 0, closed: 0, inDispute: 0, completionPercentage: 0 },
-      sla: { createdToReady: 24, readyToClosed: 48, isOverdue: false, escalationLevel: 0 },
-      statusHistory: []
-    }
-  ],
-  photos: [
-    {
-      id: 'photo-1',
-      url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200',
-      type: 'Open',
-      fileName: 'membrane-separation-open.jpg',
-      fileSize: 2457600,
-      mimeType: 'image/jpeg',
-      uploadedAt: '2024-01-15T10:35:00Z',
-      uploadedBy: 'inspector-1'
-    }
-  ],
-  activities: [
-    {
-      id: 'activity-1',
-      pinId: 'pin-demo-1',
-      action: 'created',
-      actorId: 'inspector-1',
-      actorName: 'Asaf Peer',
-      actorRole: 'Inspector',
-      timestamp: '2024-01-15T10:30:00Z'
-    }
-  ],
-  childrenStats: {
-    total: 1,
-    open: 1,
-    readyForInspection: 0,
-    closed: 0,
-    inDispute: 0,
-    completionPercentage: 0
-  },
-  lastActivityAt: '2024-01-15T14:45:00Z',
-  sla: {
-    createdToReady: 24,
-    readyToClosed: 48,
-    isOverdue: false,
-    escalationLevel: 0
-  },
-  statusHistory: [
-    {
-      status: 'Open',
-      changedAt: '2024-01-15T10:30:00Z',
-      changedBy: 'Asaf Peer'
-    }
-  ]
-}
+  priority: 3,
+  issue_type: 'INC',
+  defect_type: 'Membrane Separation',
+  defect_layer: 'TPO',
+  defect_category: 'INCR',
+  opening_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
+  documentation_photos: [],
+  created_by: 'inspector-1',
+  created_at: '2024-01-15T10:30:00Z',
+  updated_at: '2024-01-15T14:45:00Z',
+  is_overdue: false,
+  days_open: 5,
+  escalation_level: 0,
+  requires_approval: false,
+  children_total: 0,
+  children_open: 0,
+  children_ready: 0,
+  children_closed: 0,
+  completion_percentage: 0,
+  parent_mix_state: 'ALL_CLOSED',
+  target_resolution_time: 48,
+  activity_count: 1,
+  comment_count: 0,
+  mention_count: 0,
+  sync_status: 'synced',
+  needs_sync: false,
+  children: [],
+  child_count: 0
+} as SmartPin
 
 const features = [
   {

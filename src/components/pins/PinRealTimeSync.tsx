@@ -25,6 +25,7 @@ interface RealtimeState {
 
 export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
   projectId,
+  roofId,
   pinId,
   onPinUpdate,
   onChildPinUpdate,
@@ -52,12 +53,12 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
       severity: 'medium',
       recoverable: true,
       timestamp: new Date().toISOString(),
-      context: { context, projectId, pinId, userId }
+      context: { context, projectId, roofId, pinId, userId }
     }
 
     onError(pinError)
     stateRef.current.connectionError = pinError.message
-  }, [onError, projectId, pinId, userId])
+  }, [onError, projectId, roofId, pinId, userId])
 
   // Connection heartbeat
   const startHeartbeat = useCallback(() => {
@@ -111,7 +112,11 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
       // Create channel name based on scope
       const channelName = pinId
         ? `pin:${pinId}`
-        : `project:${projectId}`
+        : roofId
+        ? `roof:${roofId}`
+        : projectId
+        ? `project:${projectId}`
+        : 'global'
 
       console.log(`[PinRealTimeSync] Connecting to channel: ${channelName}`)
 
@@ -131,7 +136,11 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
             event: '*',
             schema: 'public',
             table: 'pins',
-            filter: pinId ? `id=eq.${pinId}` : `project_id=eq.${projectId}`
+            filter: pinId
+              ? `id=eq.${pinId}`
+              : roofId
+              ? `roof_id=eq.${roofId}`
+              : undefined
           },
           (payload) => {
             console.log('[PinRealTimeSync] Pin database change:', payload)
@@ -159,14 +168,16 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
           }
         )
 
-        // Child pin updates
-        .on(
+
+      // Child pin updates (only subscribe when we have a specific pinId)
+      if (pinId) {
+        channel.on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'pin_children',
-            filter: pinId ? `pin_id=eq.${pinId}` : `project_id=eq.${projectId}`
+            filter: `pin_id=eq.${pinId}`
           },
           (payload) => {
             console.log('[PinRealTimeSync] Child pin database change:', payload)
@@ -193,15 +204,20 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
             onActivity(activity)
           }
         )
+      }
 
-        // Activity logs
-        .on(
+      channel
+
+
+      // Activity logs (only subscribe when we have a specific pinId)
+      if (pinId) {
+        channel.on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
             table: 'activity_logs',
-            filter: pinId ? `pin_id=eq.${pinId}` : `project_id=eq.${projectId}`
+            filter: `pin_id=eq.${pinId}`
           },
           (payload) => {
             console.log('[PinRealTimeSync] New activity log:', payload)
@@ -223,6 +239,9 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
             }
           }
         )
+      }
+
+      channel
 
         // Real-time broadcasts (user actions)
         .on('broadcast', { event: 'pin_update' }, ({ payload }) => {
@@ -314,7 +333,8 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
           await channel.track({
             user_id: userId,
             user_name: 'Current User', // Should come from user context
-            project_id: projectId,
+            project_id: projectId || '',
+            roof_id: roofId,
             pin_id: pinId,
             joined_at: new Date().toISOString()
           })
@@ -347,7 +367,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
       handleError(error, 'setupRealtimeSubscription')
       scheduleReconnect()
     }
-  }, [enabled, supabase, projectId, pinId, userId, onPinUpdate, onChildPinUpdate, onActivity, onPresenceUpdate, handleError, startHeartbeat, scheduleReconnect])
+  }, [enabled, supabase, projectId, roofId, pinId, userId, onPinUpdate, onChildPinUpdate, onActivity, onPresenceUpdate, handleError, startHeartbeat, scheduleReconnect])
 
   // Public methods for broadcasting updates
   const broadcastPinUpdate = useCallback(async (pin: SmartPin) => {
@@ -410,7 +430,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
   // Initialize connection
   useEffect(() => {
-    if (enabled && projectId && userId) {
+    if (enabled && userId && (projectId || roofId || pinId)) {
       console.log('[PinRealTimeSync] Initializing connection...')
       setupRealtimeSubscription()
     }
@@ -437,7 +457,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
       stateRef.current.isConnected = false
     }
-  }, [enabled, projectId, userId, setupRealtimeSubscription, supabase])
+  }, [enabled, projectId, roofId, pinId, userId, setupRealtimeSubscription, supabase])
 
   // Expose broadcast methods via ref (if needed)
   React.useImperativeHandle(React.forwardRef(function PinRealTimeSyncRef() { return null }), () => ({

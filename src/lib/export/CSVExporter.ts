@@ -427,20 +427,27 @@ export class CSVExporter {
    * Utility method to prepare pin data for export
    */
   static preparePinData(pins: any[], projects: any[], roofs: any[]): ExportablePin[] {
-    return pins.map(pin => ({
-      ...pin,
-      project_name: projects.find(p => p.id === pin.project_id)?.name || '',
-      roof_name: roofs.find(r => r.id === pin.roof_id)?.name || '',
-      contractor: projects.find(p => p.id === pin.project_id)?.contractor || ''
-    }))
+    return pins.map(pin => {
+      const roof = roofs.find(r => r.id === pin.roof_id)
+      const project = roof ? projects.find(p => p.id === roof.project_id) : undefined
+      return {
+        ...pin,
+        project_name: project?.name || '',
+        roof_name: roof?.name || '',
+        contractor: project?.contractor || ''
+      }
+    })
   }
 
   /**
    * Utility method to prepare project data for export
    */
-  static prepareProjectData(projects: any[], pins: any[]): ExportableProject[] {
+  static prepareProjectData(projects: any[], pins: any[], roofs: any[]): ExportableProject[] {
     return projects.map(project => {
-      const projectPins = pins.filter(p => p.project_id === project.id)
+      // Get all roofs for this project
+      const projectRoofIds = roofs.filter(r => r.project_id === project.id).map(r => r.id)
+      // Filter pins by roof_id
+      const projectPins = pins.filter(p => projectRoofIds.includes(p.roof_id))
       return {
         ...project,
         total_pins: projectPins.length,

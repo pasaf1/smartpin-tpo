@@ -293,7 +293,8 @@ export interface PinPhotoManagerProps {
 }
 
 export interface PinRealTimeSyncProps {
-  projectId: string
+  projectId?: string
+  roofId?: string
   pinId?: string
   onPinUpdate: (pin: SmartPin) => void
   onChildPinUpdate: (childPin: SmartChildPin) => void

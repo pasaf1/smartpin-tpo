@@ -557,7 +557,7 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
 
         {/* Real-time sync component */}
         <PinRealTimeSync
-          projectId={localPin.project_id || ''}
+          roofId={localPin.roof_id}
           pinId={localPin.id}
           onPinUpdate={setLocalPin}
           onChildPinUpdate={(updatedChild) => {
