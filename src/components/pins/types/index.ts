@@ -92,7 +92,7 @@ export interface SmartPin extends Pin {
 
 export interface SmartChildPin extends ChildPin {
   // Hierarchy
-  parent_pin: SmartPin
+  parent_pin: SmartPin | null
   child_code: string // e.g., "1.1", "1.2", "2.3"
   display_order: number
 
@@ -238,7 +238,7 @@ export interface OfflineChange {
 
 // Component props interfaces
 export interface PinDetailsModalProps {
-  pin: SmartPin
+  pin: SmartPin | null
   isOpen: boolean
   onClose: () => void
   onUpdate: (updates: Partial<SmartPin>) => Promise<void>
@@ -255,7 +255,7 @@ export interface PinDetailsModalProps {
 }
 
 export interface PinHierarchyManagerProps {
-  pin: SmartPin
+  pin: SmartPin | null
   onChildReorder: (childPins: SmartChildPin[]) => Promise<void>
   onChildAdd: () => void
   onChildEdit: (childPin: SmartChildPin) => void
@@ -265,7 +265,7 @@ export interface PinHierarchyManagerProps {
 }
 
 export interface PinStatusWorkflowProps {
-  pin: SmartPin
+  pin: SmartPin | null
   childPin?: SmartChildPin
   currentStatus: PinStatus
   onStatusChange: (newStatus: PinStatus, reason?: string) => Promise<void>
@@ -277,7 +277,7 @@ export interface PinStatusWorkflowProps {
 }
 
 export interface PinPhotoManagerProps {
-  pin: SmartPin
+  pin: SmartPin | null
   childPin?: SmartChildPin
   photos: PhotoUpload[]
   onPhotoUpload: (files: File[], type: PhotoUpload['type']) => Promise<void>
@@ -376,7 +376,7 @@ export interface DatabaseTransaction {
 
 // Export all types as a single interface for easy importing
 export interface SmartPinTypes {
-  SmartPin: SmartPin
+  Smartpin: SmartPin | null
   SmartChildPin: SmartChildPin
   PinStatus: PinStatus
   PinSeverity: PinSeverity

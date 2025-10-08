@@ -112,7 +112,10 @@
       "Bash(test:*)",
       "Bash(findstr:*)",
       "Bash(awk:*)",
-      "Bash(timeout 180 npm run build)"
+      "Bash(timeout 180 npm run build)",
+      "Bash(timeout 2 sleep 2)",
+      "Bash(powershell -Command \"(Get-Content ''src/components/pins/types/index.ts'') -replace ''pin: SmartPin$'', ''pin: SmartPin | null'' | Set-Content ''src/components/pins/types/index.ts''\")",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
