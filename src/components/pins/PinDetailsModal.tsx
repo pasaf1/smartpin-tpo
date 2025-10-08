@@ -154,7 +154,7 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
 
     try {
       const childPinData: Partial<SmartChildPin> = {
-        parent_pin_id: localPin.id,
+        pin_id: localPin.id,
         child_code: `${localPin.seq_number}.${(localPin.children?.length || 0) + 1}`,
         status_child: 'Open',
         created_by: currentUser.id,

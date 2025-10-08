@@ -166,7 +166,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
             event: '*',
             schema: 'public',
             table: 'pin_children',
-            filter: pinId ? `parent_pin_id=eq.${pinId}` : `project_id=eq.${projectId}`
+            filter: pinId ? `pin_id=eq.${pinId}` : `project_id=eq.${projectId}`
           },
           (payload) => {
             console.log('[PinRealTimeSync] Child pin database change:', payload)
@@ -177,7 +177,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
             const activity: PinActivity = {
               id: `db-change-${Date.now()}`,
-              pin_id: payload.new?.parent_pin_id || payload.old?.parent_pin_id,
+              pin_id: payload.new?.pin_id || payload.old?.pin_id,
               child_pin_id: payload.new?.id || payload.old?.id,
               action: payload.eventType.toLowerCase() as any,
               details: {

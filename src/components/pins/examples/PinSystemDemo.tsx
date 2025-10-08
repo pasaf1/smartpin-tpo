@@ -5,14 +5,17 @@ import { Button } from '@/components/ui/button'
 import {
   PinDetailsModal,
   SmartPin,
-  ExtendedPinStatus,
-  ImageKind,
+  PinStatus,
   PinUtils,
   PIN_CONSTANTS,
   PinErrorBoundary,
-  useMobileResponsive,
-  useHapticFeedback
+  useMobileGestures,
+  isMobileDevice,
+  hasTouchSupport,
+  triggerHapticFeedback
 } from '../index'
+
+type ImageKind = 'opening' | 'closing'
 
 /**
  * Demo component showcasing the rebuilt SmartPin TPO Pin System
@@ -23,8 +26,17 @@ export function PinSystemDemo() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [pins, setPins] = useState<SmartPin[]>([demoPin])
 
-  const { isMobile, isTouch } = useMobileResponsive()
-  const haptic = useHapticFeedback()
+  const isMobile = isMobileDevice()
+  const isTouch = hasTouchSupport()
+  const haptic = {
+    isSupported: hasTouchSupport(),
+    success: () => triggerHapticFeedback('light'),
+    warning: () => triggerHapticFeedback('medium'),
+    error: () => triggerHapticFeedback('heavy'),
+    lightImpact: () => triggerHapticFeedback('light'),
+    mediumImpact: () => triggerHapticFeedback('medium'),
+    heavyImpact: () => triggerHapticFeedback('heavy')
+  }
 
   // Mock current user
   const currentUser = {
@@ -66,7 +78,7 @@ export function PinSystemDemo() {
     }
   }
 
-  const handleStatusChange = async (newStatus: ExtendedPinStatus, reason?: string) => {
+  const handleStatusChange = async (newStatus: PinStatus, reason?: string) => {
     if (!selectedPin) return
 
     console.log('Changing pin status:', selectedPin.id, newStatus, reason)

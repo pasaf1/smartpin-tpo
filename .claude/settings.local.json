@@ -104,7 +104,15 @@
       "Bash(timeout 120 pnpm build)",
       "Read(//c/**)",
       "Bash(dir:*)",
-      "Bash(timeout 120 npm run build:*)"
+      "Bash(timeout 120 npm run build:*)",
+      "SlashCommand(/pipeline-smartpin)",
+      "SlashCommand(/prime-smartpin)",
+      "SlashCommand(/plan-smartpin)",
+      "SlashCommand(/implement-smartpin)",
+      "Bash(test:*)",
+      "Bash(findstr:*)",
+      "Bash(awk:*)",
+      "Bash(timeout 180 npm run build)"
     ],
     "deny": [],
     "ask": []
