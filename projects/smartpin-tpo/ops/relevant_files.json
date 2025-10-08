@@ -1,0 +1,156 @@
+{
+  "task": "Fix type safety issues (parent_id → pin_id) and implement SmartPin TPO plan",
+  "generated": "2025-10-07",
+  "files": [
+    {
+      "path": "src/lib/database.types.ts",
+      "relevance": 1.0,
+      "size_bytes": 32768,
+      "lines": 1028,
+      "issues": ["Verify ChildPinWithUIFields has pin_id not parent_id"],
+      "priority": "CRITICAL",
+      "read_offset": 0,
+      "read_length": 32768,
+      "reason": "Core type definitions - must verify pin_children.pin_id exists"
+    },
+    {
+      "path": "src/components/pins/BluebinPinDetailsCard.tsx",
+      "relevance": 0.98,
+      "size_bytes": 23552,
+      "lines": 499,
+      "issues": ["References to parent_id need to be pin_id", "Line 79-86: childPin.id || childPin.child_id pattern"],
+      "priority": "CRITICAL",
+      "read_offset": 0,
+      "read_length": 23552,
+      "reason": "Primary child pin UI component - contains parent_id references"
+    },
+    {
+      "path": "src/lib/hooks/usePinChildren.ts",
+      "relevance": 0.95,
+      "size_bytes": 6348,
+      "lines": 191,
+      "issues": ["Query filters using .eq('parent_id', ...) need pin_id"],
+      "priority": "CRITICAL",
+      "read_offset": 0,
+      "read_length": 6348,
+      "reason": "Child pin CRUD hooks - database queries need pin_id"
+    },
+    {
+      "path": "src/components/dashboard/BluebinInteractiveRoofPlan.tsx",
+      "relevance": 0.93,
+      "size_bytes": 21504,
+      "lines": 594,
+      "issues": ["childPins.filter(cp => cp.parent_id === pin.id) needs pin_id"],
+      "priority": "CRITICAL",
+      "read_offset": 0,
+      "read_length": 21504,
+      "reason": "Main canvas component - filters child pins by parent_id"
+    },
+    {
+      "path": "src/app/roofs/[id]/page.tsx",
+      "relevance": 0.90,
+      "size_bytes": 39936,
+      "lines": 783,
+      "issues": ["Pin creation flow", "Child pin handlers"],
+      "priority": "HIGH",
+      "read_offset": 0,
+      "read_length": 39936,
+      "reason": "Main roof dashboard page - implements pin creation"
+    },
+    {
+      "path": "src/lib/hooks/usePins.ts",
+      "relevance": 0.85,
+      "size_bytes": 8192,
+      "lines": 250,
+      "issues": [],
+      "priority": "HIGH",
+      "read_offset": 0,
+      "read_length": 8192,
+      "reason": "Parent pin CRUD operations - needed for Step 2.1"
+    },
+    {
+      "path": "src/lib/hooks/usePinStatusManager.ts",
+      "relevance": 0.82,
+      "size_bytes": 4096,
+      "lines": 120,
+      "issues": ["May need to be created"],
+      "priority": "HIGH",
+      "read_offset": 0,
+      "read_length": 4096,
+      "reason": "Status workflow management - Step 2.3"
+    },
+    {
+      "path": "src/lib/pin-status-manager.ts",
+      "relevance": 0.80,
+      "size_bytes": 3072,
+      "lines": 90,
+      "issues": [],
+      "priority": "MEDIUM",
+      "read_offset": 0,
+      "read_length": 3072,
+      "reason": "Status rules and logic - Step 2.3"
+    },
+    {
+      "path": "src/components/pins/PinHierarchyManager.tsx",
+      "relevance": 0.75,
+      "size_bytes": 12288,
+      "lines": 350,
+      "issues": [],
+      "priority": "MEDIUM",
+      "read_offset": 0,
+      "read_length": 12288,
+      "reason": "Hierarchical pin management UI"
+    },
+    {
+      "path": "src/lib/hooks/useBluebinRealtimeSync.ts",
+      "relevance": 0.70,
+      "size_bytes": 15360,
+      "lines": 400,
+      "issues": [],
+      "priority": "MEDIUM",
+      "read_offset": 0,
+      "read_length": 15360,
+      "reason": "Real-time collaboration - already implemented"
+    },
+    {
+      "path": "src/components/photos/PhotoUploadZone.tsx",
+      "relevance": 0.65,
+      "size_bytes": 0,
+      "lines": 0,
+      "issues": ["FILE DOES NOT EXIST - needs to be created"],
+      "priority": "HIGH",
+      "read_offset": 0,
+      "read_length": 0,
+      "reason": "Photo upload component - Step 3.1 (full code in plan)"
+    },
+    {
+      "path": "src/lib/storage/photoStorage.ts",
+      "relevance": 0.60,
+      "size_bytes": 0,
+      "lines": 0,
+      "issues": ["FILE DOES NOT EXIST - needs to be created"],
+      "priority": "HIGH",
+      "read_offset": 0,
+      "read_length": 0,
+      "reason": "Photo storage utilities - Step 3.1 (full code in plan)"
+    }
+  ],
+  "total_files": 12,
+  "critical_files": 5,
+  "estimated_tokens": 42000,
+  "summary": {
+    "critical_fixes": [
+      "src/lib/database.types.ts - Verify ChildPinWithUIFields interface",
+      "src/components/pins/BluebinPinDetailsCard.tsx - Replace parent_id with pin_id",
+      "src/lib/hooks/usePinChildren.ts - Update database queries",
+      "src/components/dashboard/BluebinInteractiveRoofPlan.tsx - Fix filter logic"
+    ],
+    "files_to_create": [
+      "src/components/photos/PhotoUploadZone.tsx",
+      "src/lib/storage/photoStorage.ts",
+      "src/lib/hooks/__tests__/usePins.test.ts",
+      "tests/e2e/pin-creation.spec.ts",
+      "playwright.config.ts"
+    ]
+  }
+}

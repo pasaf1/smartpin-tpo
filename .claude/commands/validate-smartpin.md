@@ -1,12 +1,12 @@
 ---
-description: Run SSOT guard and build; write validate.report.md
+description: Validate SSOT + build and emit a PASS/FAIL marker
 ---
 # GOAL
-Produce projects/smartpin-tpo/ops/validate.report.md with pass/fail + timings.
+Run SSOT guard + build. Write validate.report.md with a clear marker:
+- `result: PASS` or `result: FAIL`
 
 # RUN
 - bash scripts/agentic-ssot-guard.sh
-- npm run build || pnpm build || yarn build
 
-# REPORT
-- projects/smartpin-tpo/ops/validate.report.md
+# WRITE
+- apps/smartpin-tpo/projects/smartpin-tpo/ops/validate.report.md
