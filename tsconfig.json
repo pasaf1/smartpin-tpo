@@ -16,7 +16,7 @@
     "useUnknownInCatchVariables": true,
     "noPropertyAccessFromIndexSignature": true,
     "allowJs": false,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "noEmit": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
