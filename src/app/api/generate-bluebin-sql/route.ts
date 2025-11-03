@@ -118,7 +118,7 @@ CREATE POLICY "Users can create child pins with parent access" ON public.child_p
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.pins pin
-      JOIN public.roofs r ON r.id = pin.roof_id
+      JOIN public.roofs r ON r.id = pin['roof_id']
       JOIN public.projects p ON p.project_id = r.project_id
       WHERE pin.id = parent_id AND (
         p.created_by = auth.uid() OR 

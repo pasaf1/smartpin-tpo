@@ -65,7 +65,7 @@ export const PinHierarchyManager: React.FC<PinHierarchyManagerProps> = ({
 
   // Handle drag and drop reordering
   const handleDragEnd = useCallback(async (result: any) => {
-    if (!result.destination || !canEdit) {
+    if (!result.destination || !canEdit || !pin) {
       return
     }
 
@@ -85,15 +85,18 @@ export const PinHierarchyManager: React.FC<PinHierarchyManagerProps> = ({
     } finally {
       setIsReordering(false)
     }
-  }, [pin.children, onChildReorder, canEdit])
+  }, [pin, onChildReorder, canEdit])
 
   // Get child pin statistics
   const childStats = {
-    total: pin.children?.length || 0,
-    open: pin.children?.filter(child => child.status_child === 'Open').length || 0,
-    ready: pin.children?.filter(child => child.status_child === 'ReadyForInspection').length || 0,
-    closed: pin.children?.filter(child => child.status_child === 'Closed').length || 0
+    total: pin?.children?.length || 0,
+    open: pin?.children?.filter(child => child.status_child === 'Open').length || 0,
+    ready: pin?.children?.filter(child => child.status_child === 'ReadyForInspection').length || 0,
+    closed: pin?.children?.filter(child => child.status_child === 'Closed').length || 0
   }
+
+  // Guard clause for null pin
+  if (!pin) return null
 
   return (
     <div className="space-y-6">

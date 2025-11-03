@@ -17,8 +17,8 @@ function buildSafeProxy(): SupabaseClient<Database> {
 
 export function getSupabase(): SupabaseClient<Database> {
   if (sharedClient) return sharedClient
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL']
+  const anon = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']
   if (!url || !anon) return buildSafeProxy()
   
   // Use SSR-compatible browser client
@@ -40,8 +40,8 @@ export const supabase = getSupabase()
 // Admin client for server-side operations (optional; returns proxy if missing)
 export function getSupabaseAdmin(): SupabaseClient<Database> {
   if (sharedAdmin) return sharedAdmin
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL']
+  const service = process.env['SUPABASE_SERVICE_ROLE_KEY']
   if (!url || !service) return buildSafeProxy()
   sharedAdmin = createClient<Database>(url, service, {
     auth: { autoRefreshToken: false, persistSession: false },

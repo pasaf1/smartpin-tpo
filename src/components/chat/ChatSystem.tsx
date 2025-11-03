@@ -49,8 +49,8 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
 
   const userInfo = user ? {
     id: user.id,
-    name: user.user_metadata?.name || 'Anonymous',
-    role: user.user_metadata?.role || 'Viewer'
+    name: user.user_metadata?.['name'] || 'Anonymous',
+    role: user.user_metadata?.['role'] || 'Viewer'
   } : undefined;
 
   // Always ensure valid scope type for hooks
@@ -275,7 +275,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
                       if (part.match(/^@\w+$/)) {
                         const username = part.substring(1);
                         const isMentioned = user && (
-                          username === user.user_metadata?.name ||
+                          username === user.user_metadata?.['name'] ||
                           username === user.id
                         );
                         return (

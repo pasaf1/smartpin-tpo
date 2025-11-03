@@ -33,7 +33,7 @@ export class PinErrorBoundary extends React.Component<PinErrorBoundaryProps, Pin
     }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo })
 
     // Create structured error
@@ -60,10 +60,10 @@ export class PinErrorBoundary extends React.Component<PinErrorBoundaryProps, Pin
   }
 
   retry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
+    this.setState({ hasError: false })
   }
 
-  render() {
+  override render() {
     if (this.state.hasError && this.state.error) {
       const FallbackComponent = this.props.fallback || DefaultErrorFallback
       return React.createElement(FallbackComponent, { error: this.state.error, retry: this.retry })

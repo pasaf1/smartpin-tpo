@@ -28,7 +28,7 @@ import { DockedChat } from '@/components/chat/DockedChat'
 
 function RoofDashboardPage() {
   const params = useParams()
-  const roofId = params.id as string
+  const roofId = params['id'] as string
   
   const [selectedPin, setSelectedPin] = useState<PinWithRelations | null>(null)
   const [showPinPopup, setShowPinPopup] = useState(false)
@@ -165,8 +165,8 @@ function RoofDashboardPage() {
       notes: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      x,
-      y
+      x: x ?? null,
+      y: y ?? null
     }
     setChildPins([...childPins, newChildPin])
   }

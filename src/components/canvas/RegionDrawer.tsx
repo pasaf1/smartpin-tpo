@@ -207,8 +207,8 @@ export function RegionDrawer({
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {region.type} • {region.points.length} points
-                        {region.metadata?.area && (
-                          <> • {Math.round(region.metadata.area)} px²</>
+                        {region.metadata?.['area'] && (
+                          <> • {Math.round(region.metadata['area'])} px²</>
                         )}
                       </div>
                     </div>

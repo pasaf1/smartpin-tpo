@@ -428,7 +428,7 @@ export class CSVExporter {
    */
   static preparePinData(pins: any[], projects: any[], roofs: any[]): ExportablePin[] {
     return pins.map(pin => {
-      const roof = roofs.find(r => r.id === pin.roof_id)
+      const roof = roofs.find(r => r.id === pin['roof_id'])
       const project = roof ? projects.find(p => p.id === roof.project_id) : undefined
       return {
         ...pin,

@@ -152,13 +152,13 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
             // Create activity entry
             const activity: PinActivity = {
               id: `db-change-${Date.now()}`,
-              pin_id: payload.new?.id || payload.old?.id,
+              pin_id: (payload.new as any)?.id || (payload.old as any)?.id,
               action: payload.eventType.toLowerCase() as any,
               details: {
                 table: 'pins',
                 changes: payload.new ? Object.keys(payload.new) : []
               },
-              user_id: payload.new?.updated_by || 'system',
+              user_id: (payload.new as any)?.updated_by || 'system',
               user_name: 'Database',
               timestamp: new Date().toISOString(),
               is_system_generated: true
@@ -188,14 +188,14 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
             const activity: PinActivity = {
               id: `db-change-${Date.now()}`,
-              pin_id: payload.new?.pin_id || payload.old?.pin_id,
-              child_pin_id: payload.new?.id || payload.old?.id,
+              pin_id: (payload.new as any)?.pin_id || (payload.old as any)?.pin_id,
+              child_pin_id: (payload.new as any)?.id || (payload.old as any)?.id,
               action: payload.eventType.toLowerCase() as any,
               details: {
                 table: 'pin_children',
                 changes: payload.new ? Object.keys(payload.new) : []
               },
-              user_id: payload.new?.updated_by || 'system',
+              user_id: (payload.new as any)?.updated_by || 'system',
               user_name: 'Database',
               timestamp: new Date().toISOString(),
               is_system_generated: true
@@ -224,14 +224,14 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
             if (payload.new) {
               const activity: PinActivity = {
-                id: payload.new.id,
-                pin_id: payload.new.pin_id,
-                child_pin_id: payload.new.child_pin_id,
-                action: payload.new.action,
-                details: payload.new.details || {},
-                user_id: payload.new.user_id,
-                user_name: payload.new.user_name || 'Unknown User',
-                timestamp: payload.new.created_at,
+                id: payload.new['id'],
+                pin_id: payload.new['pin_id'],
+                child_pin_id: payload.new['child_pin_id'],
+                action: payload.new['action'],
+                details: payload.new['details'] || {},
+                user_id: payload.new['user_id'],
+                user_name: payload.new['user_name'] || 'Unknown User',
+                timestamp: payload.new['created_at'],
                 is_system_generated: false
               }
 
@@ -298,11 +298,11 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
           const presenceState = channel.presenceState()
           const presenceList: UserPresence[] = Object.keys(presenceState).map(userId => {
-            const presence = presenceState[userId][0]
+            const presence = presenceState[userId][0] as any
             return {
               user_id: userId,
               user_name: presence.user_name || 'Unknown User',
-              project_id: projectId,
+              project_id: projectId || 'unknown',
               pin_id: pinId,
               last_seen: new Date().toISOString(),
               is_online: true,
@@ -458,14 +458,6 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
       stateRef.current.isConnected = false
     }
   }, [enabled, projectId, roofId, pinId, userId, setupRealtimeSubscription, supabase])
-
-  // Expose broadcast methods via ref (if needed)
-  React.useImperativeHandle(React.forwardRef(function PinRealTimeSyncRef() { return null }), () => ({
-    broadcastPinUpdate,
-    broadcastChildPinUpdate,
-    broadcastUserAction,
-    isConnected: () => stateRef.current.isConnected
-  }), [broadcastPinUpdate, broadcastChildPinUpdate, broadcastUserAction])
 
   // This component doesn't render anything - it's purely for real-time functionality
   return null

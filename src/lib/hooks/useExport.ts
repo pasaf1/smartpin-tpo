@@ -97,7 +97,7 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
   const preparePinData = useCallback((pins: PinWithRelations[], includeChildren = true) => {
     return pins.map(pin => {
       const projectInfo = projectData || roofData?.project
-      const roofInfo = roofData || projectData?.roofs?.find(r => r.id === pin.roof_id)
+      const roofInfo = roofData || projectData?.roofs?.find(r => r.id === pin['roof_id'])
       
       // Calculate MTTR if closed
       let mttrHours = undefined

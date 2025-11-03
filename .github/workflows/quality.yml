@@ -1,0 +1,32 @@
+name: quality
+on: [pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "pnpm" }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -s type-check
+      - run: pnpm -s lint --max-warnings=0
+      - name: Hard bans (<img>, any, non-null !)
+        run: |
+          ! git grep -nE "<img[ >]" -- ":!docs" || (echo "Found <img>"; exit 1)
+          ! git grep -nE ":[[:space:]]*any(\\W|$)" -- ":(exclude)docs" || (echo "Found any"; exit 1)
+          ! git grep -nE "![.]" -- ":(exclude)docs" || (echo "Found non-null (!)"; exit 1)
+      - name: Enum spelling
+        run: |
+          ! git grep -nE "ReadyToInspect" || (echo "Use ReadyForInspection"; exit 1)
+          ! git grep -nE "SURFACE[[:space:]]+PREP" || (echo "Use SURFACE_PREP"; exit 1)
+      - run: bash scripts/validate-docs.sh
+      - name: Prevent DB type drift without docs update
+        run: |
+          CHANGED="$(git diff --name-only origin/${{ github.base_ref }}... || true)"
+          if echo "$CHANGED" | grep -q "^src/lib/database.types.ts$"; then
+            echo "$CHANGED" | grep -Eq "^docs/specs/(DATABASE_SCHEMA|TYPESCRIPT_RULES)\\.md$" \
+            || (echo "database.types.ts changed without docs/specs update"; exit 1)
+          fi
+

@@ -418,12 +418,12 @@ export function useRealTimeRoof(roofId: string) {
         
         // Also invalidate any specific pin queries that might be cached
         if (payload.new?.id) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(payload.new.id) })
+          queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(payload.new['id']) })
         }
       } else if (payload.table === 'pin_children') {
         // Pin child status changed - need to recompute parent aggregations
         if (payload.new?.pin_id) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(payload.new.pin_id) })
+          queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(payload.new['pin_id']) })
           queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
         }
       }
@@ -542,14 +542,14 @@ export function useRealTimePinManagement(roofId: string, pinId?: string) {
         
         if (payload.new?.pin_id) {
           queryClient.invalidateQueries({ 
-            queryKey: queryKeys.pinWithChildren(payload.new.pin_id) 
+            queryKey: queryKeys.pinWithChildren(payload.new['pin_id']) 
           })
         }
       } else if (payload.table === 'photos') {
         // Photo added/updated - might affect pin status
         if (payload.new?.pin_id) {
           queryClient.invalidateQueries({ 
-            queryKey: queryKeys.pinWithChildren(payload.new.pin_id) 
+            queryKey: queryKeys.pinWithChildren(payload.new['pin_id']) 
           })
           queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
         }

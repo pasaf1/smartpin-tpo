@@ -1,0 +1,206 @@
+version: "1.0"
+name: "smartpin-tpo-hardening-workflow"
+project_root: "."
+assumptions:
+  - package_manager: "pnpm"
+  - app_framework: "Next.js"
+  - language: "TypeScript"
+  - tsconfig_enforced: true   # exactOptionalPropertyTypes + strictNullChecks כבר פעילים
+  - eslint_enforced: true
+
+goals:
+  - "אפס שגיאות TypeScript (tsc --noEmit)"
+  - "אפס אזהרות/שגיאות ESLint (eslint . --max-warnings=0)"
+  - "יישור מלא לחוקי ברזל: nullability, hooks, Image/alt, DB→UI mapping"
+
+hard_rules:  # חוקים מחייבים
+  typescript_nullability:
+    - "Nullable מה-DB נשאר T | null. לא להשתמש ב-? (optional) במקום null."
+    - "אסור להזין undefined לתכונה שהטיפוס שלה אינו כולל undefined."
+    - "אסור לצמצם/להרחיב טיפוס לשדה DB קיים בממשק יורש."
+    - "אין any (no-explicit-any). אין ! (TSNonNullExpression) לעקיפת nullability."
+  db_to_ui_mapping:
+    - "database.types.ts לא נוגעים."
+    - "המרות DB→UI מבוצעות בשכבת normalization/mappers בלבד."
+    - "או UI מקבל תמיד string (לכן נרמול S()), או שמצהירים string|null ומזינים D(). אין undefined."
+  react_hooks:
+    - "אין hooks בתוך תנאים/לולאות."
+    - "תלויות useEffect/useCallback/useMemo מדויקות. אין תלותים מיותרים."
+    - "לא מעדכנים state בזמן render. אין תופעות לוואי מחוץ ל-useEffect."
+  next_image_accessibility:
+    - "להחליף <img> ל- next/image. לכל תמונה alt. לתמונות דקורטיביות alt=''."
+    - "אם מקור תמונה חיצוני, להגדיר images.remotePatterns ב-next.config.js ולא לעקוף את הכלל."
+  code_change_policy:
+    - "שינויים מזעריים בלבד. לא משנים שמות ציבוריים, לא מפרקים ממשקים, לא משנים DB schema."
+    - "אם נדרש שינוי מבני גדול או החלטה עסקית—עצור (STOP) ובקש הכרעה."
+  stop_on_violation:
+    message_format: "STOP: הפרת חוק: <rule> | קובץ: <path>[:line] | פעולה שנחסמה: <description> | הצעות: <A/B/C>"
+
+artifacts:
+  - path: "src/lib/typing/normalize.ts"
+    purpose: "שכבת נרמול חד-משמעית ל-nullables"
+    content: |
+      export const S = (v: string | null | undefined, f = ''): string => v ?? f
+      export const N = (v: number | null | undefined, f = 0): number => v ?? f
+      export const B = (v: boolean | null | undefined, f = false): boolean => v ?? f
+      export const A = <T>(v: T[] | null | undefined, f: T[] = []): T[] => v ?? f
+      export const D = (v: string | null | undefined): string | null => (v ?? null)
+
+phases:
+
+  - name: "P0-Verification"
+    description: "מדדים לפני תיקון"
+    steps:
+      - run: "pnpm exec tsc -p tsconfig.json --noEmit || true"
+      - run: "pnpm exec eslint . --max-warnings=0 || true"
+    outputs:
+      - "tsc.log"
+      - "eslint.log"
+
+  - name: "P1-DB→UI Mapping Normalization"
+    description: "מונע כל הזנת undefined ל-UI"
+    targets_priority:  # לפי הדו״ח שסיפקת
+      - "src/app/admin/users/page.tsx"
+      - "src/components/pins/utils/validation.ts"
+      - "src/components/dashboard/BluebinInteractiveRoofPlan.tsx"
+      - "src/lib/hooks/useRealtimeCollaboration.ts"
+      - "src/components/pins/PinRealTimeSync.tsx"
+      - "src/lib/supabase*.ts"
+      - "src/lib/hooks/**/*.ts"
+    actions:
+      - "ייבא {S,N,B,A,D} מכל קובץ mapper/שכבת UI."
+      - "כל string שמקורו DB → עטוף ב-S(...)."
+      - "כל תאריך/ISO שמקבל null → השתמש ב-D(...)."
+      - "אם מודל UI חייב לשקף null של DB, שנה הטיפוס ל-string|null (לא ?), והזין D(...)."
+    stop_conditions:
+      - "נדרשת הרחבת/צמצום טיפוס לשדה DB קיים → STOP עם פירוט והצעות."
+    verify:
+      - run: "pnpm exec tsc -p tsconfig.json --noEmit"
+
+  - name: "P2-React Hooks Hygiene"
+    description: "תיקון תלויות hooks ואי-יציבות"
+    actions:
+      - "הוסף תלויות חסרות ל-useEffect/useCallback/useMemo."
+      - "הסר תלויות מיותרות כאשר ESLint מצביע."
+      - "עטוף יוצרי פונקציות/אובייקטים ב-useCallback/useMemo למניעת שינוי זהות."
+      - "ערכים חיצוניים (כמו supabase) → useRef או הוצאה לשירות יציב."
+    stop_conditions:
+      - "תלות חיצונית שלא ניתן לייצב בלי שינוי ארכיטקטוני → STOP."
+    verify:
+      - run: "pnpm exec eslint \"src/**/*.{ts,tsx}\" --fix || true"
+      - run: "pnpm exec eslint . --max-warnings=0"
+
+  - name: "P3-Next Image & A11y"
+    description: "החלפת img ל-next/image והוספת alt"
+    actions:
+      - "import Image from 'next/image' והחלף <img> ב-<Image/>."
+      - "הוסף alt='' לתמונות דקורטיביות, ו-alt משמעותי לתוכן עסקי."
+      - "במקרה של remote src, עדכן next.config.js: images.remotePatterns."
+      - "אם אין width/height ידועים, השתמש ב-prop fill והבטח עוטף עם style.position/size."
+    stop_conditions:
+      - "לא ניתן לקבוע מקור/גדלים ללא החלטה עיצובית → STOP."
+    verify:
+      - run: "pnpm exec eslint . --max-warnings=0"
+
+  - name: "P4-Supabase Layer Mappers"
+    description: "נרמול תשובות מה-DB לפני UI"
+    actions:
+      - "אל תשנה database.types.ts."
+      - "צור/עדכן קבצי mappers תחת src/lib/mappers/* עבור ישויות עיקריות."
+      - "לפני החזרת נתונים ל-hooks/Components, העבר דרך {S,D,N,A}."
+    stop_conditions:
+      - "נדרש שינוי סכימה/DB או cast מסוכן → STOP."
+    verify:
+      - run: "pnpm exec tsc -p tsconfig.json --noEmit"
+
+  - name: "P5-Batch Autofix & Manual Pass"
+    description: "הורדת רעש"
+    steps:
+      - run: "pnpm exec eslint \"src/**/*.{ts,tsx}\" --fix || true"
+      - run: "pnpm exec tsc -p tsconfig.json --noEmit || true"
+      - "תקן ידנית את הקבצים שנותרו לפי הודעות המהדר."
+
+  - name: "P6-Final Gates"
+    description: "שערי סיום מחייבים"
+    steps:
+      - run: "pnpm exec tsc -p tsconfig.json --noEmit"
+      - run: "pnpm exec eslint . --max-warnings=0"
+      - run: "pnpm build"
+    on_fail:
+      - "עצור והצג דוח מפורט לפי התבנית outputs.final_report."
+
+outputs:
+  final_report:
+    format: "json"
+    schema:
+      fixed_files: "number"
+      remaining_issues: "array of {file, line?, rule, message, needs_decision:boolean, suggestionA?, suggestionB?, suggestionC?}"
+      summary:
+        tsc_errors_before: "number"
+        tsc_errors_after: "number"
+        eslint_errors_before: "number"
+        eslint_errors_after: "number"
+      notes:
+        - "כל מקום שבו נדרש שינוי טיפוס DB או החלטה עסקית סומן כ-needs_decision=true."
+    example: |
+      {
+        "fixed_files": 80,
+        "remaining_issues": [
+          {
+            "file": "src/lib/hooks/useRealtimeCollaboration.ts",
+            "rule": "react-hooks/exhaustive-deps",
+            "message": "External dependency 'supabase' cannot be stabilized without architecture change",
+            "needs_decision": true,
+            "suggestionA": "העבר יוצר supabase לשירות יציב והזרק דרך context",
+            "suggestionB": "עטוף ברמת hook ב-useRef והימנע מתלות",
+            "suggestionC": "התעלם זמנית עם הערה מוסכמת"
+          }
+        ],
+        "summary": {
+          "tsc_errors_before": 453,
+          "tsc_errors_after": 0,
+          "eslint_errors_before": 120,
+          "eslint_errors_after": 0
+        },
+        "notes": ["database.types.ts לא שונה", "כל <img> הוחלף ב-<Image> עם alt"]
+      }
+
+execution_policy:
+  autonomy: "execute_without_prompt_until_stop_condition"
+  stop_on:
+    - "נדרש שינוי טיפוס/שדה שמקורו ב-DB"
+    - "שינוי API ציבורי/חתימות שמייצרות breaking change"
+    - "החלטה עיצובית לגבי תמונות/גדלים"
+    - "תלות חיצונית שאינה יציבה"
+  stop_message_template: "STOP: הפרת חוק/צורך בהחלטה | חוק: <rule> | קובץ: <path>[:line] | פרטים: <why> | אפשרויות: A/B/C"
+
+checks:
+  - name: "No-Undefined-Into-UI"
+    description: "סריקה: אין העברת undefined לשדות שאינם כוללים undefined"
+  - name: "All-Images-NextImage"
+    description: "סריקה: אין <img> ללא הצדקה"
+  - name: "Hooks-Dependencies-Correct"
+    description: "סריקה: אין Missing/Unnecessary deps"
+  - name: "No-DB-Types-Changed"
+    description: "diff: אין שינוי ב-database.types.ts"
+
+# קבצים רגישים עם עדיפות גבוהה (מהדו״ח שלך; מותר להרחיב)
+hotspots:
+  - file: "src/app/admin/users/page.tsx"
+    reason: "string|undefined → string; התחלת דפוס המיפוי"
+  - file: "src/components/pins/utils/validation.ts"
+    reason: "הרבה התייחסויות ל-nullables; לרכז S()/D()"
+  - file: "src/components/dashboard/BluebinInteractiveRoofPlan.tsx"
+    reason: "hooks + תמונות"
+  - file: "src/lib/hooks/useRealtimeCollaboration.ts"
+    reason: "תלויות hooks חוצות שכבות"
+  - file: "src/components/pins/PinRealTimeSync.tsx"
+    reason: "stateRef + effects cleanup"
+  - file: "src/lib/supabase*.ts"
+    reason: "נקודת כניסה עיקרית ל-nullables"
+
+success_criteria:
+  - "pnpm exec tsc -p tsconfig.json --noEmit → exit 0"
+  - "pnpm exec eslint . --max-warnings=0 → exit 0"
+  - "pnpm build → exit 0"
+

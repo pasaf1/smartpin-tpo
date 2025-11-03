@@ -95,7 +95,7 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
           user_name: 'User',
           timestamp: new Date().toISOString(),
           roof_id: roofId,
-          pin_id: payload.new.id
+          pin_id: payload.new['id']
         }
         addEvent(event)
       })
@@ -112,7 +112,7 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
           user_name: 'User',
           timestamp: new Date().toISOString(),
           roof_id: roofId,
-          pin_id: payload.new.id
+          pin_id: payload.new['id']
         }
         addEvent(event)
       })
@@ -129,7 +129,7 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
             user_name: 'User',
             timestamp: new Date().toISOString(),
             roof_id: roofId,
-            pin_id: payload.new.pin_id
+            pin_id: payload.new['pin_id']
           }
           addEvent(event)
         }

@@ -20,8 +20,8 @@ function createBuildSafeProxy(): SupabaseClient<Database> {
 export function getSupabaseClient(): SupabaseClient<Database> {
 	if (browserClient) return browserClient
 
-	const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-	const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+	const url = process.env['NEXT_PUBLIC_SUPABASE_URL']
+	const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']
 
 	if (!url || !key) {
 		// On the server/build, return a proxy to avoid crashing the build.

@@ -7,10 +7,10 @@ export async function GET(request: NextRequest) {
     
     // Check environment variables
     const envCheck = {
-      SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      SUPABASE_SERVICE_ROLE: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      supabaseUrlValue: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING',
+      SUPABASE_URL: !!process.env['NEXT_PUBLIC_SUPABASE_URL'],
+      SUPABASE_ANON_KEY: !!process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'],
+      SUPABASE_SERVICE_ROLE: !!process.env['SUPABASE_SERVICE_ROLE_KEY'],
+      supabaseUrlValue: process.env['NEXT_PUBLIC_SUPABASE_URL'] ? 'SET' : 'MISSING',
     }
 
     // Test Supabase connection

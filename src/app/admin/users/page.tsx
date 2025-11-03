@@ -45,8 +45,8 @@ type UiUser = {
   name: string;
   email: string;
   role: UserRole;
-  created_at?: string;
-  last_login_at?: string;
+  created_at: string | null;
+  last_login_at: string | null;
 };
 
 /** ===== Normalizers ===== */
@@ -61,8 +61,8 @@ const toUiUser = (u: DbUser): UiUser => ({
   name: (u.full_name || '').trim() || (u.email || 'User'),
   email: u.email || '',
   role: normalizeRole(u.role),
-  created_at: u.created_at || undefined,
-  last_login_at: u.last_login_at || undefined,
+  created_at: u.created_at ?? null,
+  last_login_at: u.last_login_at ?? null,
 });
 
 /** ===== Page ===== */

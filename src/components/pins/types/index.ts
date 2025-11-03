@@ -5,7 +5,7 @@
 
 import { Database } from '@/lib/database.types'
 
-// Core database types from Supabase
+// ===== Core database types from Supabase =====
 export type Pin = Database['public']['Tables']['pins']['Row']
 export type PinInsert = Database['public']['Tables']['pins']['Insert']
 export type PinUpdate = Database['public']['Tables']['pins']['Update']
@@ -15,29 +15,70 @@ export type ChildPinInsert = Database['public']['Tables']['pin_children']['Inser
 export type ChildPinUpdate = Database['public']['Tables']['pin_children']['Update']
 
 export type Project = Database['public']['Tables']['projects']['Row']
-export type ActivityLog = Database['public']['Tables']['activity_logs']['Row']
 
-// Enhanced SmartPin interface with all required fields
-export interface SmartPin extends Pin {
+// ===== Workflow and status types =====
+export type PinStatus = 'Open' | 'ReadyForInspection' | 'Closed' | 'InDispute'
+export type PinSeverity = 'Critical' | 'High' | 'Medium' | 'Low'
+export type PinPriority = 1 | 2 | 3 | 4 | 5
+
+export interface StatusTransition {
+  from: PinStatus
+  to: PinStatus
+  reason?: string
+  requires_approval?: boolean
+  auto_trigger?: boolean
+  user_role_required?: UserRole[]
+}
+
+// ===== User roles and permissions =====
+export type UserRole =
+  | 'Admin'
+  | 'QA_Manager'
+  | 'Inspector'
+  | 'Contractor'
+  | 'PM'
+  | 'CEO'
+  | 'OM'
+  | 'CM'
+  | 'Site_Manager'
+
+export interface UserPermissions {
+  role: UserRole
+  can_create_pins: boolean
+  can_edit_pins: boolean
+  can_delete_pins: boolean
+  can_change_status: boolean
+  can_upload_photos: boolean
+  can_assign_pins: boolean
+  can_approve_closure: boolean
+  can_dispute_pins: boolean
+  project_access: 'all' | 'assigned' | 'read_only'
+}
+
+// ===== Enhanced SmartPin (augmentation over DB row) =====
+// חשוב: לא לשנות כאן טיפוסים קיימים מה־DB כדי למנוע התנגשויות.
+// אם חייבים לצמצם/להרחיב, עדיף להשתמש בשדות חדשים (למשל ui_* / calc_*).
+
+export interface SmartPin extends Omit<Pin, 'status' | 'zone' | 'priority' | 'severity'> {
   // Hierarchy
   children: SmartChildPin[]
-  parent_id?: string
+  parent_id?: string | null
   seq_number: number
   child_count: number
 
   // Location & Visual
   x: number
   y: number
-  zone?: string
+  zone?: string // לא מחמיר מול ה־DB. אם ב־DB זה nullable, זה עדיין תואם
 
-  // Status & Workflow
-  status: 'Open' | 'ReadyForInspection' | 'Closed' | 'InDispute'
-  severity?: 'Critical' | 'High' | 'Medium' | 'Low'
-  priority: 1 | 2 | 3 | 4 | 5
+  // Status & Workflow (Typed overlays)
+  status: PinStatus
+  severity?: PinSeverity
+  priority: PinPriority
 
-  // Classification
+  // Classification (שדות ייעודיים לא מחליפים את ה־DB אם קיימים שם אותם שמות)
   issue_type: 'INC' | 'COR' | 'TradeDamage' | 'QualityControl'
-  defect_type: string
+  defect_type: string // אם ב־DB קיים אותו שדה כ-nullable, שקול לשנות ל: string | null
   defect_layer: 'DENSDECK' | 'INSULATION' | 'SURFACE_PREP' | 'TPO' | 'VB'
   defect_category: string
 
@@ -46,7 +87,7 @@ export interface SmartPin extends Pin {
   closing_photo_url?: string
   documentation_photos: string[]
 
-  // Metadata
+  // Metadata (שומרים שמות שלא מתנגשים עם ה־DB; אם קיימים ב־DB באותם שמות, הסר מכאן)
   created_by: string
   assigned_to?: string
   inspector?: string
@@ -88,7 +129,32 @@ export interface SmartPin extends Pin {
   // Mobile & PWA
   offline_changes?: OfflineChange[]
   needs_sync: boolean
+
+  // Additional computed/helper properties used in validation
+  photos: PhotoUpload[]
+  sla: {
+    isOverdue: boolean
+    dueDate?: string
+    hoursRemaining?: number
+  }
+  hierarchy: {
+    depth: number
+    path: string[]
+  }
+  inspectionData?: {
+    inspectorId?: string
+    inspectionDate?: string
+    notes?: string
+  }
+  notes?: string
+  position?: {
+    x: number
+    y: number
+  }
 }
+
+// ===== Enhanced SmartChildPin (augmentation over DB row) =====
+// קריטי: שמירה על תאימות מול ה־DB. לפי השגיאה, defect_type חייב להיות string | null.
 
 export interface SmartChildPin extends ChildPin {
   // Hierarchy
@@ -96,27 +162,27 @@ export interface SmartChildPin extends ChildPin {
   child_code: string // e.g., "1.1", "1.2", "2.3"
   display_order: number
 
-  // Location (inherited or custom)
-  x?: number
-  y?: number
+  // Location (offsets יחסיים להורה; נמנע מדריסת x/y אם קיימים ב־DB)
   offset_x: number
   offset_y: number
+  x?: number
+  y?: number
 
   // Status & Workflow
-  status_child: 'Open' | 'ReadyForInspection' | 'Closed' | 'InDispute'
-  severity?: 'Critical' | 'High' | 'Medium' | 'Low'
+  status_child: PinStatus
+  severity?: PinSeverity
 
-  // Classification (can inherit from parent)
-  defect_type?: string
-  defect_layer?: string
+  // Classification (מיישר ל־DB: null במקום undefined)
+  defect_type: string | null
+  defect_layer: string | null
   issue_description: string
 
-  // Photos
+  // Photos (מומלץ לתת null במקום undefined אם ב־DB nullable)
   open_pic_url?: string
   close_pic_url?: string
   documentation_photos: string[]
 
-  // Metadata
+  // Metadata (אל תדרוס שמות שקיימים ב־DB אם הם כבר מוגדרים שם)
   created_by: string
   assigned_to?: string
   created_at: string
@@ -136,37 +202,7 @@ export interface SmartChildPin extends ChildPin {
   needs_sync: boolean
 }
 
-// Workflow and status types
-export type PinStatus = 'Open' | 'ReadyForInspection' | 'Closed' | 'InDispute'
-export type PinSeverity = 'Critical' | 'High' | 'Medium' | 'Low'
-export type PinPriority = 1 | 2 | 3 | 4 | 5
-
-export interface StatusTransition {
-  from: PinStatus
-  to: PinStatus
-  reason?: string
-  requires_approval?: boolean
-  auto_trigger?: boolean
-  user_role_required?: UserRole[]
-}
-
-// User roles and permissions
-export type UserRole = 'Admin' | 'QA_Manager' | 'Inspector' | 'Contractor' | 'PM' | 'CEO' | 'OM' | 'CM' | 'Site_Manager'
-
-export interface UserPermissions {
-  role: UserRole
-  can_create_pins: boolean
-  can_edit_pins: boolean
-  can_delete_pins: boolean
-  can_change_status: boolean
-  can_upload_photos: boolean
-  can_assign_pins: boolean
-  can_approve_closure: boolean
-  can_dispute_pins: boolean
-  project_access: 'all' | 'assigned' | 'read_only'
-}
-
-// Photo management
+// ===== Photo management =====
 export interface PhotoUpload {
   id: string
   pin_id?: string
@@ -184,12 +220,19 @@ export interface PhotoUpload {
   camera_metadata?: Record<string, any>
 }
 
-// Real-time collaboration
+// ===== Real-time collaboration =====
 export interface PinActivity {
   id: string
   pin_id: string
   child_pin_id?: string
-  action: 'created' | 'updated' | 'status_changed' | 'photo_uploaded' | 'assigned' | 'commented' | 'resolved'
+  action:
+    | 'created'
+    | 'updated'
+    | 'status_changed'
+    | 'photo_uploaded'
+    | 'assigned'
+    | 'commented'
+    | 'resolved'
   details: Record<string, any>
   user_id: string
   user_name: string
@@ -214,7 +257,7 @@ export interface UserPresence {
   current_action?: string
 }
 
-// Error handling
+// ===== Error handling =====
 export interface PinError {
   code: string
   message: string
@@ -225,7 +268,7 @@ export interface PinError {
   user_action?: string
 }
 
-// Mobile and offline support
+// ===== Mobile and offline support =====
 export interface OfflineChange {
   id: string
   type: 'create' | 'update' | 'delete' | 'photo_upload'
@@ -236,7 +279,7 @@ export interface OfflineChange {
   synced: boolean
 }
 
-// Component props interfaces
+// ===== Component props =====
 export interface PinDetailsModalProps {
   pin: SmartPin | null
   isOpen: boolean
@@ -305,7 +348,7 @@ export interface PinRealTimeSyncProps {
   enabled?: boolean
 }
 
-// Utility types
+// ===== Utility types =====
 export interface PinFilters {
   status?: PinStatus[]
   severity?: PinSeverity[]
@@ -319,7 +362,14 @@ export interface PinFilters {
 }
 
 export interface PinSortOptions {
-  field: 'seq_number' | 'created_at' | 'updated_at' | 'priority' | 'severity' | 'status' | 'due_date'
+  field:
+    | 'seq_number'
+    | 'created_at'
+    | 'updated_at'
+    | 'priority'
+    | 'severity'
+    | 'status'
+    | 'due_date'
   direction: 'asc' | 'desc'
 }
 
@@ -338,7 +388,7 @@ export interface PinStatistics {
   pins_by_zone: Record<string, number>
 }
 
-// Mobile gesture types
+// ===== Mobile gesture types =====
 export interface TouchGesture {
   type: 'tap' | 'double_tap' | 'long_press' | 'swipe' | 'pinch' | 'pan'
   startPosition: { x: number; y: number }
@@ -355,7 +405,7 @@ export interface PWAInstallPrompt {
   platform: 'ios' | 'android' | 'desktop' | 'unknown'
 }
 
-// Integration types
+// ===== Integration types =====
 export interface DatabaseTransaction {
   id: string
   operations: Array<{
@@ -374,17 +424,59 @@ export interface DatabaseTransaction {
   created_at: string
 }
 
-// Export all types as a single interface for easy importing
-export interface SmartPinTypes {
-  Smartpin: SmartPin | null
-  SmartChildPin: SmartChildPin
-  PinStatus: PinStatus
-  PinSeverity: PinSeverity
-  UserRole: UserRole
-  PhotoUpload: PhotoUpload
-  PinActivity: PinActivity
-  RealtimeUpdate: RealtimeUpdate
-  PinError: PinError
-  TouchGesture: TouchGesture
-  PinStatistics: PinStatistics
+// ===== Validation types =====
+export type ExtendedPinStatus = PinStatus
+export type DefectLayer = 'DENSDECK' | 'INSULATION' | 'SURFACE_PREP' | 'TPO' | 'VB'
+export type ImageKind = 'Open' | 'Close' | 'Progress' | 'Documentation' | 'Issue'
+
+export interface PinValidationRule {
+  field: keyof SmartPin | string
+  required?: boolean
+  minLength?: number
+  maxLength?: number
+  pattern?: RegExp
+  custom?: (value: any, pin?: SmartPin) => boolean | string
 }
+
+export interface PinValidationResult {
+  isValid: boolean
+  errors: Array<{ field: keyof SmartPin | string; message: string }>
+  warnings?: string[]
+}
+
+export interface StatusWorkflowRule {
+  fromStatus: PinStatus
+  toStatus: PinStatus
+  requiredRoles: UserRole[]
+  requiredFields?: string[]
+  requiredPhotos?: ImageKind[]
+  autoTriggers?: Array<{
+    condition: string
+    action: string
+  }>
+  description?: string
+}
+
+// ===== Aggregate type exports =====
+export const SmartPinTypes = {
+  Pin,
+  PinInsert,
+  PinUpdate,
+  ChildPin,
+  ChildPinInsert,
+  ChildPinUpdate,
+  SmartPin,
+  SmartChildPin,
+  PinStatus,
+  PinSeverity,
+  PinPriority,
+  UserRole,
+  PhotoUpload,
+  PinActivity,
+  UserPresence,
+  PinError,
+  StatusTransition,
+  ExtendedPinStatus,
+  DefectLayer,
+  ImageKind
+} as const

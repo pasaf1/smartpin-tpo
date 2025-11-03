@@ -35,7 +35,7 @@ type PinUpdate = Database['public']['Tables']['pins']['Update']
 function RoofDashboardPage() {
   const params = useParams()
   const router = useRouter()
-  const roofId = params.id as string
+  const roofId = params['id'] as string
   
   // State management
   const [selectedPin, setSelectedPin] = useState<PinWithRelations | null>(null)
@@ -145,8 +145,8 @@ function RoofDashboardPage() {
         notes: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        x,
-        y
+        x: x ?? null,
+        y: y ?? null
       }
 
       setChildPins(prev => [...prev, newChildPin])

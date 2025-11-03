@@ -113,7 +113,7 @@ export function useChatSystem(scopes: ChatScope[]) {
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg || lastMsg.user_id === user.id) return;
     const scopeKey = `${activeScope.type}-${activeScope.id || 'global'}`;
-    const userName = user.user_metadata?.name || user.id;
+    const userName = user.user_metadata?.['name'] || user.id;
     if (lastMsg.mentions?.includes(userName)) {
       addNotification({
         messageId: lastMsg.id,

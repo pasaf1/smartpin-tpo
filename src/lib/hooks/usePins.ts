@@ -98,7 +98,7 @@ export function useCreatePin() {
       const { data: lastPin } = await supabase
         .from('pins')
         .select('seq_number')
-        .eq('roof_id', pin.roof_id)
+        .eq('roof_id', pin['roof_id'])
         .order('seq_number', { ascending: false })
         .limit(1)
         .single()

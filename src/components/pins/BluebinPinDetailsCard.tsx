@@ -41,7 +41,7 @@ export function BluebinPinDetailsCard({
     broadcastChildPinOperation, 
     isConnected 
   } = useBluebinRealtimeSync({
-    roofId: pin.roof_id,
+    roofId: pin['roof_id'],
     onChildPinUpdate: (payload) => {
       console.log('Child pin updated in real-time:', payload)
       // Trigger data refresh or optimistic update

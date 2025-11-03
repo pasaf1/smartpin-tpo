@@ -6,7 +6,7 @@
     "dev": "npm run generate-types:local-safe && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
+    "lint": "eslint .",
     "lint:strict": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --max-warnings=0",
     "test": "jest --watch",
     "test:ci": "jest --ci --coverage --maxWorkers=2",
@@ -22,7 +22,9 @@
     "db:reset": "npx supabase db reset && npm run generate-types:local",
     "types:gen": "SUPABASE_PROJECT_ID=vhtbinssqbzcjmbgkseo DB_TYPES_PATH=src/lib/database.types.ts bash ./scripts/types-gen.sh",
     "ssot:check": "node ./scripts/check-enums.mjs",
-    "build:strict": "npm run types:gen && npm run ssot:check && next build"
+    "build:strict": "npm run types:gen && npm run ssot:check && next build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",
@@ -94,17 +96,25 @@
     "@types/node": "^20",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
     "autoprefixer": "^10.4.20",
-    "eslint": "^8.57.0",
+    "eslint": "^8.57.1",
     "eslint-config-next": "15.5.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
+    "lint-staged": "^16.2.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.1",
     "tw-animate-css": "^1.3.7",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "pnpm exec eslint --max-warnings=0",
+      "pnpm exec tsc -p tsconfig.json --noEmit"
+    ]
   }
 }

@@ -138,7 +138,7 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
 export default function RoofSettingsPage() {
   const params = useParams()
   const router = useRouter()
-  const roofId = params.id as string
+  const roofId = params['id'] as string
   
 const { data: roof, isLoading: roofLoading, error: roofError } = useRoof(roofId)
 // Removed edit capabilities - roof details can only be set during project creation

@@ -1,307 +1,148 @@
-SmartPin TPO - Professional Roof Inspection Platform
-🚀 Overview
-SmartPin TPO is a comprehensive mobile-first inspection and project management platform designed specifically for roof construction quality control. Built with Next.js 15, Supabase, and React-Konva, it provides real-time collaboration, advanced pin-based issue tracking, and multi-layer inspection management.
-🎯 Key Features
-Core Inspection System
+# SmartPin TPO – פלטפורמת בדיקות מקצועית לאיטום גגות (Professional Roof Inspection Platform)
 
-Hierarchical Pin System: Parent pins (1, 2, 3...) with child pins (1.1, 1.2, 1.3...)
-Three-State Workflow: Open → Ready To Inspect → Closed (with In Dispute option)
-Dual Photo Documentation: Opening and closing photos for each pin
-Automatic Status Transitions: Upload closing photo → automatic Ready To Inspect status
-MTTR Tracking: Automatic calculation of Mean Time To Repair for each issue
+מובייל־פרסט (Mobile‑first) לניהול איכות (QA/QC) בפרויקטי בנייה תעשייתית. נבנה עם **Next.js 15**, **TypeScript**, **Supabase**, ו‑**React‑Konva**. כולל שיתופיות בזמן אמת, ניהול תקלות ע"י פינים היררכיים (Hierarchical Pins), שכבות בדיקה (Inspection Layers), יצוא (Export) ל‑PDF/CSV, ו‑PWA.
+## 🤖 עבודה עם Claude Code
 
-Layer Management (Bluebeam-Style)
+1. **תמיד קרא את ה-README הזה לפני שאתה מתחיל משימה חדשה**
+2. **עקוב אחר חוקי-הברזל ללא פשרות** - במיוחד Nullability ו-TypeScript
+3. **השתמש ב-Normalization API** מ-`src/lib/typing/normalize.ts` בכל מיפוי DB→UI
+4. **לפני שינוי משמעותי** - STOP ותעד את ההחלטה
 
-Multiple Inspection Layers: Issues, Notes, and custom layers
-Layer Controls: Visibility toggle, opacity adjustment, locking, z-index ordering
-Smart Filtering: Show/hide layers with single click
-Tool Gating: Location-based tool permissions using PostGIS
-
-Real-Time Collaboration
-
-Live Updates: All changes reflected instantly across all users
-Activity Log in Chat: Automatic documentation of all actions in chat
-
-"Closing photo uploaded for pin 1.2 on [date] by [user]"
-"Status changed to Ready To Inspect for pin 1.1 by [user]"
-"Child pin 1.3 added by [user]"
+### סדר עדיפויות בפתרון בעיות:
+1. חוקי-ברזל (Hard Rules) - אין פשרות
+2. דוגמאות קוד בדוקומנטציה - עקוב אחריהם
+3. ארכיטקטורה קיימת - אל תשבור דפוסים
+4. אם משהו לא ברור - שאל לפני שאתה מבצע
 
 
-Stakeholder Notifications: Push notifications for mentioned users
-Presence Tracking: See who's currently viewing the project
+---
+## 🚀 תקציר (Overview)
+- **מערכת פינים היררכית**: הורים (1,2,3) וילדים (1.1, 1.2, 1.3).
+- **תהליך סטטוסים בן שלושה מצבים**: `Open → ReadyForInspection → Closed` עם הסתעפות `InDispute`.
+- **תיעוד צילומים כפול**: פתיחה (Opening) וסגירה (Closing) לכל פין.
+- **מעברים אוטומטיים**: העלאת צילום סגירה → עדכון ל‑`ReadyForInspection`.
+- **MTTR**: חישוב **Mean Time To Repair** אוטומטי.
+- **שכבות בסגנון Bluebeam**: נראות/אטימות/נעילה/סדר תצוגה (z‑index).
+- **שיתופיות בזמן אמת**: Realtime + Activity Log + Chat + Mentions + Presence.
+- **מובייל־פרסט**: PWA, מחוות מגע (Gestures), Bottom Sheet.
 
-Mobile-First Design
+---
+## 🧭 חוקי־ברזל (Hard Rules)
+### Nullability ו‑TypeScript
+1. ערכים שמקורם DB נשארים `T | null`. **לא** מסמנים `?` (optional) במקום `| null`.
+2. **אין** להזרים `undefined` לשדה שלא מצהיר `undefined`.
+3. **אסור** `any` ו‑**אסור** `!` (Non‑Null Assertion).
+4. שכבת נרמול אחידה למיפוי DB→UI (ראו `normalize.ts`).
 
-PWA Architecture: Works offline, installable on devices
-Touch Optimized: Pinch-to-zoom, pan, tap controls
-Responsive UI: Seamless experience across phone, tablet, desktop
-Bottom Sheet Modals: Mobile-friendly interaction patterns
+### React Hooks
+1. אין `hooks` בתוך תנאים/לולאות.
+2. תלותים (Dependencies) ב‑`useEffect/useCallback/useMemo` מדויקים.
+3. אין `setState` בזמן render; תופעות לוואי רק בתוך `useEffect`.
 
-📊 Project Dashboard
-Projects Hub (Main Screen)
+### Next Image & A11y
+1. מחליפים `<img>` ב‑`<Image />` מ‑`next/image`.
+2. לכל תמונה `alt`. לתמונות דקורטיביות: `alt=""`.
+3. למקורות חיצוניים: להגדיר `images.remotePatterns` ב‑`next.config.js`.
 
-Top Section: Settings, About, "Projects Hub" title, Company logo
-KPI Cards: Clickable metrics that open detailed tables
+### מדיניות שינוי קוד
+- שינוי מינימלי. לא שוברים API ציבורי, לא משנים `database.types.ts`.
+- החלטות ארכיטקטורה/UX משמעותיות – לעצור ולתעד (STOP) לקבלת הנחיה.
 
-Open Issues
-Ready for Inspection
-Closed Issues
-MTTR Average
-
-
-Project Gallery: 4 projects per row with horizontal scroll
-Project Creation: Admin-only with fields:
-
-Project name
-Start date / Actual start date
-End date / Actual end date
-Contractor
-Project plan image (becomes the interactive map)
-
-
-Issues Table: Filterable list showing Open issues by default
-
-Roof Dashboard (Project View)
-
-Project-Specific KPIs: Filtered for selected project
-Interactive Canvas: Main inspection area with Konva.js
-
-Project plan image as background
-Color-coded pins by status (Red: Open, Yellow: RTI, Green: Closed, Orange: Disputed)
-Hover shows opening photo thumbnail
-Click to open pin details card
-
-
-Pin Creation Flow:
-
-Parent pins only created on main dashboard
-Child pins created within parent pin card
-Automatic sequential numbering
-
-
-Project Chat: Real-time discussion with mentions (@user)
-
-📌 Pin Details Card
-Auto-Populated Fields (Gray/Read-only)
-
-Roof name
-Contractor
-Opening date
-Issue ID
-Quantity (auto-calculated from parent + children)
-
-User Input Fields
-
-Issue Type: INC (Internal Nonconformity), COR (Construction Observation Report), TradeDamage
-Defect Type: Extensive list (60+ options)
-Defect Layer: DENSDECK, INSULATION, SURFACE PREP, TPO, VB
-Status: Open, Ready To Inspect, Closed, In Dispute
-Severity: 1-4 scale
-
-Photo Management
-
-Container per pin: Opening photo, Closing photo, Status
-Auto status change: Closing photo upload → Ready To Inspect
-Photo annotation: Draw/write on photos before saving
-Expandable gallery: Up to 30 photos per parent pin
-
-Interactive Mini-Map
-
-Shows only the current parent pin and its children
-Numbered markers for each child pin
-"Add more Issues" button for creating child pins
-
-Activity & Chat
-
-Pin-specific chat thread
-Automatic activity logging
-File attachments (images, videos)
-User mentions with notifications
-
-🔧 Technical Architecture
-Frontend Stack
-
-Framework: Next.js 15 (App Router)
-UI Library: React 18 + TypeScript
-Canvas: React-Konva for interactive maps
-Styling: Tailwind CSS + shadcn/ui
-State Management: TanStack Query + Zustand
-Real-time: Supabase Realtime subscriptions
-
-Backend Infrastructure
-
-Database: PostgreSQL with PostGIS extension
-Authentication: Supabase Auth (Email + Google OAuth)
-Storage: Supabase Storage for images
-Real-time: WebSockets via Supabase
-Functions: Edge Functions for complex operations
-
-Key Database Tables
-
-projects: Project management
-roofs: Roof configurations
-pins: Parent pins
-pin_children: Child pins
-photos: Image storage references
-users: User profiles and roles
-chat_messages: Scoped messaging
-activity_logs: Audit trail
-
-👥 User Roles
-
-Admin: Full system access, project creation, all operations
-QA_Manager: Project creation, quality control operations
-Inspector: Create/edit pins, upload photos
-Contractor: Upload closing photos, view projects
-PM, CEO, OM, CM, Site Manager: View-only with notification capabilities
-
-📱 Mobile Features
-
-Offline Support: PWA with service worker
-Camera Integration: Direct photo capture
-Touch Gestures: Natural pinch/zoom/pan
-Push Notifications: Real-time alerts
-Quick Actions: Upload closing photo from table view
-
-📤 Export Capabilities
-PDF Export
-
-Pin Card PDF:
-
-Page 1: Company logo, Issue ID, interactive map with numbered pins
-Following pages: Opening/Closing photo pairs
-
-
-
-CSV Export
-
-Full table data (without images)
-Available from both Projects Hub and Roof Dashboard
-
-🚀 Getting Started
-Prerequisites
-
-Node.js 18+
-Supabase account
-PostgreSQL with PostGIS
-
-Installation
-bash# Clone repository
-git clone [repository-url]
-cd smartpin-tpo
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your Supabase credentials
-
-# Run development server
-npm run dev
-Environment Variables
-envNEXT_PUBLIC_SUPABASE_URL=your-project-url
+---
+## 🔐 משתני סביבה (Environment Variables)
+```env
+# Client (נגיש בדפדפן)
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Server‑only (לעולם לא נשלח לקליינט)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-🔐 Security Features
+```
+> ה‑Service Role נשמר **רק** בצד שרת. הפצה לקליינט – אסורה.
 
-Row Level Security (RLS) on all tables
-Role-based access control
-Secure file uploads with validation
-JWT-based authentication
-HTTPS enforced in production
+---
+## 🛠️ דרישות (Prerequisites)
+- **Node.js 18.17+** או **20.x LTS**
+- **pnpm 9+**
+- חשבון **Supabase** + PostGIS ב‑PostgreSQL
 
-📈 Performance Optimizations
+---
+## ⚙️ התקנה והרצה (Setup)
+```bash
+pnpm install
+cp .env.example .env.local  # עריכת אישורים של Supabase
+pnpm dev
+```
+בניית פרודקשן והפעלה:
+```bash
+pnpm build
+pnpm start
+```
+בדיקות (אם קיימות):
+```bash
+pnpm test
+```
 
-Image thumbnail generation
-Lazy loading for off-screen content
-Optimistic UI updates
-Database indexing on frequent queries
-CDN for static assets
+---
+## 🧩 נרמול טיפוסים (Normalization API)
+`src/lib/typing/normalize.ts`
+```ts
+export const S = (v: string | null | undefined, f = ''): string => v ?? f
+export const N = (v: number | null | undefined, f = 0): number => v ?? f
+export const B = (v: boolean | null | undefined, f = false): boolean => v ?? f
+export const A = <T>(v: T[] | null | undefined, f: T[] = []): T[] => v ?? f
+export const D = (v: string | null | undefined): string | null => (v ?? null)
+```
+שימוש במיפוי DB→UI:
+```ts
+// דוגמה: DbUser → UiUser
+import { S, D } from '@/lib/typing/normalize'
 
-🛠️ Development
-bash# Run tests
-npm test
+export type UiUser = {
+  id: string
+  name: string
+  email: string
+  role: 'Admin' | 'QA_Manager' | 'Inspector' | 'Contractor' | 'PM' | 'CEO' | 'OM' | 'CM' | 'Site_Manager'
+  created_at: string | null
+  last_login_at: string | null
+}
 
-# Build for production
-npm run build
+const toUiUser = (u: DbUser): UiUser => ({
+  id: u.id,
+  name: S(u.full_name).trim() || S(u.email, 'User'),
+  email: S(u.email),
+  role: u.role as UiUser['role'],
+  created_at: D(u.created_at),
+  last_login_at: D(u.last_login_at),
+})
+```
 
-# Start production server
-npm start
+---
+## 🎯 סטטוסים וחומרה (Status & Severity)
+- **Status**: `Open | ReadyForInspection | Closed | InDispute`
+- **Severity**: `Critical | High | Medium | Low`
 
-# Generate TypeScript types from Supabase
-npm run generate-types
-📝 License
-Private - All rights reserved
+מיפוי צבעים (UI):
+```ts
+export const statusColors = {
+  Open: '#ef4444',
+  ReadyForInspection: '#f59e0b',
+  Closed: '#10b981',
+  InDispute: '#fb923c',
+} as const
+```
 
-עכשיו אכתוב את ה-MARKDOWN המקיף למפתחים:
-SmartPin TPO - Developer Documentation
-System Architecture Overview
-Core Concepts
-1. Pin Hierarchy System
-Parent Pin (Issue)
-├── Pin #1 (seq: 1)
-│   ├── Child 1.1
-│   ├── Child 1.2
-│   └── Child 1.3 (up to 50 children)
-├── Pin #2 (seq: 2)
-│   └── Child 2.1
+### כללי אוטומציה (Automation Rules)
+- העלאת צילום סגירה (Closing Photo) משנה סטטוס של **ילד** ל‑`ReadyForInspection`.
+- סטטוס **הורה** נשאר צהוב (`ReadyForInspection`) עד שכל הילדים `Closed`.
+- `MTTR` מחושב מעת `created_at` עד `closed_at` ברמת פין.
 
-Parent Pins: Created only on main roof dashboard
-Child Pins: Created only within parent pin card
-Numbering: Automatic sequential (1, 2, 3... for parents, 1.1, 1.2... for children)
-Quantity Calculation: Parent + all children = total issues count
+---
+## 🧱 מבנה בסיס נתונים (Database Schema – excerpt)
+> טיפוסי Enum מומלצים כ‑`CHECK`/`ENUM` לפי מדיניות הפרויקט.
 
-2. Status Workflow
-Open (Red) → Ready To Inspect (Yellow) → Closed (Green)
-                    ↓
-              In Dispute (Orange)
-Automation Rules:
-
-Closing photo upload → Status changes to RTI automatically
-Admin can manually override any status
-Parent row stays yellow until ALL children are closed
-
-3. Layer System (Bluebeam-Style)
-javascriptlayers: [
-  { name: "Issues", type: "pins", visible: true, z_index: 2 },
-  { name: "Notes", type: "annotations", visible: true, z_index: 1 },
-  { name: "Custom", type: "custom", visible: false, z_index: 3 }
-]
-Data Flow Architecture
-Real-time Sync Strategy
-User Action → Optimistic Update → Supabase Mutation → Broadcast
-                                          ↓
-                                   Activity Log Entry
-                                          ↓
-                                    Chat Notification
-Conflict Resolution
-
-Strategy: Last Write Wins
-No locking mechanism
-Immediate sync across all clients
-
-Component Structure
-src/
-├── components/
-│   ├── dashboard/
-│   │   ├── ProjectsHub.tsx         # Main projects gallery
-│   │   ├── KPICards.tsx           # Clickable KPI metrics
-│   │   └── IssuesTable.tsx        # Filterable issues list
-│   ├── roof/
-│   │   ├── RoofCanvas.tsx         # Konva interactive map
-│   │   ├── LayerPanel.tsx         # Layer management UI
-│   │   └── ToolChest.tsx          # Tool selection
-│   ├── pins/
-│   │   ├── PinDetailsCard.tsx     # Parent/child pin modal
-│   │   ├── PinHoverTooltip.tsx    # Thumbnail preview
-│   │   └── PhotoContainer.tsx     # Opening/closing photos
-│   └── chat/
-│       ├── ActivityLog.tsx        # Automatic event logging
-│       └── ChatThread.tsx         # Pin-specific discussion
-Database Schema
-Core Tables
-sql-- Projects
+```sql
+-- projects
 CREATE TABLE projects (
   id UUID PRIMARY KEY,
   name TEXT NOT NULL,
@@ -316,18 +157,18 @@ CREATE TABLE projects (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Parent Pins (Issues)
+-- pins (Parent)
 CREATE TABLE pins (
   id UUID PRIMARY KEY,
   project_id UUID NOT NULL,
   seq_number INTEGER NOT NULL,
-  x_position DECIMAL(6,4),  -- 0-1 normalized
-  y_position DECIMAL(6,4),  -- 0-1 normalized
-  issue_type TEXT,  -- INC, COR, TradeDamage
+  x_position NUMERIC(6,4),  -- 0-1 normalized
+  y_position NUMERIC(6,4),
+  issue_type TEXT,          -- INC | COR | TradeDamage | QualityControl
   defect_type TEXT,
-  defect_layer TEXT,
-  status TEXT DEFAULT 'Open',
-  severity INTEGER,
+  defect_layer TEXT,        -- DENSDECK | INSULATION | SURFACE_PREP | TPO | VB
+  status TEXT DEFAULT 'Open',       -- Open | ReadyForInspection | Closed | InDispute
+  severity TEXT,                    -- Critical | High | Medium | Low
   opening_photo_url TEXT,
   closing_photo_url TEXT,
   created_at TIMESTAMPTZ,
@@ -337,213 +178,218 @@ CREATE TABLE pins (
   ) STORED
 );
 
--- Child Pins
+-- pin_children (Child)
 CREATE TABLE pin_children (
   id UUID PRIMARY KEY,
   parent_pin_id UUID NOT NULL,
-  child_seq TEXT NOT NULL,  -- "1.1", "1.2", etc
-  x_position DECIMAL(6,4),
-  y_position DECIMAL(6,4),
+  child_seq TEXT NOT NULL,   -- "1.1", "1.2", ...
+  x_position NUMERIC(6,4),
+  y_position NUMERIC(6,4),
   status TEXT DEFAULT 'Open',
   opening_photo_url TEXT,
   closing_photo_url TEXT
 );
 
--- Activity Logs (for chat)
+-- activity_logs (Audit + Chat integration)
 CREATE TABLE activity_logs (
   id UUID PRIMARY KEY,
   pin_id UUID,
-  action TEXT,  -- 'status_changed', 'photo_uploaded', 'child_added'
+  action TEXT,         -- 'status_changed' | 'photo_uploaded' | 'child_added'
   details JSONB,
   user_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-Konva Canvas Implementation
-Coordinate System
-javascript// Normalized coordinates (0-1) for device independence
-const normalizedX = clickX / canvasWidth;
-const normalizedY = clickY / canvasHeight;
+```
 
-// Convert back for display
-const displayX = normalizedX * currentCanvasWidth;
-const displayY = normalizedY * currentCanvasHeight;
-Pin Rendering
-javascriptconst PinMarker = ({ pin, scale }) => {
-  const statusColors = {
-    Open: '#ef4444',
-    ReadyToInspect: '#f59e0b',
-    Closed: '#10b981',
-    InDispute: '#fb923c'
-  };
+---
+## 🖼️ Konva/Canvas – דוגמה מתוקנת (TSX)
+```tsx
+import { Group, Circle, Text } from 'react-konva'
 
+const statusColors = {
+  Open: '#ef4444',
+  ReadyForInspection: '#f59e0b',
+  Closed: '#10b981',
+  InDispute: '#fb923c',
+} as const
+
+type PinMarkerProps = {
+  pin: { x_position: number; y_position: number; seq_number: number; status: keyof typeof statusColors }
+  stageWidth: number
+  stageHeight: number
+  scale: number
+  onClick?: () => void
+  onMouseEnter?: () => void
+}
+
+export function PinMarker({ pin, stageWidth, stageHeight, scale, onClick, onMouseEnter }: PinMarkerProps) {
   return (
     <Group
       x={pin.x_position * stageWidth}
       y={pin.y_position * stageHeight}
-      onMouseEnter={showThumbnail}
-      onClick={openPinCard}
+      onMouseEnter={onMouseEnter}
+      onClick={onClick}
     >
-      <Circle
-        radius={15 / scale}
-        fill={statusColors[pin.status]}
-        stroke="#fff"
-        strokeWidth={2}
-      />
-      <Text
-        text={String(pin.seq_number)}
-        fontSize={12 / scale}
-        fill="white"
-      />
+      <Circle radius={15 / scale} fill={statusColors[pin.status]} stroke="#fff" strokeWidth={2} />
+      <Text text={String(pin.seq_number)} fontSize={12 / scale} fill="white" />
     </Group>
-  );
-};
-Real-time Features
-Activity Log Integration
-javascript// Automatic logging on any pin action
-const logActivity = async (action, details) => {
-  await supabase.from('activity_logs').insert({
-    pin_id: currentPin.id,
-    action,
-    details,
-    user_id: currentUser.id
-  });
-  
-  // Broadcast to chat
-  broadcastToChat({
-    type: 'activity',
-    message: formatActivityMessage(action, details)
-  });
-};
-
-// Usage
-onPhotoUpload: (photo) => {
-  logActivity('photo_uploaded', {
-    photo_type: 'closing',
-    pin_seq: '1.2',
-    timestamp: new Date()
-  });
-  // Output: "Closing photo uploaded for pin 1.2 on [date] by [user]"
+  )
 }
-Notification System
-javascript// Stakeholder notifications
-const notifyStakeholders = async (projectId, event) => {
-  const { data: project } = await supabase
-    .from('projects')
-    .select('stakeholders')
-    .eq('id', projectId)
-    .single();
-    
-  project.stakeholders.forEach(userId => {
-    sendPushNotification(userId, {
-      title: `Issue ${event.pin_seq} Updated`,
-      body: event.message,
-      data: { pinId: event.pin_id }
-    });
-  });
-};
-Mobile Optimizations
-Touch Gesture Handling
-javascript// Konva touch configuration
-const stage = new Konva.Stage({
-  container: 'canvas',
-  draggable: true,
-  dragBoundFunc: (pos) => {
-    // Prevent dragging outside bounds
-    return {
-      x: Math.min(0, Math.max(pos.x, -maxX)),
-      y: Math.min(0, Math.max(pos.y, -maxY))
-    };
-  }
-});
+```
 
-// Pinch to zoom
-let lastDist = 0;
-stage.on('touchmove', (e) => {
-  const touch1 = e.evt.touches[0];
-  const touch2 = e.evt.touches[1];
-  
-  if (touch1 && touch2) {
-    const dist = getDistance(touch1, touch2);
-    if (lastDist > 0) {
-      const scale = stage.scaleX() * (dist / lastDist);
-      stage.scale({ x: scale, y: scale });
-    }
-    lastDist = dist;
+---
+## 🧵 שיתופיות ו‑Activity Log
+```ts
+// לוג אוטומטי לכל פעולה בפין
+async function logActivity(action: 'status_changed' | 'photo_uploaded' | 'child_added', details: Record<string, any>) {
+  await supabase.from('activity_logs').insert({ pin_id: currentPin.id, action, details, user_id: currentUser.id })
+  broadcastToChat({ type: 'activity', message: formatActivityMessage(action, details) })
+}
+
+// שימוש לדוגמה
+async function onPhotoUpload(childId: string, url: string) {
+  await logActivity('photo_uploaded', { photo_type: 'closing', child_id: childId, ts: new Date().toISOString() })
+}
+```
+
+---
+## 🔔 התראות (Notifications)
+```ts
+async function notifyStakeholders(projectId: string, event: { pin_seq: string; message: string; pin_id: string }) {
+  const { data: project } = await supabase.from('projects').select('stakeholders').eq('id', projectId).single()
+  for (const userId of project?.stakeholders ?? []) {
+    await sendPushNotification(userId, { title: `Issue ${event.pin_seq} Updated`, body: event.message, data: { pinId: event.pin_id } })
   }
-});
-Quick Actions
-javascript// Direct closing photo upload from table
-const QuickUploadButton = ({ pin }) => (
-  <button
-    onClick={() => openCamera('closing', pin.id)}
-    className="quick-upload-btn"
-  >
-    📷 Upload Closing
-  </button>
-);
-Performance Considerations
-Image Optimization
-javascript// Thumbnail generation
-const generateThumbnail = async (imageUrl) => {
-  const img = new Image();
-  img.src = imageUrl;
-  
-  const canvas = document.createElement('canvas');
-  canvas.width = 150;  // Small thumbnail
-  canvas.height = 150;
-  
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, 150, 150);
-  
-  return canvas.toDataURL('image/jpeg', 0.7);
-};
-Pagination Strategy
-javascript// Minimal lazy loading with "Back to Top" button
-const IssuesTable = () => {
-  const [page, setPage] = useState(1);
-  const pageSize = 50;
-  
-  return (
-    <>
-      <table>
-        {/* Table rows */}
-      </table>
-      
-      {/* Mobile-friendly navigation */}
-      <div className="table-nav">
-        <button onClick={() => setPage(page - 1)}>Previous</button>
-        <button onClick={() => window.scrollTo(0, 0)}>↑ Top</button>
-        <button onClick={() => setPage(page + 1)}>Next</button>
-      </div>
-    </>
-  );
-};
-Export Functionality
-PDF Generation
-javascriptconst generatePinPDF = async (pin) => {
-  const doc = new jsPDF();
-  
-  // Page 1: Header and map
-  doc.addImage(companyLogo, 'PNG', 10, 10, 50, 20);
-  doc.text(`Issue ID: ${pin.id}`, 10, 40);
-  doc.addImage(pinMapSnapshot, 'PNG', 10, 50, 190, 100);
-  
-  // Following pages: Photos
-  pin.children.forEach((child, index) => {
-    if (index > 0) doc.addPage();
-    
-    // Opening photo (left)
-    if (child.opening_photo_url) {
-      doc.addImage(child.opening_photo_url, 'JPEG', 10, 20, 85, 85);
-    }
-    
-    // Closing photo (right)
-    if (child.closing_photo_url) {
-      doc.addImage(child.closing_photo_url, 'JPEG', 105, 20, 85, 85);
-    }
-    
-    doc.text(`Pin ${child.seq}`, 10, 110);
-  });
-  
-  doc.save(`Issue_${pin.seq_number}.pdf`);
-};
+}
+```
+
+---
+## 📱 מובייל וביצועים (Mobile & Performance)
+- **PWA** עם Service Worker ו‑Offline.
+- **Lazy Loading** לרכיבים/תמונות שאינם בפריים.
+- **Thumbnail Generation** לפני העלאה/תצוגה לתיעוד.
+- **Pagination** בטבלאות גדולות.
+
+דוגמת יצירת תמונת תצוגה (thumbnail):
+```ts
+export async function generateThumbnail(imageUrl: string): Promise<string> {
+  const img = new Image()
+  img.crossOrigin = 'anonymous' // למקרה של CORS
+  img.src = imageUrl
+  await img.decode()
+
+  const canvas = document.createElement('canvas')
+  canvas.width = 150
+  canvas.height = 150
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(img, 0, 0, 150, 150)
+  return canvas.toDataURL('image/jpeg', 0.7)
+}
+```
+
+---
+## 🧾 יצוא (Export)
+### PDF (jsPDF)
+> מומלץ להמיר תמונות ל‑DataURL/Blob לפני `addImage` כדי להימנע מ‑CORS.
+```ts
+import jsPDF from 'jspdf'
+
+export async function generatePinPDF(pin: { id: string; seq_number: number; children: any[] }, companyLogoDataURL: string, pinMapSnapshotDataURL: string) {
+  const doc = new jsPDF()
+  doc.addImage(companyLogoDataURL, 'PNG', 10, 10, 50, 20)
+  doc.text(`Issue ID: ${pin.id}`, 10, 40)
+  doc.addImage(pinMapSnapshotDataURL, 'PNG', 10, 50, 190, 100)
+
+  pin.children.forEach((child, i) => {
+    if (i > 0) doc.addPage()
+    if (child.opening_photo_data_url) doc.addImage(child.opening_photo_data_url, 'JPEG', 10, 20, 85, 85)
+    if (child.closing_photo_data_url) doc.addImage(child.closing_photo_data_url, 'JPEG', 105, 20, 85, 85)
+    doc.text(`Pin ${child.seq}`, 10, 110)
+  })
+
+  doc.save(`Issue_${pin.seq_number}.pdf`)
+}
+```
+
+### CSV
+- יצוא נתונים טבלאיים ללא תמונות. זמין מ‑Projects Hub ו‑Roof Dashboard.
+
+---
+## 🧱 Next.js – הגדרות תמונות חיצוניות (next.config.js)
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'YOUR-PROJECT.supabase.co',
+        pathname: '/storage/v1/object/**',
+      },
+    ],
+  },
+}
+module.exports = nextConfig
+```
+
+---
+## 🧪 איכות קוד (Quality Gates)
+### ESLint + TypeScript
+```bash
+pnpm exec eslint . --max-warnings=0
+pnpm exec tsc -p tsconfig.json --noEmit
+```
+
+### Husky + lint-staged (מומלץ)
+`pre-commit` לדוגמה:
+```sh
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+pnpm lint-staged || exit 1
+```
+`package.json` (קטע):
+```json
+{
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "pnpm exec eslint --max-warnings=0",
+      "pnpm exec tsc -p tsconfig.json --noEmit"
+    ]
+  }
+}
+```
+
+---
+## 🧱 ארכיטקטורה – מבט על (Architecture Overview)
+```
+src/
+├─ app/                   # Next.js App Router
+├─ components/
+│  ├─ dashboard/
+│  ├─ pins/
+│  ├─ roof/
+│  └─ chat/
+├─ lib/
+│  ├─ typing/normalize.ts
+│  ├─ mappers/            # DB→UI mapping
+│  ├─ supabase/           # קליינטים/שירותים
+│  └─ utils/
+└─ public/
+```
+
+---
+## תרומה (Contributing)
+- שמור על חוקי‑הברזל לעיל.
+- PRs עוברים `tsc --noEmit` ו‑`eslint . --max-warnings=0`.
+- שינויי DB/Schema עוברים דרך הגירה (Migration) מסודרת וביקורת.
+
+---
+## רישיון (License)
+Private – All rights reserved.
+
+## ⚠️ For AI Assistants
+1) Read MASTER_SPEC.md
+2) Read docs/CLAUDE.md
+3) Use STOP on violations
+

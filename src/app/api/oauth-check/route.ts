@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseUrl = process.env['NEXT_PUBLIC_SUPABASE_URL']
   if (!supabaseUrl) {
     return NextResponse.json({ enabled: false, error: 'NEXT_PUBLIC_SUPABASE_URL not set' }, { status: 500 })
   }

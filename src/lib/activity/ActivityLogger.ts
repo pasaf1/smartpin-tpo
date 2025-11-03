@@ -87,7 +87,7 @@ export class ActivityLogger {
         x: (pin.x_position * 100).toFixed(1),
         y: (pin.y_position * 100).toFixed(1)
       }
-    }, pin.roof_id, pin.id)
+    }, pin['roof_id'], pin.id)
   }
 
   /**
@@ -105,7 +105,7 @@ export class ActivityLogger {
       new_status: newStatus,
       reason: reason,
       timestamp: new Date().toISOString()
-    }, pin.roof_id, pin.id)
+    }, pin['roof_id'], pin.id)
   }
 
   /**
@@ -129,7 +129,7 @@ export class ActivityLogger {
       file_size: photo.file_size,
       photo_url: photo.url,
       timestamp: new Date().toISOString()
-    }, pin.roof_id, pin.id)
+    }, pin['roof_id'], pin.id)
   }
 
   /**
@@ -171,7 +171,7 @@ export class ActivityLogger {
       comment_text: comment.text.substring(0, 200), // Truncate for logging
       mentions: comment.mentions || [],
       timestamp: new Date().toISOString()
-    }, pin.roof_id, pin.id)
+    }, pin['roof_id'], pin.id)
   }
 
   /**

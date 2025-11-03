@@ -322,7 +322,7 @@ export class ProjectExporter {
       const usersTableData = data.users.map(user => [
         user.user_metadata?.full_name || user.email,
         user.email,
-        user.user_metadata?.role || 'User',
+        user.user_metadata?.['role'] || 'User',
         user.confirmed_at ? 'Active' : 'Pending',
         user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'MM/dd/yy') : 'Never'
       ])

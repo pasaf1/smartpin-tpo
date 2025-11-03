@@ -12,15 +12,22 @@
  * - Comprehensive TypeScript type safety
  */
 
+// Internal type imports for utility functions
+import type { SmartPin, SmartChildPin, PinStatus, PinSeverity, UserRole, PinStatistics } from './types'
+
+// Internal component imports for default export
+import { PinDetailsModal } from './PinDetailsModal'
+import { PinHierarchyManager } from './PinHierarchyManager'
+import { PinStatusWorkflow } from './PinStatusWorkflow'
+import { PinPhotoManager } from './PinPhotoManager'
+import { PinRealTimeSync } from './PinRealTimeSync'
+import { PinErrorBoundary, usePinErrorHandler } from './utils/error-handling'
+
 // Core Components
-export { PinDetailsModal } from './PinDetailsModal'
-export { PinHierarchyManager } from './PinHierarchyManager'
-export { PinStatusWorkflow } from './PinStatusWorkflow'
-export { PinPhotoManager } from './PinPhotoManager'
-export { PinRealTimeSync } from './PinRealTimeSync'
+export { PinDetailsModal, PinHierarchyManager, PinStatusWorkflow, PinPhotoManager, PinRealTimeSync }
 
 // Utility Components
-export { PinErrorBoundary, usePinErrorHandler } from './utils/error-handling'
+export { PinErrorBoundary, usePinErrorHandler }
 export {
   useMobileGestures,
   usePWAInstall,
@@ -72,6 +79,14 @@ export type {
   PinFilters,
   PinSortOptions,
   PinStatistics,
+
+  // Validation types
+  ExtendedPinStatus,
+  DefectLayer,
+  ImageKind,
+  PinValidationRule,
+  PinValidationResult,
+  StatusWorkflowRule,
 
   // Complete type collection
   SmartPinTypes

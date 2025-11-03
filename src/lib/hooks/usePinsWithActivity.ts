@@ -19,7 +19,7 @@ export function useCreatePinWithActivity() {
       const { data: lastPin } = await supabase
         .from('pins')
         .select('seq_number')
-        .eq('roof_id', pin.roof_id)
+        .eq('roof_id', pin['roof_id'])
         .order('seq_number', { ascending: false })
         .limit(1)
         .single()
@@ -237,7 +237,7 @@ export function useUploadPinPhotoWithActivity() {
         {
           id: pin.id,
           seq_number: pin.seq_number,
-          roof_id: pin.roof_id
+          roof_id: pin['roof_id']
         },
         {
           type,
@@ -251,7 +251,7 @@ export function useUploadPinPhotoWithActivity() {
     },
     onSuccess: ({ pin }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pin(pin.id) })
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofPins(pin.roof_id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.roofPins(pin['roof_id']) })
     },
   })
 }
@@ -351,7 +351,7 @@ export function useAddPinCommentWithActivity() {
         {
           id: pin.id,
           seq_number: pin.seq_number,
-          roof_id: pin.roof_id
+          roof_id: pin['roof_id']
         },
         {
           text: comment,

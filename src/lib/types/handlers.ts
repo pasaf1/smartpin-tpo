@@ -11,8 +11,8 @@ export interface ChildPinWithUIFields extends PinChild {
   id?: string // maps to child_id for components expecting this field
   parent_id?: string // maps to pin_id for components expecting this field
   seq?: string // maps to child_code for components expecting this field
-  x?: number // UI positioning (not in database)
-  y?: number // UI positioning (not in database)
+  x: number | null // UI positioning (not in database)
+  y: number | null // UI positioning (not in database)
   status?: PinStatus // maps to status_child for components expecting this field
   title?: string | null
   description?: string | null

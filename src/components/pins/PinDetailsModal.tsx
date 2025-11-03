@@ -48,7 +48,7 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
   // State management
   const [activeTab, setActiveTab] = useState<'overview' | 'hierarchy' | 'photos' | 'activity'>('overview')
   const [isUpdating, setIsUpdating] = useState(false)
-  const [localPin, setLocalPin] = useState<SmartPin>(pin)
+  const [localPin, setLocalPin] = useState<SmartPin | null>(pin)
   const [errors, setErrors] = useState<string[]>([])
 
   // Mobile gesture support
@@ -70,19 +70,19 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
       key: 'hierarchy',
       label: 'Issues',
       icon: '🔗',
-      count: localPin.children?.length || 0
+      count: localPin?.children?.length || 0
     },
     {
       key: 'photos',
       label: 'Photos',
       icon: '📷',
-      count: localPin.documentation_photos?.length || 0
+      count: localPin?.documentation_photos?.length || 0
     },
     {
       key: 'activity',
       label: 'Activity',
       icon: '📝',
-      count: localPin.activity_count || 0
+      count: localPin?.activity_count || 0
     }
   ]
 
@@ -111,7 +111,7 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
 
     try {
       await onStatusChange(newStatus, reason)
-      setLocalPin(prev => ({ ...prev, status: newStatus }))
+      setLocalPin(prev => prev ? { ...prev, status: newStatus } : null)
     } catch (error) {
       setErrors([`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`])
       console.error('Status change failed:', error)
@@ -122,6 +122,8 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
 
   // Photo upload handler
   const handlePhotoUpload = useCallback(async (files: File[], type: PhotoUpload['type']) => {
+    if (!localPin) return
+
     setIsUpdating(true)
     setErrors([])
 
@@ -145,10 +147,12 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
     } finally {
       setIsUpdating(false)
     }
-  }, [localPin.id, currentUser.id, onPhotoUpload])
+  }, [localPin, currentUser.id, onPhotoUpload])
 
   // Child pin handlers
   const handleChildPinCreate = useCallback(async () => {
+    if (!localPin) return
+
     setIsUpdating(true)
     setErrors([])
 
@@ -169,12 +173,12 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
       }
 
       const newChildPin = await onChildPinCreate(childPinData)
-      setLocalPin(prev => ({
+      setLocalPin(prev => prev ? {
         ...prev,
         children: [...(prev.children || []), newChildPin],
         children_total: (prev.children_total || 0) + 1,
         children_open: (prev.children_open || 0) + 1
-      }))
+      } : null)
     } catch (error) {
       setErrors([`Failed to create child pin: ${error instanceof Error ? error.message : 'Unknown error'}`])
       console.error('Child pin creation failed:', error)
@@ -196,7 +200,7 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
         })
       }
 
-      setLocalPin(prev => ({ ...prev, children: reorderedChildren }))
+      setLocalPin(prev => prev ? { ...prev, children: reorderedChildren } : null)
     } catch (error) {
       setErrors([`Failed to reorder child pins: ${error instanceof Error ? error.message : 'Unknown error'}`])
       console.error('Child pin reorder failed:', error)
@@ -226,8 +230,8 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
     return icons[severity as keyof typeof icons] || '⚪'
   }
 
-  // Don't render if not open
-  if (!isOpen) return null
+  // Don't render if not open or no pin
+  if (!isOpen || !localPin) return null
 
   return (
     <PinErrorBoundary>
@@ -561,12 +565,12 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
           pinId={localPin.id}
           onPinUpdate={setLocalPin}
           onChildPinUpdate={(updatedChild) => {
-            setLocalPin(prev => ({
+            setLocalPin(prev => prev ? ({
               ...prev,
               children: prev.children?.map(child =>
                 child.child_id === updatedChild.child_id ? updatedChild : child
               ) || []
-            }))
+            }) : null)
           }}
           onActivity={(activity) => {
             console.log('Pin activity:', activity)

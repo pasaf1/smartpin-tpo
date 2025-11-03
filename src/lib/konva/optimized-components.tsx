@@ -183,8 +183,8 @@ const OptimizedAnnotation = memo(({ annotation, dimensions, isMobile }: any) => 
             y={rect.y * dimensions.height}
             width={rect.width * dimensions.width}
             height={rect.height * dimensions.height}
-            stroke={annotation.style.color || '#3b82f6'}
-            strokeWidth={annotation.style.strokeWidth || 2}
+            stroke={annotation.style['color'] || '#3b82f6'}
+            strokeWidth={annotation.style['strokeWidth'] || 2}
             fill="transparent"
             listening={false}
             perfectDrawEnabled={false}
@@ -198,8 +198,8 @@ const OptimizedAnnotation = memo(({ annotation, dimensions, isMobile }: any) => 
             x={circle.x * dimensions.width}
             y={circle.y * dimensions.height}
             radius={circle.radius * Math.min(dimensions.width, dimensions.height)}
-            stroke={annotation.style.color || '#3b82f6'}
-            strokeWidth={annotation.style.strokeWidth || 2}
+            stroke={annotation.style['color'] || '#3b82f6'}
+            strokeWidth={annotation.style['strokeWidth'] || 2}
             fill="transparent"
             listening={false}
             perfectDrawEnabled={false}
@@ -214,7 +214,7 @@ const OptimizedAnnotation = memo(({ annotation, dimensions, isMobile }: any) => 
             y={textData.y * dimensions.height}
             text={textData.text}
             fontSize={textData.fontSize || (isMobile ? 14 : 12)}
-            fill={annotation.style.color || '#000000'}
+            fill={annotation.style['color'] || '#000000'}
             listening={false}
             perfectDrawEnabled={false}
           />

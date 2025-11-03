@@ -67,7 +67,7 @@ export const PinPhotoManager: React.FC<PinPhotoManagerProps> = ({
 
   // Handle file selection
   const handleFileSelect = useCallback(async (files: File[]) => {
-    if (!canUpload || isUploading) return
+    if (!canUpload || isUploading || !pin) return
 
     const validFiles: File[] = []
     const errors: string[] = []
@@ -141,7 +141,7 @@ export const PinPhotoManager: React.FC<PinPhotoManagerProps> = ({
         setIsUploading(false)
       }
     }
-  }, [canUpload, isUploading, validateFile, activePhotoType, pin.id, childPin?.child_id, onPhotoUpload])
+  }, [canUpload, isUploading, validateFile, activePhotoType, pin, childPin?.child_id, onPhotoUpload])
 
   // Drag and drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {

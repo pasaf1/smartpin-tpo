@@ -234,7 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         auth_user_id: userId,
         email: user.email || '',
         full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
-        role: user.user_metadata?.role || 'Viewer',
+        role: user.user_metadata?.['role'] || 'Viewer',
         address: null,
         birth_date: null,
       }

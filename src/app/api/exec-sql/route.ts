@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
     const serviceSupabase = createSupabaseServiceClient()
     
     // Execute SQL using the Supabase REST API directly
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+    const response = await fetch(`${process.env['NEXT_PUBLIC_SUPABASE_URL']}/rest/v1/rpc/exec_sql`, {
       method: 'POST',
       headers: {
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+        'apikey': process.env['SUPABASE_SERVICE_ROLE_KEY']!,
+        'Authorization': `Bearer ${process.env['SUPABASE_SERVICE_ROLE_KEY']!}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ sql })

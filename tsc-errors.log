@@ -1,0 +1,733 @@
+src/app/page.tsx(418,18): error TS2375: Type '{ roofId: string; pins: { children_total: number; children_open: number; children_ready: number; children_closed: number; children?: PinWithRelations[]; child_pins?: PinWithRelations[]; ... 15 more ...; y: number; }[]; ... 12 more ...; isMobile: boolean; }' is not assignable to type 'BluebinInteractiveRoofPlanProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'roofPlanImageUrl' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/app/page.tsx(677,10): error TS2375: Type '{ children: Element | null; isOpen: boolean; onClose: () => void; snapPoints: number[]; initialSnap: number; title: string | undefined; }' is not assignable to type 'MobileBottomSheetProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'title' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/app/roofs/[id]/page.tsx(95,26): error TS2532: Object is possibly 'undefined'.
+src/app/roofs/[id]/page.tsx(482,18): error TS2375: Type '{ roofId: string; pins: { layer_id: string; children_total: number; children_open: number; children_ready: number; children_closed: number; parent_mix_state: string | null; children?: PinWithRelations[]; ... 15 more ...; y: number; }[]; ... 12 more ...; isMobile: boolean; }' is not assignable to type 'BluebinInteractiveRoofPlanProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'roofPlanImageUrl' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/app/roofs/[id]/page.tsx(748,10): error TS2375: Type '{ children: Element | null; isOpen: boolean; onClose: () => void; snapPoints: number[]; initialSnap: number; title: string | undefined; }' is not assignable to type 'MobileBottomSheetProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'title' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/app/roofs/[id]/settings/page.tsx(53,10): error TS18048: 'file' is possibly 'undefined'.
+src/app/roofs/[id]/settings/page.tsx(58,9): error TS18048: 'file' is possibly 'undefined'.
+src/app/roofs/[id]/settings/page.tsx(75,26): error TS2345: Argument of type 'File | undefined' is not assignable to parameter of type 'Blob'.
+  Type 'undefined' is not assignable to type 'Blob'.
+src/components/canvas/RegionDrawer.tsx(79,15): error TS2532: Object is possibly 'undefined'.
+src/components/canvas/RegionDrawer.tsx(79,29): error TS2532: Object is possibly 'undefined'.
+src/components/canvas/RegionDrawer.tsx(80,15): error TS2532: Object is possibly 'undefined'.
+src/components/canvas/RegionDrawer.tsx(80,29): error TS2532: Object is possibly 'undefined'.
+src/components/chat/ChatExamples.tsx(384,18): error TS2375: Type '{ key: string; template: ExampleTemplate; onUse: ((text: string, mentions?: string[] | undefined) => void) | undefined; onCopy: (text: string) => Promise<void>; }' is not assignable to type 'TemplateCardProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'onUse' are incompatible.
+    Type '((text: string, mentions?: string[] | undefined) => void) | undefined' is not assignable to type '(text: string, mentions?: string[] | undefined) => void'.
+      Type 'undefined' is not assignable to type '(text: string, mentions?: string[] | undefined) => void'.
+src/components/chat/ChatInput.tsx(146,43): error TS2379: Argument of type '{ mentions: string[]; reply_to: string | undefined; attachments: File[]; }' is not assignable to parameter of type '{ mentions?: string[]; reply_to?: string; attachments?: File[]; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reply_to' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/chat/ChatProUI.tsx(52,16): error TS2532: Object is possibly 'undefined'.
+src/components/chat/ChatProUI.tsx(54,16): error TS2532: Object is possibly 'undefined'.
+src/components/chat/ChatProUI.tsx(54,37): error TS2532: Object is possibly 'undefined'.
+src/components/chat/ChatProUI.tsx(495,26): error TS2532: Object is possibly 'undefined'.
+src/components/chat/ChatProUI_Mobile.tsx(63,16): error TS2532: Object is possibly 'undefined'.
+src/components/chat/ChatProUI_Mobile.tsx(551,26): error TS2532: Object is possibly 'undefined'.
+src/components/chat/ChatSystem.tsx(36,61): error TS2345: Argument of type 'ChatScope | undefined' is not assignable to parameter of type 'ChatScope | (() => ChatScope)'.
+  Type 'undefined' is not assignable to type 'ChatScope | (() => ChatScope)'.
+src/components/chat/ChatSystem.tsx(123,24): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'SetStateAction<string>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<string>'.
+src/components/chat/MentionInput.tsx(57,23): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'SetStateAction<string>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<string>'.
+src/components/chat/MentionInput.tsx(119,27): error TS2345: Argument of type 'MentionUser | undefined' is not assignable to parameter of type 'MentionUser'.
+  Type 'undefined' is not assignable to type 'MentionUser'.
+src/components/chat/MentionInput.tsx(130,25): error TS2345: Argument of type 'MentionUser | undefined' is not assignable to parameter of type 'MentionUser'.
+  Type 'undefined' is not assignable to type 'MentionUser'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(200,18): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(200,35): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(201,18): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(201,35): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(205,33): error TS2532: Object is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(205,56): error TS2532: Object is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(218,18): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(218,35): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(219,18): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(219,35): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(233,24): error TS18048: 'touch' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(234,24): error TS18048: 'touch' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(241,35): error TS18048: 'touch' is possibly 'undefined'.
+src/components/dashboard/BluebinInteractiveRoofPlan.tsx(241,53): error TS18048: 'touch' is possibly 'undefined'.
+src/components/error/ErrorBoundary.tsx(113,10): error TS2375: Type '{ error: Error | undefined; resetError: () => void; goHome: () => void; }' is not assignable to type 'ErrorFallbackProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'error' are incompatible.
+    Type 'Error | undefined' is not assignable to type 'Error'.
+      Type 'undefined' is not assignable to type 'Error'.
+src/components/layers/LayerManager.tsx(263,79): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/components/photos/ImageEditor.tsx(200,22): error TS2532: Object is possibly 'undefined'.
+src/components/photos/ImageEditor.tsx(200,46): error TS2532: Object is possibly 'undefined'.
+src/components/photos/ImageEditor.tsx(259,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/photos/ImageEditor.tsx(352,13): error TS2322: Type '{ id: string; type: "circle" | "text" | "rectangle" | "arrow" | "freehand"; x: number; y: number; width: number | undefined; height: number | undefined; color: string; strokeWidth: number; ... 4 more ...; points: { ...; }[] | undefined; }[]' is not assignable to type 'AnnotationData[]'.
+  Type '{ id: string; type: "circle" | "text" | "rectangle" | "arrow" | "freehand"; x: number; y: number; width: number | undefined; height: number | undefined; color: string; strokeWidth: number; ... 4 more ...; points: { ...; }[] | undefined; }' is not assignable to type 'AnnotationData' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'width' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/components/photos/ImageEditor.tsx(454,58): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'SetStateAction<number>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<number>'.
+src/components/photos/ImageEditor.tsx(467,14): error TS2375: Type '{ children: Element[]; value: "Low" | "Medium" | "High" | "Critical" | undefined; onValueChange: (value: string) => void; }' is not assignable to type '{ value?: string; defaultValue?: string; onValueChange?(value: string): void; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'value' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/photos/ImageUploadDialog.tsx(83,24): error TS2532: Object is possibly 'undefined'.
+src/components/photos/ImageUploadDialog.tsx(86,16): error TS18048: 'fileName' is possibly 'undefined'.
+src/components/photos/ImageUploadDialog.tsx(139,53): error TS2345: Argument of type 'File | undefined' is not assignable to parameter of type 'File'.
+  Type 'undefined' is not assignable to type 'File'.
+src/components/photos/PhotoAnnotation.tsx(143,22): error TS2345: Argument of type 'AnnotationData[] | undefined' is not assignable to parameter of type 'SetStateAction<AnnotationData[]>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<AnnotationData[]>'.
+src/components/photos/PhotoAnnotation.tsx(152,22): error TS2345: Argument of type 'AnnotationData[] | undefined' is not assignable to parameter of type 'SetStateAction<AnnotationData[]>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<AnnotationData[]>'.
+src/components/photos/PhotoAnnotation.tsx(166,11): error TS2375: Type '{ id: string; stroke: string; strokeWidth: number; fill: string | undefined; created_at: string; }' is not assignable to type 'Partial<AnnotationData>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'fill' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/photos/PhotoAnnotation.tsx(233,24): error TS2345: Argument of type '(prev: AnnotationData[]) => (AnnotationData | { points: (number | undefined)[]; id: string; type: "circle" | "text" | "rectangle" | "arrow" | "pen"; ... 10 more ...; created_by?: string; })[]' is not assignable to parameter of type 'SetStateAction<AnnotationData[]>'.
+  Type '(prev: AnnotationData[]) => (AnnotationData | { points: (number | undefined)[]; id: string; type: "circle" | "text" | "rectangle" | "arrow" | "pen"; ... 10 more ...; created_by?: string; })[]' is not assignable to type '(prevState: AnnotationData[]) => AnnotationData[]'.
+    Type '(AnnotationData | { points: (number | undefined)[]; id: string; type: "circle" | "text" | "rectangle" | "arrow" | "pen"; x?: number; y?: number; width?: number; height?: number; ... 6 more ...; created_by?: string; })[]' is not assignable to type 'AnnotationData[]'.
+      Type 'AnnotationData | { points: (number | undefined)[]; id: string; type: "circle" | "text" | "rectangle" | "arrow" | "pen"; x?: number; y?: number; width?: number; height?: number; ... 6 more ...; created_by?: string; }' is not assignable to type 'AnnotationData' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+        Type '{ points: (number | undefined)[]; id: string; type: "pen" | "rectangle" | "circle" | "arrow" | "text"; x?: number; y?: number; width?: number; height?: number; text?: string; fontSize?: number; ... 4 more ...; created_by?: string; }' is not assignable to type 'AnnotationData' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+          Types of property 'points' are incompatible.
+            Type '(number | undefined)[]' is not assignable to type 'number[]'.
+              Type 'number | undefined' is not assignable to type 'number'.
+                Type 'undefined' is not assignable to type 'number'.
+src/components/photos/PhotoAnnotation.tsx(502,22): error TS2375: Type '{ key: string; points: number[] | undefined; stroke: string | undefined; strokeWidth: number | undefined; tension: number; lineCap: "round"; }' is not assignable to type 'LineConfig' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'points' are incompatible.
+    Type 'number[] | undefined' is not assignable to type 'number[] | Int8Array<ArrayBufferLike> | Uint8Array<ArrayBufferLike> | Uint8ClampedArray<ArrayBufferLike> | ... 5 more ... | Float64Array<...>'.
+      Type 'undefined' is not assignable to type 'number[] | Int8Array<ArrayBufferLike> | Uint8Array<ArrayBufferLike> | Uint8ClampedArray<ArrayBufferLike> | ... 5 more ... | Float64Array<...>'.
+src/components/photos/PhotoAnnotation.tsx(513,22): error TS2375: Type '{ key: string; x: number | undefined; y: number | undefined; width: number | undefined; height: number | undefined; stroke: string | undefined; strokeWidth: number | undefined; fill: string | undefined; }' is not assignable to type 'RectConfig' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'fill' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string | CanvasGradient'.
+      Type 'undefined' is not assignable to type 'string | CanvasGradient'.
+src/components/photos/PhotoAnnotation.tsx(526,22): error TS2375: Type '{ key: string; x: number; y: number; radius: number; stroke: string | undefined; strokeWidth: number | undefined; fill: string | undefined; }' is not assignable to type 'CircleConfig' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'fill' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string | CanvasGradient'.
+      Type 'undefined' is not assignable to type 'string | CanvasGradient'.
+src/components/photos/PhotoAnnotation.tsx(538,22): error TS2375: Type '{ key: string; points: number[]; stroke: string | undefined; strokeWidth: number | undefined; fill: string | undefined; pointerLength: number; pointerWidth: number; }' is not assignable to type 'ArrowConfig' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'fill' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string | CanvasGradient'.
+      Type 'undefined' is not assignable to type 'string | CanvasGradient'.
+src/components/photos/PhotoAnnotation.tsx(550,22): error TS2375: Type '{ key: string; x: number | undefined; y: number | undefined; text: string | undefined; fontSize: number | undefined; fill: string | undefined; }' is not assignable to type 'TextConfig' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'text' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/photos/PhotoDashboard.tsx(34,9): error TS2322: Type '{ id: any; pin_id: any; file_name: any; file_path: any; file_size: any; mime_type: any; upload_type: "completion" | "defect" | "general"; storage_url: any; thumbnail_url: any; uploaded_by: any; uploaded_at: any; uploader: { ...; } | undefined; metadata: any; }[]' is not assignable to type 'PinPhoto[]'.
+  Type '{ id: any; pin_id: any; file_name: any; file_path: any; file_size: any; mime_type: any; upload_type: "completion" | "defect" | "general"; storage_url: any; thumbnail_url: any; uploaded_by: any; uploaded_at: any; uploader: { ...; } | undefined; metadata: any; }' is not assignable to type 'PinPhoto' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'uploader' are incompatible.
+      Type '{ name: any; avatar_url: any; } | undefined' is not assignable to type '{ name: string; avatar_url?: string; }'.
+        Type 'undefined' is not assignable to type '{ name: string; avatar_url?: string; }'.
+src/components/pins/PinDetailsModal.tsx(55,83): error TS2379: Argument of type '{ onSwipeLeft: () => void; onSwipeRight: () => void; onLongPress: (() => void) | undefined; enabled: boolean; }' is not assignable to parameter of type 'MobileGesturesConfig' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'onLongPress' are incompatible.
+    Type '(() => void) | undefined' is not assignable to type '(position: { x: number; y: number; }) => void'.
+      Type 'undefined' is not assignable to type '(position: { x: number; y: number; }) => void'.
+src/components/pins/PinDetailsModal.tsx(99,18): error TS2532: Object is possibly 'undefined'.
+src/components/pins/PinHierarchyManager.tsx(74,47): error TS2345: Argument of type 'SmartChildPin | undefined' is not assignable to parameter of type 'SmartChildPin'.
+  Type 'undefined' is not assignable to type 'SmartChildPin'.
+src/components/pins/PinPhotoManager.tsx(95,13): error TS2322: Type '{ id: string; pin_id: string; child_pin_id: string | undefined; type: "progress" | "opening" | "closing" | "documentation"; url: string; thumbnail_url: string; file_name: string; file_size: number; ... 4 more ...; uploadProgress: number; }[]' is not assignable to type 'PhotoPreview[]'.
+  Type '{ id: string; pin_id: string; child_pin_id: string | undefined; type: "progress" | "opening" | "closing" | "documentation"; url: string; thumbnail_url: string; file_name: string; file_size: number; ... 4 more ...; uploadProgress: number; }' is not assignable to type 'PhotoPreview' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'child_pin_id' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/pins/PinRealTimeSync.tsx(134,11): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"postgres_changes"' is not assignable to parameter of type '"system"'.
+src/components/pins/PinRealTimeSync.tsx(145,12): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+src/components/pins/PinRealTimeSync.tsx(300,17): error TS2322: Type '{ user_id: string; user_name: any; project_id: string; pin_id: string | undefined; last_seen: string; is_online: true; current_action: any; }[]' is not assignable to type 'UserPresence[]'.
+  Type '{ user_id: string; user_name: any; project_id: string; pin_id: string | undefined; last_seen: string; is_online: true; current_action: any; }' is not assignable to type 'UserPresence' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'pin_id' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/pins/PinRealTimeSync.tsx(301,30): error TS2532: Object is possibly 'undefined'.
+src/components/pins/PinRealTimeSync.tsx(330,11): error TS2412: Type 'undefined' is not assignable to type 'string' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the type of the target.
+src/components/pins/types/index.ts(159,18): error TS2430: Interface 'SmartChildPin' incorrectly extends interface '{ child_code: string; child_id: string; closed_date: string | null; closurepic_id: string | null; created_at: string | null; defect_type: string | null; due_date: string | null; notes: string | null; ... 6 more ...; zone: string | null; }'.
+  Property 'notes' is optional in type 'SmartChildPin' but required in type '{ child_code: string; child_id: string; closed_date: string | null; closurepic_id: string | null; created_at: string | null; defect_type: string | null; due_date: string | null; notes: string | null; ... 6 more ...; zone: string | null; }'.
+src/components/pins/types/index.ts(462,3): error TS2693: 'Pin' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(463,3): error TS2693: 'PinInsert' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(464,3): error TS2693: 'PinUpdate' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(465,3): error TS2693: 'ChildPin' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(466,3): error TS2693: 'ChildPinInsert' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(467,3): error TS2693: 'ChildPinUpdate' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(468,3): error TS2693: 'SmartPin' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(469,3): error TS2693: 'SmartChildPin' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(470,3): error TS2693: 'PinStatus' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(471,3): error TS2693: 'PinSeverity' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(472,3): error TS2693: 'PinPriority' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(473,3): error TS2693: 'UserRole' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(474,3): error TS2693: 'PhotoUpload' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(475,3): error TS2693: 'PinActivity' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(476,3): error TS2693: 'UserPresence' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(477,3): error TS2693: 'PinError' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(478,3): error TS2693: 'StatusTransition' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(479,3): error TS2693: 'ExtendedPinStatus' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(480,3): error TS2693: 'DefectLayer' only refers to a type, but is being used as a value here.
+src/components/pins/types/index.ts(481,3): error TS2693: 'ImageKind' only refers to a type, but is being used as a value here.
+src/components/pins/utils/error-handling.ts(118,17): error TS2375: Type '{ code: string; message: string; severity: "low" | "medium" | "high" | "critical"; recoverable: boolean; timestamp: string; context: Record<string, any> | undefined; }' is not assignable to type 'PinError' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'context' are incompatible.
+    Type 'Record<string, any> | undefined' is not assignable to type 'Record<string, any>'.
+      Type 'undefined' is not assignable to type 'Record<string, any>'.
+src/components/pins/utils/mobile-gestures.ts(59,10): error TS18048: 'touch' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(60,10): error TS18048: 'touch' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(72,16): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(72,33): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(73,16): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(73,33): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(85,11): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(85,28): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(86,11): error TS18048: 'touch1' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(86,28): error TS18048: 'touch2' is possibly 'undefined'.
+src/components/pins/utils/mobile-gestures.ts(94,7): error TS2412: Type 'undefined' is not assignable to type 'Timeout' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the type of the target.
+src/components/pins/utils/mobile-gestures.ts(110,5): error TS2375: Type '{ startTime: number; startPosition: { x: number; y: number; }; lastPosition: { x: number; y: number; }; isLongPress: false; isMultiTouch: boolean; initialDistance: number | undefined; longPressTimer?: NodeJS.Timeout; lastTapTime: number; tapCount: number; }' is not assignable to type 'GestureState' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'initialDistance' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/pins/utils/mobile-gestures.ts(275,47): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+src/components/pins/utils/mobile-gestures.ts(276,41): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+src/components/pins/utils/mobile-gestures.ts(277,35): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+src/components/pins/utils/mobile-gestures.ts(279,3): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+src/components/pins/utils/mobile-gestures.ts(359,41): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+src/components/pins/utils/mobile-gestures.ts(361,3): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+src/components/pins/utils/validation.ts(68,9): error TS2322: Type 'string' is not assignable to type 'keyof SmartPin'.
+src/components/pins/utils/validation.ts(80,9): error TS2322: Type 'string' is not assignable to type 'keyof SmartPin'.
+src/components/pins/utils/validation.ts(88,9): error TS2322: Type 'string' is not assignable to type 'keyof SmartPin'.
+src/components/pins/utils/validation.ts(96,9): error TS2322: Type 'string' is not assignable to type 'keyof SmartPin'.
+src/components/pins/utils/validation.ts(106,11): error TS2322: Type 'string' is not assignable to type 'keyof SmartPin'.
+src/components/pins/utils/validation.ts(167,49): error TS2367: This comparison appears to be unintentional because the types '"progress" | "opening" | "closing" | "documentation"' and 'ImageKind' have no overlap.
+src/components/pins/utils/validation.ts(179,35): error TS2367: This comparison appears to be unintentional because the types '"progress" | "opening" | "closing" | "documentation"' and '"Close"' have no overlap.
+src/components/pins/utils/validation.ts(188,65): error TS2339: Property 'status' does not exist on type 'SmartChildPin'.
+src/components/pins/utils/validation.ts(189,66): error TS2339: Property 'status' does not exist on type 'SmartChildPin'.
+src/components/pins/utils/validation.ts(190,69): error TS2339: Property 'status' does not exist on type 'SmartChildPin'.
+src/components/pins/utils/validation.ts(237,3): error TS2375: Type '{ canTransition: boolean; errors: string[]; warnings: string[]; requiredActions: string[] | undefined; }' is not assignable to type '{ canTransition: boolean; errors: string[]; warnings: string[]; requiredActions?: string[]; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'requiredActions' are incompatible.
+    Type 'string[] | undefined' is not assignable to type 'string[]'.
+      Type 'undefined' is not assignable to type 'string[]'.
+src/components/pins/utils/validation.ts(282,59): error TS2367: This comparison appears to be unintentional because the types '"progress" | "opening" | "closing" | "documentation"' and 'ImageKind' have no overlap.
+src/components/pins/utils/validation.ts(296,58): error TS2367: This comparison appears to be unintentional because the types '"progress" | "opening" | "closing" | "documentation"' and '"Open"' have no overlap.
+src/components/pins/utils/validation.ts(349,17): error TS2551: Property 'defectType' does not exist on type 'Partial<SmartPin>'. Did you mean 'defect_type'?
+src/components/pins/utils/validation.ts(351,13): error TS2551: Property 'defectType' does not exist on type 'SmartChildPin'. Did you mean 'defect_type'?
+src/components/pins/utils/validation.ts(351,38): error TS2551: Property 'defectType' does not exist on type 'Partial<SmartPin>'. Did you mean 'defect_type'?
+src/components/pins/utils/validation.ts(354,64): error TS2551: Property 'defectType' does not exist on type 'Partial<SmartPin>'. Did you mean 'defect_type'?
+src/components/pins/utils/validation.ts(400,65): error TS2339: Property 'status' does not exist on type 'SmartChildPin'.
+src/components/pins/utils/validation.ts(450,39): error TS2367: This comparison appears to be unintentional because the types '"progress" | "opening" | "closing" | "documentation"' and '"Close"' have no overlap.
+src/components/pins/utils/validation.ts(453,75): error TS2339: Property 'status' does not exist on type 'SmartChildPin'.
+src/components/pins/utils/validation.ts(459,39): error TS2367: This comparison appears to be unintentional because the types '"progress" | "opening" | "closing" | "documentation"' and '"Open"' have no overlap.
+src/components/pins/utils/validation.ts(481,5): error TS2353: Object literal may only specify known properties, and ''Supervisor'' does not exist in type 'Record<UserRole, number>'.
+src/components/pins/utils/validation.ts(490,7): error TS2375: Type '{ hasPermission: boolean; reason: string | undefined; }' is not assignable to type '{ hasPermission: boolean; reason?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reason' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/pins/utils/validation.ts(496,7): error TS2375: Type '{ hasPermission: boolean; reason: string | undefined; }' is not assignable to type '{ hasPermission: boolean; reason?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reason' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/pins/utils/validation.ts(502,7): error TS2375: Type '{ hasPermission: boolean; reason: string | undefined; }' is not assignable to type '{ hasPermission: boolean; reason?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reason' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/pins/utils/validation.ts(509,7): error TS2375: Type '{ hasPermission: boolean; reason: string | undefined; }' is not assignable to type '{ hasPermission: boolean; reason?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reason' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/pins/utils/validation.ts(515,7): error TS2375: Type '{ hasPermission: boolean; reason: string | undefined; }' is not assignable to type '{ hasPermission: boolean; reason?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reason' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/pins/utils/validation.ts(535,17): error TS2551: Property 'defectType' does not exist on type 'Partial<SmartPin>'. Did you mean 'defect_type'?
+src/components/pins/utils/validation.ts(536,15): error TS2551: Property 'defectType' does not exist on type 'Partial<SmartPin>'. Did you mean 'defect_type'?
+src/components/pins/utils/validation.ts(536,38): error TS2551: Property 'defectType' does not exist on type 'Partial<SmartPin>'. Did you mean 'defect_type'?
+src/components/pins/utils/validation.ts(538,17): error TS2339: Property 'description' does not exist on type 'Partial<SmartPin>'.
+src/components/pins/utils/validation.ts(539,15): error TS2339: Property 'description' does not exist on type 'Partial<SmartPin>'.
+src/components/pins/utils/validation.ts(539,39): error TS2339: Property 'description' does not exist on type 'Partial<SmartPin>'.
+src/components/projects/index.ts(7,10): error TS2305: Module '"./ProjectsHeader"' has no exported member 'default'.
+src/components/projects/index.ts(8,10): error TS2305: Module '"./ProjectCard"' has no exported member 'default'.
+src/components/projects/index.ts(11,15): error TS2459: Module '"./KPICards"' declares 'KPICardsProps' locally, but it is not exported.
+src/components/shared/ActivityFeed.tsx(45,63): error TS2379: Argument of type '{ pin_id: string | undefined; roof_id: string | undefined; project_id: string | undefined; limit: number; }' is not assignable to parameter of type '{ pin_id?: string; roof_id?: string; project_id?: string; limit?: number; since?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'pin_id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/shared/ActivityFeed.tsx(70,56): error TS2379: Argument of type '{ pin_id: string | undefined; roof_id: string | undefined; project_id: string | undefined; limit: number; }' is not assignable to parameter of type '{ pin_id?: string; roof_id?: string; project_id?: string; limit?: number; since?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'pin_id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/shared/ActivityFeed.tsx(259,46): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/components/shared/ActivityFeed.tsx(262,54): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/components/shared/PinItemsTable.tsx(297,31): error TS2379: Argument of type '{ data: any[]; columns: ColumnDef<RowType>[]; onSortingChange: Dispatch<SetStateAction<SortingState>>; onColumnFiltersChange: Dispatch<...>; ... 8 more ...; initialState: { ...; }; }' is not assignable to parameter of type 'TableOptions<any>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'getPaginationRowModel' are incompatible.
+    Type '((table: Table<any>) => () => RowModel<any>) | undefined' is not assignable to type '(table: Table<any>) => () => RowModel<any>'.
+      Type 'undefined' is not assignable to type '(table: Table<any>) => () => RowModel<any>'.
+src/components/ui/accessibility.tsx(66,7): error TS2532: Object is possibly 'undefined'.
+src/components/ui/accessibility.tsx(80,11): error TS18048: 'lastElement' is possibly 'undefined'.
+src/components/ui/accessibility.tsx(86,11): error TS18048: 'firstElement' is possibly 'undefined'.
+src/components/ui/dropdown-menu.tsx(92,6): error TS2375: Type '{ children: (Element | ReactNode)[]; role?: AriaRole | undefined; slot?: string | undefined; style?: CSSProperties | undefined; title?: string | undefined; ... 279 more ...; checked: CheckedState | undefined; }' is not assignable to type 'DropdownMenuCheckboxItemProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'checked' are incompatible.
+    Type 'CheckedState | undefined' is not assignable to type 'CheckedState'.
+      Type 'undefined' is not assignable to type 'CheckedState'.
+src/components/ui/mention-input.tsx(76,28): error TS2345: Argument of type 'User | undefined' is not assignable to parameter of type 'User'.
+  Type 'undefined' is not assignable to type 'User'.
+src/components/ui/MobileBottomSheet.tsx(47,36): error TS2532: Object is possibly 'undefined'.
+src/components/ui/MobileBottomSheet.tsx(77,15): error TS18048: 'touch' is possibly 'undefined'.
+src/components/ui/MobileBottomSheet.tsx(78,17): error TS18048: 'touch' is possibly 'undefined'.
+src/components/ui/MobileBottomSheet.tsx(87,17): error TS18048: 'touch' is possibly 'undefined'.
+src/components/ui/MobileBottomSheet.tsx(91,22): error TS18048: 'touch' is possibly 'undefined'.
+src/components/ui/MobileBottomSheet.tsx(93,29): error TS2532: Object is possibly 'undefined'.
+src/components/ui/MobileBottomSheet.tsx(97,36): error TS2532: Object is possibly 'undefined'.
+src/components/ui/MobileBottomSheet.tsx(98,36): error TS2532: Object is possibly 'undefined'.
+src/components/ui/severity-badge.tsx(2,15): error TS2305: Module '"@/lib/database.types"' has no exported member 'Severity'.
+src/components/ui/severity-badge.tsx(33,18): error TS7053: Element implicitly has an 'any' type because expression of type 'Severity' can't be used to index type '{ readonly Low: { readonly label: "Low"; readonly className: "severity-badge-low"; readonly icon: "🟢"; }; readonly Medium: { readonly label: "Medium"; readonly className: "severity-badge-medium"; readonly icon: "🟡"; }; readonly High: { ...; }; readonly Critical: { ...; }; }'.
+src/components/ui/slider.tsx(27,6): error TS2375: Type '{ children: (Element | Element[])[]; name?: string; disabled?: boolean; orientation?: "horizontal" | "vertical" | undefined; dir?: Direction; step?: number; minStepsBetweenThumbs?: number; ... 285 more ...; className: string; }' is not assignable to type 'SliderProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'value' are incompatible.
+    Type 'number[] | undefined' is not assignable to type 'number[]'.
+      Type 'undefined' is not assignable to type 'number[]'.
+src/components/ui/sonner.tsx(10,6): error TS2375: Type '{ id?: string; invert?: boolean; theme: "system" | "dark" | "light" | undefined; position?: Position; hotkey?: string[]; richColors?: boolean; expand?: boolean; duration?: number; gap?: number; ... 10 more ...; containerAriaLabel?: string; }' is not assignable to type 'ToasterProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'theme' are incompatible.
+    Type '"system" | "dark" | "light" | undefined' is not assignable to type '"system" | "dark" | "light"'.
+      Type 'undefined' is not assignable to type '"system" | "dark" | "light"'.
+src/components/ui/status-badge.tsx(2,15): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinStatus'.
+src/components/ui/status-badge.tsx(28,18): error TS7053: Element implicitly has an 'any' type because expression of type 'PinStatus' can't be used to index type '{ readonly Open: { readonly label: "Open"; readonly className: "status-badge-open"; readonly icon: "🔴"; }; readonly ReadyForInspection: { readonly label: "Ready"; readonly className: "status-badge-ready"; readonly icon: "🟡"; }; readonly Closed: { ...; }; }'.
+src/lib/activity/ActivityContext.tsx(52,13): error TS2375: Type '{ user_id: string; user_name: any; user_email: string; project_id: string | undefined; roof_id: string | undefined; }' is not assignable to type 'ActivityContext' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'project_id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/activity/ActivityContext.tsx(54,40): error TS4111: Property 'full_name' comes from an index signature, so it must be accessed with ['full_name'].
+src/lib/activity/ActivityContext.tsx(84,11): error TS2379: Argument of type '{ project_id: string | undefined; roof_id: string | undefined; }' is not assignable to parameter of type '{ pin_id?: string; roof_id?: string; project_id?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'roof_id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/activity/ActivityContext.tsx(121,41): error TS4111: Property 'payload' comes from an index signature, so it must be accessed with ['payload'].
+src/lib/activity/ActivityContext.tsx(160,9): error TS2379: Argument of type '{ pin_id: string | undefined; roof_id: string | undefined; project_id: string | undefined; }' is not assignable to parameter of type '{ pin_id?: string; roof_id?: string; project_id?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'pin_id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/activity/ActivityLogger.ts(231,11): error TS2375: Type '{ pin_id: string | undefined; project_id: string | undefined; roof_id: string | undefined; action: ActivityType; details: Record<string, any>; user_id: string; user_name: string; user_email: string; created_at: string; }' is not assignable to type 'ActivityLogEntry' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'pin_id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/activity/ActivityLogger.ts(356,61): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/lib/activity/ActivityLogger.ts(359,61): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/lib/activity/ActivityLogger.ts(359,106): error TS4111: Property 'old_status' comes from an index signature, so it must be accessed with ['old_status'].
+src/lib/activity/ActivityLogger.ts(359,140): error TS4111: Property 'new_status' comes from an index signature, so it must be accessed with ['new_status'].
+src/lib/activity/ActivityLogger.ts(362,57): error TS4111: Property 'photo_type' comes from an index signature, so it must be accessed with ['photo_type'].
+src/lib/activity/ActivityLogger.ts(362,103): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/lib/activity/ActivityLogger.ts(365,64): error TS4111: Property 'child_sequence' comes from an index signature, so it must be accessed with ['child_sequence'].
+src/lib/activity/ActivityLogger.ts(365,107): error TS4111: Property 'parent_sequence' comes from an index signature, so it must be accessed with ['parent_sequence'].
+src/lib/activity/ActivityLogger.ts(368,72): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/lib/activity/ActivityLogger.ts(371,65): error TS4111: Property 'project_name' comes from an index signature, so it must be accessed with ['project_name'].
+src/lib/activity/ActivityLogger.ts(374,58): error TS4111: Property 'export_type' comes from an index signature, so it must be accessed with ['export_type'].
+src/lib/activity/ActivityLogger.ts(374,110): error TS4111: Property 'pin_count' comes from an index signature, so it must be accessed with ['pin_count'].
+src/lib/activity/ActivityLogger.ts(374,144): error TS4111: Property 'pin_count' comes from an index signature, so it must be accessed with ['pin_count'].
+src/lib/activity/ActivityLogger.ts(484,49): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/lib/activity/ActivityLogger.ts(491,45): error TS4111: Property 'new_status' comes from an index signature, so it must be accessed with ['new_status'].
+src/lib/activity/ActivityLogger.ts(494,49): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/lib/activity/ActivityLogger.ts(494,83): error TS4111: Property 'old_status' comes from an index signature, so it must be accessed with ['old_status'].
+src/lib/activity/ActivityLogger.ts(494,116): error TS4111: Property 'new_status' comes from an index signature, so it must be accessed with ['new_status'].
+src/lib/activity/ActivityLogger.ts(503,44): error TS4111: Property 'photo_type' comes from an index signature, so it must be accessed with ['photo_type'].
+src/lib/activity/ActivityLogger.ts(503,90): error TS4111: Property 'pin_sequence' comes from an index signature, so it must be accessed with ['pin_sequence'].
+src/lib/activity/ActivityLogger.ts(512,41): error TS4111: Property 'description' comes from an index signature, so it must be accessed with ['description'].
+src/lib/analytics/comprehensiveAnalytics.ts(81,11): error TS2375: Type '{ event: AnalyticsEvent; properties: { page_url: string | undefined; page_title: string | undefined; referrer: string | undefined; }; userId: string | undefined; sessionId: string; timestamp: Date; metadata: { ...; } | { ...; }; }' is not assignable to type 'AnalyticsData' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'userId' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/analytics/comprehensiveAnalytics.ts(101,41): error TS4111: Property 'category' comes from an index signature, so it must be accessed with ['category'].
+src/lib/analytics/comprehensiveAnalytics.ts(102,41): error TS4111: Property 'label' comes from an index signature, so it must be accessed with ['label'].
+src/lib/analytics/comprehensiveAnalytics.ts(103,28): error TS4111: Property 'value' comes from an index signature, so it must be accessed with ['value'].
+src/lib/analytics/comprehensiveAnalytics.ts(256,35): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/auth/AuthContext.tsx(6,15): error TS2305: Module '"../database.types"' has no exported member 'Role'.
+src/lib/auth/AuthContext.tsx(95,54): error TS4111: Property 'full_name' comes from an index signature, so it must be accessed with ['full_name'].
+src/lib/auth/AuthContext.tsx(236,40): error TS4111: Property 'full_name' comes from an index signature, so it must be accessed with ['full_name'].
+src/lib/database.types.ts(1028,35): error TS2307: Cannot find module './types/tables' or its corresponding type declarations.
+src/lib/export/comprehensiveExport.ts(576,41): error TS2379: Argument of type '{ format: ExportFormat; reportType: "project_summary"; filters: { projectId: string; } | undefined; includePhotos: false; includeCharts: true; }' is not assignable to parameter of type 'ExportOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'filters' are incompatible.
+    Type '{ projectId: string; } | undefined' is not assignable to type '{ projectId?: string; roofId?: string; dateRange?: { start: Date; end: Date; }; status?: string[]; userId?: string; }'.
+      Type 'undefined' is not assignable to type '{ projectId?: string; roofId?: string; dateRange?: { start: Date; end: Date; }; status?: string[]; userId?: string; }'.
+src/lib/export/comprehensiveExport.ts(587,41): error TS2379: Argument of type '{ format: ExportFormat; reportType: "issue_tracking"; filters: { projectId?: string; roofId?: string; dateRange?: { start: Date; end: Date; }; status?: string[]; userId?: string; } | undefined; includePhotos: false; }' is not assignable to parameter of type 'ExportOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'filters' are incompatible.
+    Type '{ projectId?: string; roofId?: string; dateRange?: { start: Date; end: Date; }; status?: string[]; userId?: string; } | undefined' is not assignable to type '{ projectId?: string; roofId?: string; dateRange?: { start: Date; end: Date; }; status?: string[]; userId?: string; }'.
+      Type 'undefined' is not assignable to type '{ projectId?: string; roofId?: string; dateRange?: { start: Date; end: Date; }; status?: string[]; userId?: string; }'.
+src/lib/export/CSVExporter.ts(346,9): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/export/PDFExporter.ts(110,28): error TS2345: Argument of type 'Pin | undefined' is not assignable to parameter of type 'Pin'.
+  Type 'undefined' is not assignable to type 'Pin'.
+src/lib/export/PDFExporter.ts(113,28): error TS2345: Argument of type 'Pin | undefined' is not assignable to parameter of type 'Pin'.
+  Type 'undefined' is not assignable to type 'Pin'.
+src/lib/export/PDFExporter.ts(117,35): error TS2345: Argument of type 'Pin | undefined' is not assignable to parameter of type 'Pin'.
+  Type 'undefined' is not assignable to type 'Pin'.
+src/lib/export/PDFExporter.ts(191,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string | string[]'.
+  Type 'undefined' is not assignable to type 'string | string[]'.
+src/lib/export/PDFExporter.ts(193,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string | string[]'.
+  Type 'undefined' is not assignable to type 'string | string[]'.
+src/lib/export/PDFExporter.ts(362,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string | string[]'.
+  Type 'undefined' is not assignable to type 'string | string[]'.
+src/lib/export/PDFExporter.ts(364,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string | string[]'.
+  Type 'undefined' is not assignable to type 'string | string[]'.
+src/lib/hooks/useAnalytics.ts(5,15): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinStatus'.
+src/lib/hooks/useAnalytics.ts(5,26): error TS2305: Module '"@/lib/database.types"' has no exported member 'Severity'.
+src/lib/hooks/useAnalytics.ts(89,9): error TS2322: Type '{ pin_id: string; pin_title: string; pin_item_id: string | undefined; pin_item_title: string | undefined; created_at: string; updated_at: string; }[]' is not assignable to type '{ pin_id: string; pin_title: string; pin_item_id?: string; pin_item_title?: string; created_at: string; updated_at: string; }[]'.
+  Type '{ pin_id: string; pin_title: string; pin_item_id: string | undefined; pin_item_title: string | undefined; created_at: string; updated_at: string; }' is not assignable to type '{ pin_id: string; pin_title: string; pin_item_id?: string; pin_item_title?: string; created_at: string; updated_at: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'pin_item_id' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/useAnalytics.ts(113,24): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useAnalytics.ts(113,24): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useAnalytics.ts(113,44): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useAnalytics.ts(113,44): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useAnalytics.ts(114,54): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useAnalytics.ts(117,56): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useAnalytics.ts(143,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/useAnalytics.ts(168,3): error TS2322: Type '{ category: string; totalCount: number; criticalCount: number; averageSeverityScore: number; averageResolutionTime: number; trendsLast30Days: { date: string | undefined; count: number; severity: number; }[]; }[]' is not assignable to type 'CategoryAnalysis[]'.
+  Type '{ category: string; totalCount: number; criticalCount: number; averageSeverityScore: number; averageResolutionTime: number; trendsLast30Days: { date: string | undefined; count: number; severity: number; }[]; }' is not assignable to type 'CategoryAnalysis'.
+    Types of property 'trendsLast30Days' are incompatible.
+      Type '{ date: string | undefined; count: number; severity: number; }[]' is not assignable to type '{ date: string; count: number; severity: number; }[]'.
+        Type '{ date: string | undefined; count: number; severity: number; }' is not assignable to type '{ date: string; count: number; severity: number; }'.
+          Types of property 'date' are incompatible.
+            Type 'string | undefined' is not assignable to type 'string'.
+              Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/useChat.ts(202,15): error TS2375: Type '{ id: string; content: string; user_id: string; user_name: string; user_avatar: string; roof_id: string; pin_id: string | undefined; pin_item_id: string | undefined; message_type: "text" | "mention" | "attachment" | "system"; mentions: string[] | undefined; reply_to: string | undefined; attachments: { ...; }[] | und...' is not assignable to type 'ChatMessage' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'pin_id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/useChat.ts(228,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | null; created_by?: string | null; mentions?: string[] | null; message_id?: string; scope: string; scope_id?: string | null; text?: string | null; }, options?: { count?: "exact" | ... 1 more ... | "estimated"; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Argument of type '{ text: string; scope: string; scope_id: string; mentions: string[]; created_by: string | undefined; }[]' is not assignable to parameter of type '{ created_at?: string | null; created_by?: string | null; mentions?: string[] | null; message_id?: string; scope: string; scope_id?: string | null; text?: string | null; }'.
+      Property 'scope' is missing in type '{ text: string; scope: string; scope_id: string; mentions: string[]; created_by: string | undefined; }[]' but required in type '{ created_at?: string | null; created_by?: string | null; mentions?: string[] | null; message_id?: string; scope: string; scope_id?: string | null; text?: string | null; }'.
+  Overload 2 of 2, '(values: { created_at?: string | null; created_by?: string | null; mentions?: string[] | null; message_id?: string; scope: string; scope_id?: string | null; text?: string | null; }[], options?: { count?: "exact" | ... 1 more ... | "estimated"; defaultToNull?: boolean; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type '{ text: string; scope: string; scope_id: string; mentions: string[]; created_by: string | undefined; }' is not assignable to type '{ created_at?: string | null; created_by?: string | null; mentions?: string[] | null; message_id?: string; scope: string; scope_id?: string | null; text?: string | null; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+      Types of property 'created_by' are incompatible.
+        Type 'string | undefined' is not assignable to type 'string | null'.
+          Type 'undefined' is not assignable to type 'string | null'.
+src/lib/hooks/useChat.ts(322,61): error TS18048: 'demoUser' is possibly 'undefined'.
+src/lib/hooks/useChat.ts(324,24): error TS18048: 'demoUser' is possibly 'undefined'.
+src/lib/hooks/useChat.ts(325,26): error TS18048: 'demoUser' is possibly 'undefined'.
+src/lib/hooks/useChat.ts(332,67): error TS18048: 'demoUser' is possibly 'undefined'.
+src/lib/hooks/useChat.ts(364,54): error TS4111: Property 'payload' comes from an index signature, so it must be accessed with ['payload'].
+src/lib/hooks/useChat.ts(382,26): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useChatPro.ts(392,36): error TS4111: Property 'payload' comes from an index signature, so it must be accessed with ['payload'].
+src/lib/hooks/useChatSystem.ts(8,15): error TS2305: Module '"@/lib/database.types"' has no exported member 'User'.
+src/lib/hooks/useChatSystem.ts(31,61): error TS2345: Argument of type 'ChatScope | undefined' is not assignable to parameter of type 'ChatScope | (() => ChatScope)'.
+  Type 'undefined' is not assignable to type 'ChatScope | (() => ChatScope)'.
+src/lib/hooks/useExport.ts(9,33): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinChild'.
+src/lib/hooks/useExport.ts(117,41): error TS2339: Property 'severity' does not exist on type 'PinWithRelations'.
+src/lib/hooks/useExport.ts(170,27): error TS2345: Argument of type '{ id: string; seq_number: number; status: "Open" | "ReadyForInspection" | "Closed"; issue_type: any; defect_type: any; defect_layer: any; severity: number | undefined; created_at: any; closed_at: any; ... 7 more ...; contractor: string | undefined; }[]' is not assignable to parameter of type 'ExportablePin[]'.
+  Type '{ id: string; seq_number: number; status: "Open" | "ReadyForInspection" | "Closed"; issue_type: any; defect_type: any; defect_layer: any; severity: number | undefined; created_at: any; closed_at: any; ... 7 more ...; contractor: string | undefined; }' is not assignable to type 'ExportablePin' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'severity' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/lib/hooks/useExport.ts(214,53): error TS2379: Argument of type '{ includeTimestamps: boolean | undefined; dateFormat: "ISO" | "US" | "EU" | undefined; }' is not assignable to parameter of type 'CSVExportOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'includeTimestamps' are incompatible.
+    Type 'boolean | undefined' is not assignable to type 'boolean'.
+      Type 'undefined' is not assignable to type 'boolean'.
+src/lib/hooks/useExport.ts(262,9): error TS2322: Type '{ id: string; seq_number: number; status: "Open" | "ReadyForInspection" | "Closed"; issue_type: any; defect_type: any; defect_layer: any; severity: number | undefined; created_at: any; closed_at: any; ... 7 more ...; contractor: string | undefined; }[]' is not assignable to type 'ExportablePin[]'.
+  Type '{ id: string; seq_number: number; status: "Open" | "ReadyForInspection" | "Closed"; issue_type: any; defect_type: any; defect_layer: any; severity: number | undefined; created_at: any; closed_at: any; ... 7 more ...; contractor: string | undefined; }' is not assignable to type 'ExportablePin' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'severity' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/lib/hooks/useExport.ts(309,41): error TS2339: Property 'severity' does not exist on type 'PinWithRelations'.
+src/lib/hooks/useExport.ts(332,32): error TS2379: Argument of type '{ id: string; seq_number: number; status: "Open" | "ReadyForInspection" | "Closed"; issue_type: any; defect_type: any; defect_layer: any; severity: number | undefined; created_at: any; x_position: number; y_position: number; opening_photo_url: any; closing_photo_url: any; mttr_hours: number | undefined; }' is not assignable to parameter of type 'Pin' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'severity' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/lib/hooks/useExport.ts(383,41): error TS2339: Property 'severity' does not exist on type 'PinWithRelations'.
+src/lib/hooks/useExport.ts(396,41): error TS2345: Argument of type '{ id: string; seq_number: number; status: "Open" | "ReadyForInspection" | "Closed"; issue_type: any; defect_type: any; defect_layer: any; severity: number | undefined; created_at: any; x_position: number; y_position: number; opening_photo_url: any; closing_photo_url: any; mttr_hours: number | undefined; }[]' is not assignable to parameter of type 'Pin[]'.
+  Type '{ id: string; seq_number: number; status: "Open" | "ReadyForInspection" | "Closed"; issue_type: any; defect_type: any; defect_layer: any; severity: number | undefined; created_at: any; x_position: number; y_position: number; opening_photo_url: any; closing_photo_url: any; mttr_hours: number | undefined; }' is not assignable to type 'Pin' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'severity' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/lib/hooks/useOptimisticMutations.ts(5,10): error TS2305: Module '"@/lib/database.types"' has no exported member 'Pin'.
+src/lib/hooks/useOptimisticMutations.ts(5,15): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinInsert'.
+src/lib/hooks/useOptimisticMutations.ts(5,26): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinUpdate'.
+src/lib/hooks/usePinChildren.ts(4,25): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinChild'.
+src/lib/hooks/usePinChildren.ts(4,35): error TS2305: Module '"@/lib/database.types"' has no exported member 'Photo'.
+src/lib/hooks/usePinChildren.ts(4,42): error TS2305: Module '"@/lib/database.types"' has no exported member 'Pin'.
+src/lib/hooks/usePinItems.ts(3,25): error TS2305: Module '"../database.types"' has no exported member 'PinStatus'.
+src/lib/hooks/usePins.ts(4,25): error TS2305: Module '"../database.types"' has no exported member 'Pin'.
+src/lib/hooks/usePins.ts(4,30): error TS2305: Module '"../database.types"' has no exported member 'PinChild'.
+src/lib/hooks/usePins.ts(4,40): error TS2305: Module '"../database.types"' has no exported member 'PinInsert'.
+src/lib/hooks/usePins.ts(4,51): error TS2305: Module '"../database.types"' has no exported member 'PinUpdate'.
+src/lib/hooks/usePins.ts(4,80): error TS2305: Module '"../database.types"' has no exported member 'PinStatus'.
+src/lib/hooks/usePins.ts(110,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Argument of type '{ seq_number: number; }' is not assignable to parameter of type '{ children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }'.
+      Type '{ seq_number: number; }' is missing the following properties from type '{ children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }': roof_id, x, y
+  Overload 2 of 2, '(values: { children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'seq_number' does not exist in type '{ children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }[]'.
+src/lib/hooks/usePinsWithActivity.ts(6,15): error TS2305: Module '"@/lib/database.types"' has no exported member 'Pin'.
+src/lib/hooks/usePinsWithActivity.ts(6,20): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinInsert'.
+src/lib/hooks/usePinsWithActivity.ts(6,31): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinUpdate'.
+src/lib/hooks/usePinsWithActivity.ts(6,42): error TS2305: Module '"@/lib/database.types"' has no exported member 'PinStatus'.
+src/lib/hooks/usePinsWithActivity.ts(31,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Argument of type '{ seq_number: number; }' is not assignable to parameter of type '{ children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }'.
+      Type '{ seq_number: number; }' is missing the following properties from type '{ children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }': roof_id, x, y
+  Overload 2 of 2, '(values: { children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'seq_number' does not exist in type '{ children_closed?: number | null; children_open?: number | null; children_ready?: number | null; children_total?: number | null; group_count?: number | null; id?: string; last_activity_at?: string | null; ... 9 more ...; zone?: string | null; }[]'.
+src/lib/hooks/usePinsWithActivity.ts(307,9): error TS2379: Argument of type '{ id: string; child_seq: string; defect_type: string | undefined; }' is not assignable to parameter of type '{ id: string; child_seq: string; defect_type?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'defect_type' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/useRealtimeCollaboration.ts(64,24): error TS2532: Object is possibly 'undefined'.
+src/lib/hooks/useRealtimeCollaboration.ts(94,32): error TS4111: Property 'created_by' comes from an index signature, so it must be accessed with ['created_by'].
+src/lib/hooks/useRealtimeCollaboration.ts(109,29): error TS4111: Property 'status' comes from an index signature, so it must be accessed with ['status'].
+src/lib/hooks/useRealtimeCollaboration.ts(109,52): error TS4111: Property 'status' comes from an index signature, so it must be accessed with ['status'].
+src/lib/hooks/useRealtimeCollaboration.ts(111,32): error TS4111: Property 'updated_by' comes from an index signature, so it must be accessed with ['updated_by'].
+src/lib/hooks/useRealtimeCollaboration.ts(124,25): error TS4111: Property 'roof_id' comes from an index signature, so it must be accessed with ['roof_id'].
+src/lib/hooks/useRealtimeCollaboration.ts(128,34): error TS4111: Property 'uploaded_by' comes from an index signature, so it must be accessed with ['uploaded_by'].
+src/lib/hooks/useRealtimeCollaboration.ts(141,47): error TS4111: Property 'payload' comes from an index signature, so it must be accessed with ['payload'].
+src/lib/hooks/useRealtimeCollaboration.ts(156,47): error TS4111: Property 'payload' comes from an index signature, so it must be accessed with ['payload'].
+src/lib/hooks/useRealTimeSync.ts(51,11): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"postgres_changes"' is not assignable to parameter of type '"system"'.
+src/lib/hooks/useRealTimeSync.ts(56,11): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+src/lib/hooks/useRealTimeSync.ts(65,11): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"postgres_changes"' is not assignable to parameter of type '"system"'.
+src/lib/hooks/useRealTimeSync.ts(70,11): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+src/lib/hooks/useRealTimeSync.ts(79,11): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"postgres_changes"' is not assignable to parameter of type '"system"'.
+src/lib/hooks/useRealTimeSync.ts(84,11): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+src/lib/hooks/useSupabaseQueries.ts(7,3): error TS2305: Module '"../database.types"' has no exported member 'Project'.
+src/lib/hooks/useSupabaseQueries.ts(8,3): error TS2305: Module '"../database.types"' has no exported member 'Roof'.
+src/lib/hooks/useSupabaseQueries.ts(9,3): error TS2305: Module '"../database.types"' has no exported member 'Pin'.
+src/lib/hooks/useSupabaseQueries.ts(10,3): error TS2305: Module '"../database.types"' has no exported member 'PinChild'.
+src/lib/hooks/useSupabaseQueries.ts(11,3): error TS2305: Module '"../database.types"' has no exported member 'Photo'.
+src/lib/hooks/useSupabaseQueries.ts(12,3): error TS2305: Module '"../database.types"' has no exported member 'PinChat'.
+src/lib/hooks/useSupabaseQueries.ts(13,3): error TS2305: Module '"../database.types"' has no exported member 'Chat'.
+src/lib/hooks/useSupabaseQueries.ts(14,3): error TS2305: Module '"../database.types"' has no exported member 'ChatInsert'.
+src/lib/hooks/useSupabaseQueries.ts(15,3): error TS2305: Module '"../database.types"' has no exported member 'ProjectInsert'.
+src/lib/hooks/useSupabaseQueries.ts(16,3): error TS2305: Module '"../database.types"' has no exported member 'PinInsert'.
+src/lib/hooks/useSupabaseQueries.ts(17,3): error TS2305: Module '"../database.types"' has no exported member 'PinChildInsert'.
+src/lib/hooks/useSupabaseQueries.ts(18,3): error TS2305: Module '"../database.types"' has no exported member 'PhotoInsert'.
+src/lib/hooks/useSupabaseQueries.ts(19,3): error TS2305: Module '"../database.types"' has no exported member 'PinChatInsert'.
+src/lib/konva/index.ts(172,32): error TS4111: Property 'VERCEL' comes from an index signature, so it must be accessed with ['VERCEL'].
+src/lib/konva/mobile-optimizations.ts(232,9): error TS2345: Argument of type 'TouchPoint | undefined' is not assignable to parameter of type 'TouchPoint'.
+  Type 'undefined' is not assignable to type 'TouchPoint'.
+src/lib/konva/mobile-optimizations.ts(258,45): error TS2345: Argument of type 'TouchPoint | undefined' is not assignable to parameter of type 'TouchPoint'.
+  Type 'undefined' is not assignable to type 'TouchPoint'.
+src/lib/konva/mobile-optimizations.ts(270,7): error TS2345: Argument of type 'TouchPoint | undefined' is not assignable to parameter of type 'TouchPoint'.
+  Type 'undefined' is not assignable to type 'TouchPoint'.
+src/lib/konva/mobile-optimizations.ts(326,32): error TS2345: Argument of type 'TouchPoint | undefined' is not assignable to parameter of type 'TouchPoint'.
+  Type 'undefined' is not assignable to type 'TouchPoint'.
+src/lib/konva/mobile-optimizations.ts(337,28): error TS2345: Argument of type 'TouchPoint | undefined' is not assignable to parameter of type 'TouchPoint'.
+  Type 'undefined' is not assignable to type 'TouchPoint'.
+src/lib/konva/mobile-optimizations.ts(343,22): error TS2345: Argument of type 'TouchPoint | undefined' is not assignable to parameter of type 'TouchPoint'.
+  Type 'undefined' is not assignable to type 'TouchPoint'.
+src/lib/konva/mobile-optimizations.ts(357,22): error TS2532: Object is possibly 'undefined'.
+src/lib/konva/performance-monitor.ts(272,38): error TS2379: Argument of type '{ sampleSize: number; updateInterval: number; onStatsUpdate: ((stats: PerformanceStats) => void) | undefined; onPerformanceWarning: (warning: string, stats: PerformanceStats) => void; enableMemoryMonitoring: boolean; targetFPS: number; }' is not assignable to parameter of type 'PerformanceConfig' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'onStatsUpdate' are incompatible.
+    Type '((stats: PerformanceStats) => void) | undefined' is not assignable to type '(stats: PerformanceStats) => void'.
+      Type 'undefined' is not assignable to type '(stats: PerformanceStats) => void'.
+src/lib/konva/vercel-optimizations.ts(334,54): error TS4111: Property 'VERCEL_REGION' comes from an index signature, so it must be accessed with ['VERCEL_REGION'].
+src/lib/konva/vercel-optimizations.ts(407,34): error TS4111: Property 'VERCEL' comes from an index signature, so it must be accessed with ['VERCEL'].
+src/lib/konva/viewport-culling.ts(309,48): error TS2379: Argument of type '{ id: string; x: number; y: number; width: number | undefined; height: number | undefined; radius: number | undefined; priority: number | undefined; }' is not assignable to parameter of type 'CullableItem' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'width' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/lib/mentions.ts(37,57): error TS18048: 'username' is possibly 'undefined'.
+src/lib/mentions.ts(38,47): error TS18048: 'username' is possibly 'undefined'.
+src/lib/mentions.ts(39,52): error TS18048: 'username' is possibly 'undefined'.
+src/lib/mobile/optimizations.ts(156,29): error TS4111: Property 'src' comes from an index signature, so it must be accessed with ['src'].
+src/lib/mobile/optimizations.ts(157,37): error TS4111: Property 'src' comes from an index signature, so it must be accessed with ['src'].
+src/lib/monitoring/errorTracking.tsx(57,11): error TS2375: Type '{ id: string; message: string; stack: string | undefined; component: string; action: string | undefined; userId: string | undefined; userAgent: string; url: string; timestamp: string; metadata: Record<...> | undefined; severity: "low" | ... 2 more ... | "critical"; }' is not assignable to type 'ErrorReport' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'stack' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/monitoring/errorTracking.tsx(87,30): error TS2379: Argument of type '{ message: string; component: string; action: string | undefined; severity: "medium"; metadata: Record<string, unknown> | undefined; }' is not assignable to parameter of type 'Partial<ErrorReport>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'action' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/monitoring/errorTracking.tsx(198,5): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'Component<P, { hasError: boolean; error: Error | null; }, any>'.
+src/lib/monitoring/errorTracking.tsx(199,33): error TS2379: Argument of type '{ message: string; stack: string | undefined; component: string; severity: "high"; metadata: { componentStack: string | null | undefined; errorBoundary: boolean; }; }' is not assignable to parameter of type 'Partial<ErrorReport>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'stack' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/monitoring/errorTracking.tsx(211,5): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'Component<P, { hasError: boolean; error: Error | null; }, any>'.
+src/lib/notifications/PushNotificationService.ts(31,40): error TS4111: Property 'NEXT_PUBLIC_VAPID_PUBLIC_KEY' comes from an index signature, so it must be accessed with ['NEXT_PUBLIC_VAPID_PUBLIC_KEY'].
+src/lib/notifications/PushNotificationService.ts(209,37): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/lib/notifications/PushNotificationService.ts(219,39): error TS2379: Argument of type '{ body: string; icon: string; tag: string | undefined; data: Record<string, any> | undefined; requireInteraction: boolean | undefined; silent: boolean | undefined; }' is not assignable to parameter of type 'NotificationOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'requireInteraction' are incompatible.
+    Type 'boolean | undefined' is not assignable to type 'boolean'.
+      Type 'undefined' is not assignable to type 'boolean'.
+src/lib/notifications/PushNotificationService.ts(233,41): error TS4111: Property 'VAPID_PRIVATE_KEY' comes from an index signature, so it must be accessed with ['VAPID_PRIVATE_KEY'].
+src/lib/notifications/PushNotificationService.ts(234,40): error TS4111: Property 'VAPID_PUBLIC_KEY' comes from an index signature, so it must be accessed with ['VAPID_PUBLIC_KEY'].
+src/lib/performance/bundleOptimization.ts(21,34): error TS2379: Argument of type '{ loading: (() => React.CElement<any, React.Component<any, any, any>>) | undefined; ssr: boolean; }' is not assignable to parameter of type 'DynamicOptions<T>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Type '{ loading: (() => React.CElement<any, React.Component<any, any, any>>) | undefined; ssr: boolean; }' is not assignable to type '{ loading?: (loadingProps: DynamicOptionsLoadingProps) => ReactNode; loader?: LoaderMap | Loader<T>; loadableGenerated?: LoadableGeneratedOptions; ssr?: boolean; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'loading' are incompatible.
+      Type '(() => CElement<any, Component<any, any, any>>) | undefined' is not assignable to type '(loadingProps: DynamicOptionsLoadingProps) => ReactNode'.
+        Type 'undefined' is not assignable to type '(loadingProps: DynamicOptionsLoadingProps) => ReactNode'.
+src/lib/performance/bundleOptimization.ts(77,18): error TS2307: Cannot find module '@/components/dashboard/InteractiveRoofPlan' or its corresponding type declarations.
+src/lib/performance/bundleOptimization.ts(78,18): error TS2307: Cannot find module '@/components/canvas/PinCanvas' or its corresponding type declarations.
+src/lib/performance/bundleOptimization.ts(115,29): error TS4111: Property 'src' comes from an index signature, so it must be accessed with ['src'].
+src/lib/performance/bundleOptimization.ts(116,37): error TS4111: Property 'src' comes from an index signature, so it must be accessed with ['src'].
+src/lib/performance/monitoring.ts(127,29): error TS2379: Argument of type '{ action: string; duration: number; timestamp: number; success: boolean; error: string | undefined; metadata: Record<string, any> | undefined; }' is not assignable to parameter of type 'UserActionMetrics' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'error' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/performance/optimization.ts(143,25): error TS18048: 'entry' is possibly 'undefined'.
+src/lib/security/rateLimiting.ts(180,7): error TS2375: Type '{ allowed: boolean; remaining: number; resetTime: number; retryAfter: number | undefined; }' is not assignable to type '{ allowed: boolean; remaining: number; resetTime: number; retryAfter?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'retryAfter' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/lib/security/rateLimiting.ts(263,39): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(data: string): string', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(data: string): string', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/services/canvas-core-old.ts(322,7): error TS2412: Type 'undefined' is not assignable to type 'ResizeObserver' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the type of the target.
+src/lib/storage/photoStorage.ts(117,9): error TS2375: Type '{ success: false; error: string | undefined; }' is not assignable to type '{ success: boolean; data?: any; error?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'error' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/supabase-production.ts(5,3): error TS2305: Module '"./database.types"' has no exported member 'Project'.
+src/lib/supabase-production.ts(6,3): error TS2305: Module '"./database.types"' has no exported member 'Roof'.
+src/lib/supabase-production.ts(7,3): error TS2305: Module '"./database.types"' has no exported member 'Pin'.
+src/lib/supabase-production.ts(8,3): error TS2305: Module '"./database.types"' has no exported member 'PinChild'.
+src/lib/supabase-production.ts(9,3): error TS2305: Module '"./database.types"' has no exported member 'Photo'.
+src/lib/supabase-production.ts(10,3): error TS2305: Module '"./database.types"' has no exported member 'PinChat'.
+src/lib/supabase-production.ts(11,3): error TS2305: Module '"./database.types"' has no exported member 'Chat'.
+src/lib/supabase-production.ts(12,3): error TS2305: Module '"./database.types"' has no exported member 'ChatInsert'.
+src/lib/supabase-production.ts(13,3): error TS2305: Module '"./database.types"' has no exported member 'User'.
+src/lib/supabase-production.ts(14,3): error TS2305: Module '"./database.types"' has no exported member 'ProjectInsert'.
+src/lib/supabase-production.ts(15,3): error TS2305: Module '"./database.types"' has no exported member 'RoofInsert'.
+src/lib/supabase-production.ts(16,3): error TS2305: Module '"./database.types"' has no exported member 'PinInsert'.
+src/lib/supabase-production.ts(17,3): error TS2305: Module '"./database.types"' has no exported member 'PinChildInsert'.
+src/lib/supabase-production.ts(18,3): error TS2305: Module '"./database.types"' has no exported member 'PhotoInsert'.
+src/lib/supabase-production.ts(19,3): error TS2305: Module '"./database.types"' has no exported member 'PinChatInsert'.
+src/lib/types/relations.ts(2,25): error TS2305: Module '"../database.types"' has no exported member 'PinStatus'.
+src/lib/utils/exportUtils.ts(119,44): error TS2532: Object is possibly 'undefined'.
+src/lib/utils/exportUtils.ts(119,104): error TS2532: Object is possibly 'undefined'.
+src/lib/utils/exportUtils.ts(278,16): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string | string[]'.
+  Type 'undefined' is not assignable to type 'string | string[]'.
+src/lib/utils/exportUtils.ts(323,29): error TS4111: Property 'full_name' comes from an index signature, so it must be accessed with ['full_name'].
+src/lib/utils/exportUtils.ts(412,47): error TS2379: Argument of type '{ width: number | undefined; height: number | undefined; scale: number; backgroundColor: string; useCORS: true; logging: false; }' is not assignable to parameter of type 'Partial<Options>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'width' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/lib/utils/image-processing.ts(205,21): error TS2532: Object is possibly 'undefined'.
+src/lib/utils/image-processing.ts(205,36): error TS2532: Object is possibly 'undefined'.
+src/lib/utils/image-processing.ts(207,23): error TS2532: Object is possibly 'undefined'.
+src/lib/utils/image-processing.ts(207,38): error TS2532: Object is possibly 'undefined'.
+src/lib/utils/image-processing.ts(230,5): error TS2375: Type '{ originalPath: string; annotatedPath: string | undefined; }' is not assignable to type '{ originalPath: string; annotatedPath?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'annotatedPath' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/utils/image-processing.ts(235,23): error TS18048: 'meta' is possibly 'undefined'.
+src/lib/utils/image-processing.ts(237,22): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(data: string): string', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(data: string): string', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/utils/image-processing.ts(241,27): error TS2379: Argument of type '{ type: string | undefined; }' is not assignable to parameter of type 'BlobPropertyBag' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'type' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/lib/utils/imageOptimization.ts(416,5): error TS2375: Type '{ main: { file: File; originalSize: number; compressedSize: number; compressionRatio: number; quality: number; }; thumbnail: File | undefined; hash: string; metadata: BasicImageMetadata; }' is not assignable to type '{ main: CompressionResult; thumbnail?: File; hash: string; metadata: BasicImageMetadata; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'thumbnail' are incompatible.
+    Type 'File | undefined' is not assignable to type 'File'.
+      Type 'undefined' is not assignable to type 'File'.
+src/lib/utils/issueStatus.ts(2,15): error TS2305: Module '"../database.types"' has no exported member 'PinStatus'.
+src/lib/utils/issueStatus.ts(40,11): error TS2339: Property 'status_child' does not exist on type 'PinWithRelations'.
+src/lib/utils/issueStatus.ts(40,46): error TS2339: Property 'status_child' does not exist on type 'PinWithRelations'.
+src/lib/utils/issueStatus.ts(44,11): error TS2339: Property 'status_child' does not exist on type 'PinWithRelations'.
+src/lib/utils/issueStatus.ts(48,11): error TS2339: Property 'status_child' does not exist on type 'PinWithRelations'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(16,30): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(28,30): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(38,30): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(47,30): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(56,30): error TS2344: Type 'SchemaName' does not satisfy the constraint '(string & Exclude<keyof Database, "__InternalSupabase">) | { PostgrestVersion: string; }'.
+  Type 'string & keyof Database' is not assignable to type '(string & Exclude<keyof Database, "__InternalSupabase">) | { PostgrestVersion: string; }'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(68,52): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(80,52): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-nextjs@0.10.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-nextjs/dist/index.d.ts(92,52): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/@supabase+auth-helpers-shared@0.7.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-shared/dist/index.d.ts(3,10): error TS2724: '"cookie"' has no exported member named 'CookieSerializeOptions'. Did you mean 'SerializeOptions'?
+../../node_modules/.pnpm/@supabase+auth-helpers-shared@0.7.0_@supabase+supabase-js@2.56.0/node_modules/@supabase/auth-helpers-shared/dist/index.d.ts(41,52): error TS2344: Type 'SchemaName' does not satisfy the constraint '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+  Type 'string & keyof Database' is not assignable to type '{ PostgrestVersion: string; } | (string & Exclude<keyof Database, "__InternalSupabase">)'.
+    Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+      Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+        Type 'SchemaName' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+          Type 'string & keyof Database' is not assignable to type 'string & Exclude<keyof Database, "__InternalSupabase">'.
+            Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+              Type 'SchemaName' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+                Type 'string & keyof Database' is not assignable to type 'Exclude<keyof Database, "__InternalSupabase">'.
+../../node_modules/.pnpm/next@15.5.0_@babel+core@7.28.3_@playwright+test@1.55.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/next-devtools/dev-overlay/shared.d.ts(181,20): error TS2694: Namespace 'React' has no exported member 'ActionDispatch'.
+../../node_modules/.pnpm/next@15.5.0_@babel+core@7.28.3_@playwright+test@1.55.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/route-modules/app-page/vendored/rsc/entrypoints.d.ts(5,39): error TS2307: Cannot find module 'react/compiler-runtime' or its corresponding type declarations.
+../../node_modules/.pnpm/next@15.5.0_@babel+core@7.28.3_@playwright+test@1.55.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/entrypoints.d.ts(5,39): error TS2307: Cannot find module 'react/compiler-runtime' or its corresponding type declarations.
