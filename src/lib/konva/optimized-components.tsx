@@ -136,7 +136,7 @@ const OptimizedChildPin = memo(({
   const canvasPos = useMemo(() => normalizedToCanvas({ x: childPin.x || 0.5, y: childPin.y || 0.5 }), [childPin.x, childPin.y, normalizedToCanvas])
 
   return (
-    <Group key={childPin.id}>
+    <Group key={childPin.child_id || childPin.id}>
       <Circle
         x={canvasPos.x}
         y={canvasPos.y}
@@ -350,6 +350,7 @@ const OptimizedKonvaComponents = forwardRef<any, OptimizedKonvaComponentsProps>(
             opacity={0.8}
             listening={false}
             perfectDrawEnabled={performanceMode !== 'performance'}
+            alt="Roof plan background"
           />
         )}
       </Layer>
@@ -388,7 +389,7 @@ const OptimizedKonvaComponents = forwardRef<any, OptimizedKonvaComponentsProps>(
             })
             .map(childPin => (
               <OptimizedChildPin
-                key={childPin.id}
+                key={childPin.child_id || childPin.id}
                 childPin={childPin}
                 pinSize={pinSize}
                 isMobile={isMobile}

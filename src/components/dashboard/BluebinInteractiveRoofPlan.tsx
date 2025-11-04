@@ -181,15 +181,15 @@ export function BluebinInteractiveRoofPlan({
     }
   }
 
-  const normalizedToCanvas = (normalized: { x: number, y: number }) => ({
+  const normalizedToCanvas = useCallback((normalized: { x: number, y: number }) => ({
     x: normalized.x * dimensions.width,
     y: normalized.y * dimensions.height
-  })
+  }), [dimensions.width, dimensions.height])
 
-  const canvasToNormalized = (canvas: { x: number, y: number }) => ({
+  const canvasToNormalized = useCallback((canvas: { x: number, y: number }) => ({
     x: canvas.x / dimensions.width,
     y: canvas.y / dimensions.height
-  })
+  }), [dimensions.width, dimensions.height])
 
   // Touch gesture handlers for mobile
   const handleTouchStart = useCallback((e: KonvaEventObject<TouchEvent>) => {
@@ -312,7 +312,7 @@ export function BluebinInteractiveRoofPlan({
         y: normalizedPos.y
       })
     }
-  }, [selectedTool, onAddPin, selectedLayerId, selectedPin, onAddChildPin, position, scale, dimensions, broadcastPinOperation, broadcastChildPinOperation])
+  }, [selectedTool, onAddPin, selectedLayerId, selectedPin, onAddChildPin, position, scale, dimensions, canvasToNormalized, broadcastPinOperation, broadcastChildPinOperation])
 
   // Pin click handler
   const handlePinClick = useCallback((pin: PinWithRelations) => {
@@ -330,7 +330,7 @@ export function BluebinInteractiveRoofPlan({
     if (parentPin) {
       onChildPinClick(childPin, parentPin)
     }
-  }, [childPins, pins, onChildPinClick])
+  }, [pins, onChildPinClick])
 
   // Normalize child pins for UI usage (childPins are already in UIChildPin format)
   const uiChildPins: UIChildPin[] = childPins
@@ -413,6 +413,7 @@ export function BluebinInteractiveRoofPlan({
               width={dimensions.width}
               height={dimensions.height}
               opacity={0.8}
+              alt="Roof plan background"
             />
           )}
         </Layer>
@@ -501,7 +502,7 @@ export function BluebinInteractiveRoofPlan({
                 const canvasPos = normalizedToCanvas({ x: parentX, y: parentY })
 
                 return (
-                  <Group key={childPin.id}>
+                  <Group key={childPin.child_id}>
                     <Circle
                       x={canvasPos.x}
                       y={canvasPos.y}
