@@ -8,17 +8,15 @@ const nextConfig = {
   // Remove standalone output for standard Vercel deployment
   // output: 'standalone',
   
+  // Prevent Konva from loading on server - SSR fix
+  serverComponentsExternalPackages: ['konva', 'react-konva', 'canvas'],
+
   // Simplified experimental features for Vercel compatibility
   experimental: {
     optimizePackageImports: [
       'lucide-react',
-      '@tanstack/react-query',
-      'konva',
-      'react-konva'
+      '@tanstack/react-query'
     ],
-    // Remove potentially problematic experimental features
-    // webpackBuildWorker: true,
-    // optimizeServerReact: true,
     scrollRestoration: true,
     // Konva-specific optimizations
     webpackBuildWorker: process.env.NODE_ENV === 'production',
