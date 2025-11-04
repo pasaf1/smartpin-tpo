@@ -1018,10 +1018,10 @@ export const Constants = {
 
 // Custom Extended Types
 export type PinWithRelations = Database['public']['Tables']['pins']['Row'] & {
-  children_total?: number
-  children_open?: number
-  children_ready?: number  
-  children_closed?: number
+  children_total?: number | null
+  children_open?: number | null
+  children_ready?: number | null
+  children_closed?: number | null
   parent_mix_state?: string | null
   layer_id?: string
 }
