@@ -139,17 +139,23 @@ export function PhotoAnnotation({
   const undo = useCallback(() => {
     if (historyIndex > 0) {
       const prevIndex = historyIndex - 1
-      setHistoryIndex(prevIndex)
-      setAnnotations(history[prevIndex])
+      const prevState = history[prevIndex]
+      if (prevState) {
+        setHistoryIndex(prevIndex)
+        setAnnotations(prevState)
+      }
     }
   }, [history, historyIndex])
 
-  // Redo  
+  // Redo
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       const nextIndex = historyIndex + 1
-      setHistoryIndex(nextIndex)
-      setAnnotations(history[nextIndex])
+      const nextState = history[nextIndex]
+      if (nextState) {
+        setHistoryIndex(nextIndex)
+        setAnnotations(nextState)
+      }
     }
   }, [history, historyIndex])
 
@@ -167,7 +173,7 @@ export function PhotoAnnotation({
       id: `annotation-${Date.now()}`,
       stroke: strokeColor,
       strokeWidth: strokeWidth,
-      fill: currentTool === 'rectangle' || currentTool === 'circle' ? fillColor : undefined,
+      ...(currentTool === 'rectangle' || currentTool === 'circle' ? { fill: fillColor } : {}),
       created_at: new Date().toISOString()
     }
 
@@ -238,10 +244,14 @@ export function PhotoAnnotation({
                 width: pos.x - ann.x!,
                 height: pos.y - ann.y!
               }
-            } else if (currentTool === 'arrow' && ann.points) {
-              return {
-                ...ann,
-                points: [ann.points[0], ann.points[1], pos.x, pos.y]
+            } else if (currentTool === 'arrow' && ann.points && ann.points.length >= 2) {
+              const x1 = ann.points[0]
+              const y1 = ann.points[1]
+              if (x1 !== undefined && y1 !== undefined) {
+                return {
+                  ...ann,
+                  points: [x1, y1, pos.x, pos.y]
+                }
               }
             }
           }
@@ -498,12 +508,13 @@ export function PhotoAnnotation({
             {annotations.map(annotation => {
               switch (annotation.type) {
                 case 'pen':
+                  if (!annotation.points) return null
                   return (
                     <Line
                       key={annotation.id}
                       points={annotation.points}
-                      stroke={annotation.stroke}
-                      strokeWidth={annotation.strokeWidth}
+                      {...(annotation.stroke ? { stroke: annotation.stroke } : {})}
+                      {...(annotation.strokeWidth !== undefined ? { strokeWidth: annotation.strokeWidth } : {})}
                       tension={0.5}
                       lineCap="round"
                     />
@@ -512,25 +523,27 @@ export function PhotoAnnotation({
                   return (
                     <Rect
                       key={annotation.id}
-                      x={annotation.x}
-                      y={annotation.y}
-                      width={annotation.width}
-                      height={annotation.height}
-                      stroke={annotation.stroke}
-                      strokeWidth={annotation.strokeWidth}
-                      fill={annotation.fill}
+                      {...(annotation.x !== undefined ? { x: annotation.x } : {})}
+                      {...(annotation.y !== undefined ? { y: annotation.y } : {})}
+                      {...(annotation.width !== undefined ? { width: annotation.width } : {})}
+                      {...(annotation.height !== undefined ? { height: annotation.height } : {})}
+                      {...(annotation.stroke ? { stroke: annotation.stroke } : {})}
+                      {...(annotation.strokeWidth !== undefined ? { strokeWidth: annotation.strokeWidth } : {})}
+                      {...(annotation.fill ? { fill: annotation.fill } : {})}
                     />
                   )
                 case 'circle':
+                  if (annotation.x === undefined || annotation.y === undefined ||
+                      annotation.width === undefined || annotation.height === undefined) return null
                   return (
                     <Circle
                       key={annotation.id}
-                      x={annotation.x! + annotation.width! / 2}
-                      y={annotation.y! + annotation.height! / 2}
-                      radius={Math.max(Math.abs(annotation.width! / 2), Math.abs(annotation.height! / 2))}
-                      stroke={annotation.stroke}
-                      strokeWidth={annotation.strokeWidth}
-                      fill={annotation.fill}
+                      x={annotation.x + annotation.width / 2}
+                      y={annotation.y + annotation.height / 2}
+                      radius={Math.max(Math.abs(annotation.width / 2), Math.abs(annotation.height / 2))}
+                      {...(annotation.stroke ? { stroke: annotation.stroke } : {})}
+                      {...(annotation.strokeWidth !== undefined ? { strokeWidth: annotation.strokeWidth } : {})}
+                      {...(annotation.fill ? { fill: annotation.fill } : {})}
                     />
                   )
                 case 'arrow':
@@ -538,9 +551,8 @@ export function PhotoAnnotation({
                     <Arrow
                       key={annotation.id}
                       points={annotation.points || []}
-                      stroke={annotation.stroke}
-                      strokeWidth={annotation.strokeWidth}
-                      fill={annotation.stroke}
+                      {...(annotation.stroke ? { stroke: annotation.stroke, fill: annotation.stroke } : {})}
+                      {...(annotation.strokeWidth !== undefined ? { strokeWidth: annotation.strokeWidth } : {})}
                       pointerLength={10}
                       pointerWidth={10}
                     />
@@ -549,11 +561,11 @@ export function PhotoAnnotation({
                   return (
                     <Text
                       key={annotation.id}
-                      x={annotation.x}
-                      y={annotation.y}
-                      text={annotation.text}
-                      fontSize={annotation.fontSize}
-                      fill={annotation.fill}
+                      {...(annotation.x !== undefined ? { x: annotation.x } : {})}
+                      {...(annotation.y !== undefined ? { y: annotation.y } : {})}
+                      {...(annotation.text ? { text: annotation.text } : {})}
+                      {...(annotation.fontSize !== undefined ? { fontSize: annotation.fontSize } : {})}
+                      {...(annotation.fill ? { fill: annotation.fill } : {})}
                     />
                   )
                 default:

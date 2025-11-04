@@ -88,8 +88,9 @@ export class PerformanceMonitor {
   private collectInitialMetrics() {
     // Use Performance API if available
     if (window.performance) {
-      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
-      if (navigation) {
+      const navigationEntry = performance.getEntriesByType('navigation')[0]
+      if (navigationEntry) {
+        const navigation = navigationEntry as PerformanceNavigationTiming
         this.metrics = {
           pageLoadTime: navigation.loadEventEnd - navigation.startTime,
           firstContentfulPaint: 0,
@@ -123,14 +124,14 @@ export class PerformanceMonitor {
 
     return (success: boolean = true, error?: string) => {
       const duration = performance.now() - startTime
-      
+
       this.userActions.push({
         action,
         duration,
         timestamp,
         success,
-        error,
-        metadata
+        ...(error !== undefined ? { error } : {}),
+        ...(metadata !== undefined ? { metadata } : {})
       })
 
       // Keep only last 100 actions
@@ -242,22 +243,22 @@ export class PerformanceMonitor {
   }
 
   trackDataLoad(dataType: string, itemCount?: number) {
-    const endTracking = this.trackUserAction('data_load', { 
-      dataType, 
-      itemCount 
+    const endTracking = this.trackUserAction('data_load', {
+      dataType,
+      ...(itemCount !== undefined ? { itemCount } : {})
     })
-    
+
     return (success: boolean, error?: string) => {
       endTracking()
     }
   }
 
   trackPhotoUpload(fileSize: number, compressionRatio?: number) {
-    const endTracking = this.trackUserAction('photo_upload', { 
-      fileSize, 
-      compressionRatio 
+    const endTracking = this.trackUserAction('photo_upload', {
+      fileSize,
+      ...(compressionRatio !== undefined ? { compressionRatio } : {})
     })
-    
+
     return (success: boolean, error?: string) => {
       endTracking()
     }

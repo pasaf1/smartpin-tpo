@@ -59,7 +59,7 @@ const MobileTypingIndicator = ({ users }: { users: { id: string; name: string }[
         <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" />
       </div>
       <span className="text-xs">
-        {users.length === 1 
+        {users.length === 1 && users[0]
           ? `${users[0].name.split('.')[0]} typing...`
           : `${users.length} typing...`
         }
@@ -547,8 +547,10 @@ export function ChatProUI_Mobile({
             {/* Messages */}
             {messages.map((message, index) => {
               const isOwn = message.created_by === currentUserId
-              const showDivider = index === 0 || 
-                new Date(messages[index - 1].created_at).toDateString() !== 
+              const prevMessage = messages[index - 1]
+              const showDivider = index === 0 ||
+                !prevMessage ||
+                new Date(prevMessage.created_at).toDateString() !==
                 new Date(message.created_at).toDateString()
 
               return (

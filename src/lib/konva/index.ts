@@ -79,7 +79,7 @@ export function initializeProductionKonva(config: ProductionKonvaConfig = {}) {
     maxMemoryMB = 50,
     maxRenderItems = 300,
     performanceMode = 'balanced',
-    enableDebugMode = process.env.NODE_ENV === 'development'
+    enableDebugMode = process.env['NODE_ENV'] === 'development'
   } = config
 
   const optimizations = {
@@ -168,8 +168,8 @@ export function initializeProductionKonva(config: ProductionKonvaConfig = {}) {
  * Environment-based configuration factory
  */
 export function createEnvironmentOptimizedConfig(): ProductionKonvaConfig {
-  const isProduction = process.env.NODE_ENV === 'production'
-  const isVercel = process.env.VERCEL === '1'
+  const isProduction = process.env['NODE_ENV'] === 'production'
+  const isVercel = process.env['VERCEL'] === '1'
   const isMobile = typeof window !== 'undefined' && isMobileDevice()
 
   return {

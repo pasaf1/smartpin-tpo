@@ -145,7 +145,7 @@ export function ChatInput({
 
       await onSendMessage(content.trim(), {
         mentions,
-        reply_to: replyToMessage?.id,
+        ...(replyToMessage?.id ? { reply_to: replyToMessage.id } : {}),
         attachments: selectedFiles
       })
 

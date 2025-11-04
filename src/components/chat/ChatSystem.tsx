@@ -33,7 +33,10 @@ interface ChatSystemProps {
 }
 
 export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps) {
-  const [activeScope, setActiveScope] = useState<ChatScope>(defaultScope ? defaultScope : scopes[0]);
+  const firstScope = scopes[0]
+  const [activeScope, setActiveScope] = useState<ChatScope>(
+    defaultScope || firstScope || { type: 'global', name: 'Global' }
+  );
   const [message, setMessage] = useState('');
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState('');
@@ -120,7 +123,7 @@ export function ChatSystem({ scopes, defaultScope, className }: ChatSystemProps)
     const textBeforeCursor = value.substring(0, position);
     const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
     if (mentionMatch) {
-      setMentionSearch(mentionMatch[1]);
+      setMentionSearch(mentionMatch[1] || '');
       setShowMentions(true);
     } else {
       setShowMentions(false);

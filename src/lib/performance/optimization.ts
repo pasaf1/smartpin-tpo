@@ -139,8 +139,11 @@ export function useIntersectionObserver(
     const target = targetRef.current
     if (!target) return
 
-    const observer = new IntersectionObserver(([entry]) => {
-      setIsIntersecting(entry.isIntersecting)
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        setIsIntersecting(entry.isIntersecting)
+      }
     }, {
       threshold: 0.1,
       rootMargin: '50px',

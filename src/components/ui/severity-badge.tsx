@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
-import type { Severity } from "@/lib/database.types"
+
+type Severity = 'Low' | 'Medium' | 'High' | 'Critical'
 
 interface SeverityBadgeProps {
   severity: Severity

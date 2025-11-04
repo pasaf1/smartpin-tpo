@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { BluebinInteractiveRoofPlan } from '@/components/dashboard/BluebinInteractiveRoofPlan'
+import { BluebinInteractiveRoofPlanClient as BluebinInteractiveRoofPlan } from '@/components/dashboard/BluebinInteractiveRoofPlanClient'
 import { MobileBottomSheet } from '@/components/ui/MobileBottomSheet'
 import { MobileFAB, defaultBluebinTools } from '@/components/ui/MobileFAB'
 import { BluebinPinDetailsCard } from '@/components/pins/BluebinPinDetailsCard'
@@ -427,13 +427,13 @@ function RoofDashboardPage() {
                   childPins={childPins}
                   layers={[]}
                   annotations={[]}
-                  roofPlanImageUrl={roof?.plan_image_url || roof?.roof_plan_url || undefined}
+                  {...((roof?.plan_image_url ?? roof?.roof_plan_url) ? { roofPlanImageUrl: (roof?.plan_image_url ?? roof?.roof_plan_url) as string } : {})}
                   onPinClick={handlePinClick}
                   onChildPinClick={handleChildPinClick}
                   onAddPin={handleAddPin}
                   onAddChildPin={handleAddChildPin}
                   onAddAnnotation={() => {}} // No-op since annotations table doesn't exist
-                  selectedLayerId={selectedLayerId || undefined}
+                  {...(selectedLayerId ? { selectedLayerId } : {})}
                   selectedTool={selectedTool}
                   className="w-full h-full"
                   isMobile={isMobile}
@@ -679,7 +679,7 @@ function RoofDashboardPage() {
           onClose={() => setShowMobileDetails(false)}
           snapPoints={[30, 70, 95]}
           initialSnap={1}
-          title={selectedPin ? `Pin ${selectedPin.seq_number}` : undefined}
+          {...(selectedPin ? { title: `Pin ${selectedPin.seq_number}` } : {})}
         >
           {selectedPin && (
             <BluebinPinDetailsCard

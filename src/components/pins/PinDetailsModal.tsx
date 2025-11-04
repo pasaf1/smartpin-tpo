@@ -55,7 +55,7 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useMobileGestures({
     onSwipeLeft: () => navigateTab('next'),
     onSwipeRight: () => navigateTab('prev'),
-    onLongPress: canEdit ? () => setActiveTab('hierarchy') : undefined,
+    ...(canEdit ? { onLongPress: () => setActiveTab('hierarchy') } : {}),
     enabled: isMobile
   })
 
@@ -96,7 +96,10 @@ export const PinDetailsModal: React.FC<PinDetailsModalProps> = ({
       newIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1
     }
 
-    setActiveTab(tabs[newIndex].key)
+    const newTab = tabs[newIndex]
+    if (newTab) {
+      setActiveTab(newTab.key)
+    }
   }, [activeTab, tabs])
 
   // Real-time sync effects

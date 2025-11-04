@@ -1,6 +1,10 @@
 // Issue Row Status derivation utilities
-import type { PinStatus } from '../database.types'
+import type { Database } from '../database.types'
 import type { IssueRowStatus, PinWithRelations } from '../types/relations'
+
+// Define types locally using Database schema
+type PinStatus = Database['public']['Tables']['pins']['Row']['status']
+type PinChild = Database['public']['Tables']['pin_children']['Row']
 
 /**
  * Derives the Issue Row Status based on parent and children statuses
@@ -34,20 +38,20 @@ export function deriveIssueRowStatus(
  * Derives Issue Row Status from a PinWithRelations object
  */
 export function deriveIssueRowStatusFromPin(pin: PinWithRelations): IssueRowStatus {
-  const children = pin.children || pin.child_pins || pin.pin_children || []
-  
-  const childrenOpen = children.filter(child => 
+  const children = (pin.children || pin.child_pins || pin.pin_children || []) as unknown as PinChild[]
+
+  const childrenOpen = children.filter(child =>
     child.status_child !== 'Closed' && child.status_child !== 'ReadyForInspection'
   ).length
-  
-  const childrenReady = children.filter(child => 
+
+  const childrenReady = children.filter(child =>
     child.status_child === 'ReadyForInspection'
   ).length
-  
-  const childrenClosed = children.filter(child => 
+
+  const childrenClosed = children.filter(child =>
     child.status_child === 'Closed'
   ).length
-  
+
   return deriveIssueRowStatus(pin.status, childrenOpen, childrenReady, childrenClosed)
 }
 

@@ -169,12 +169,12 @@ export class RateLimiter {
       const current = await this.store.increment(rateLimitKey, config.windowMs)
       const allowed = current.count <= config.requests
       const remaining = Math.max(0, config.requests - current.count)
-      
+
       const result = {
         allowed,
         remaining,
         resetTime: current.resetTime,
-        retryAfter: allowed ? undefined : Math.ceil((current.resetTime - Date.now()) / 1000)
+        ...(!allowed ? { retryAfter: Math.ceil((current.resetTime - Date.now()) / 1000) } : {})
       }
 
       return result
@@ -260,9 +260,13 @@ function getClientIdentifier(req: NextRequest): string {
     try {
       // Extract user ID from JWT token if available
       const token = authHeader.replace('Bearer ', '')
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      if (payload.sub) {
-        return `user:${payload.sub}`
+      const tokenParts = token.split('.')
+      const tokenPayload = tokenParts[1]
+      if (tokenPayload) {
+        const payload = JSON.parse(atob(tokenPayload))
+        if (payload.sub) {
+          return `user:${payload.sub}`
+        }
       }
     } catch {
       // Fall back to IP
@@ -271,7 +275,8 @@ function getClientIdentifier(req: NextRequest): string {
 
   // Fall back to IP address
   const forwarded = req.headers.get('x-forwarded-for')
-  const ip = forwarded?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown'
+  const forwardedIp = forwarded?.split(',')[0]
+  const ip = forwardedIp || req.headers.get('x-real-ip') || 'unknown'
   return `ip:${ip}`
 }
 

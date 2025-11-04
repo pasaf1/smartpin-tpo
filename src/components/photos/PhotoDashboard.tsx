@@ -47,15 +47,16 @@ export function PhotoDashboard({ pinId, className }: PhotoDashboardProps) {
     thumbnail_url: p.thumbnail_url ?? '',
     uploaded_by: p.uploaded_by ?? '',
     uploaded_at: p.uploaded_at ?? '',
-    uploader:
-      typeof p.uploader === 'object' &&
+    ...(typeof p.uploader === 'object' &&
       p.uploader !== null &&
       !Array.isArray(p.uploader) &&
       typeof (p.uploader as any).name === 'string'
-        ? { name: (p.uploader as any).name, avatar_url: typeof (p.uploader as any).avatar_url === 'string' ? (p.uploader as any).avatar_url : undefined }
-        : undefined,
-    metadata:
-      typeof p.metadata === 'object' &&
+        ? { uploader: {
+            name: (p.uploader as any).name,
+            ...(typeof (p.uploader as any).avatar_url === 'string' ? { avatar_url: (p.uploader as any).avatar_url } : {})
+          }}
+        : {}),
+    ...(typeof p.metadata === 'object' &&
       p.metadata !== null &&
       !Array.isArray(p.metadata) &&
       (
@@ -66,8 +67,8 @@ export function PhotoDashboard({ pinId, className }: PhotoDashboardProps) {
         '_offline' in p.metadata ||
         '_cachedAt' in p.metadata
       )
-        ? p.metadata
-        : undefined,
+        ? { metadata: p.metadata }
+        : {})
   }));
   const analytics = analyticsQuery.data || {}
 

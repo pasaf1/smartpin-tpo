@@ -415,7 +415,7 @@ export class ImageOptimizer {
 
     return {
       main: { ...compressed, file: finalFile },
-      thumbnail,
+      ...(thumbnail !== undefined ? { thumbnail } : {}),
       hash,
       metadata,
     }

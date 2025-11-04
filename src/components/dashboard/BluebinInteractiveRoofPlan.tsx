@@ -196,13 +196,17 @@ export function BluebinInteractiveRoofPlan({
     if (touches.length === 2) {
       const touch1 = touches[0]
       const touch2 = touches[1]
+      if (!touch1 || !touch2) return
       const distance = Math.sqrt(
         Math.pow(touch2.clientX - touch1.clientX, 2) +
         Math.pow(touch2.clientY - touch1.clientY, 2)
       )
       setLastTouchDistance(distance)
     } else if (touches.length === 1) {
-      setLastTouchPosition({ x: touches[0].clientX, y: touches[0].clientY })
+      const touch = touches[0]
+      if (touch) {
+        setLastTouchPosition({ x: touch.clientX, y: touch.clientY })
+      }
     }
   }, [])
 
@@ -214,6 +218,7 @@ export function BluebinInteractiveRoofPlan({
       // Pinch zoom
       const touch1 = touches[0]
       const touch2 = touches[1]
+      if (!touch1 || !touch2) return
       const distance = Math.sqrt(
         Math.pow(touch2.clientX - touch1.clientX, 2) +
         Math.pow(touch2.clientY - touch1.clientY, 2)
@@ -228,6 +233,7 @@ export function BluebinInteractiveRoofPlan({
     } else if (touches.length === 1 && isDragging && lastTouchPosition) {
       // Pan gesture
       const touch = touches[0]
+      if (!touch) return
       const stage = stageRef.current
       if (stage) {
         const deltaX = touch.clientX - lastTouchPosition.x

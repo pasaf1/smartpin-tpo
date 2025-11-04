@@ -272,14 +272,14 @@ export function createProductionPerformanceMonitor(
   return new KonvaPerformanceMonitor({
     sampleSize: 30, // Smaller sample size for production
     updateInterval: 2000, // Less frequent updates
-    onStatsUpdate,
+    ...(onStatsUpdate !== undefined ? { onStatsUpdate } : {}),
     onPerformanceWarning: (warning, stats) => {
       // Only log warnings in development
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env['NODE_ENV'] === 'development') {
         console.warn(`[Konva Performance]`, warning, stats)
       }
     },
-    enableMemoryMonitoring: process.env.NODE_ENV === 'development',
+    enableMemoryMonitoring: process.env['NODE_ENV'] === 'development',
     targetFPS: 60
   })
 }

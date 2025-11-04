@@ -222,16 +222,19 @@ export class ActivityLogger {
    * Core logging method
    */
   private async log(
-    action: ActivityType, 
+    action: ActivityType,
     details: Record<string, any>,
     roof_id?: string,
     pin_id?: string,
     project_id?: string
   ): Promise<void> {
+    const finalProjectId = project_id || this.context.project_id
+    const finalRoofId = roof_id || this.context.roof_id
+
     const logEntry: ActivityLogEntry = {
-      pin_id,
-      project_id: project_id || this.context.project_id,
-      roof_id: roof_id || this.context.roof_id,
+      ...(pin_id ? { pin_id } : {}),
+      ...(finalProjectId ? { project_id: finalProjectId } : {}),
+      ...(finalRoofId ? { roof_id: finalRoofId } : {}),
       action,
       details,
       user_id: this.context.user_id,
@@ -353,25 +356,25 @@ export class ActivityLogger {
 
     switch (activity.action) {
       case 'pin_created':
-        return `${userName} created pin #${activity.details.pin_sequence} at ${timeStr}`
+        return `${userName} created pin #${activity.details['pin_sequence']} at ${timeStr}`
 
       case 'status_changed':
-        return `${userName} changed pin #${activity.details.pin_sequence} status from ${activity.details.old_status} to ${activity.details.new_status} at ${timeStr}`
+        return `${userName} changed pin #${activity.details['pin_sequence']} status from ${activity.details['old_status']} to ${activity.details['new_status']} at ${timeStr}`
 
       case 'photo_uploaded':
-        return `${userName} uploaded ${activity.details.photo_type} photo for pin #${activity.details.pin_sequence} at ${timeStr}`
+        return `${userName} uploaded ${activity.details['photo_type']} photo for pin #${activity.details['pin_sequence']} at ${timeStr}`
 
       case 'child_pin_created':
-        return `${userName} added child pin ${activity.details.child_sequence} to pin #${activity.details.parent_sequence} at ${timeStr}`
+        return `${userName} added child pin ${activity.details['child_sequence']} to pin #${activity.details['parent_sequence']} at ${timeStr}`
 
       case 'comment_added':
-        return `${userName} added a comment to pin #${activity.details.pin_sequence} at ${timeStr}`
+        return `${userName} added a comment to pin #${activity.details['pin_sequence']} at ${timeStr}`
 
       case 'project_created':
-        return `${userName} created project "${activity.details.project_name}" at ${timeStr}`
+        return `${userName} created project "${activity.details['project_name']}" at ${timeStr}`
 
       case 'export_generated':
-        return `${userName} generated ${activity.details.export_type.toUpperCase()} export${activity.details.pin_count ? ` (${activity.details.pin_count} issues)` : ''} at ${timeStr}`
+        return `${userName} generated ${activity.details['export_type'].toUpperCase()} export${activity.details['pin_count'] ? ` (${activity.details['pin_count']} issues)` : ''} at ${timeStr}`
 
       default:
         return `${userName} performed ${activity.action.replace('_', ' ')} at ${timeStr}`
@@ -481,17 +484,17 @@ export class ActivityUtils {
       case 'pin_created':
         return {
           title: 'Pin Created',
-          description: `Pin #${activity.details.pin_sequence} created`,
+          description: `Pin #${activity.details['pin_sequence']} created`,
           timestamp,
           type: 'info',
           icon: '📌'
         }
 
       case 'status_changed':
-        const statusType = activity.details.new_status === 'Closed' ? 'success' : 'info'
+        const statusType = activity.details['new_status'] === 'Closed' ? 'success' : 'info'
         return {
           title: 'Status Changed',
-          description: `Pin #${activity.details.pin_sequence}: ${activity.details.old_status} → ${activity.details.new_status}`,
+          description: `Pin #${activity.details['pin_sequence']}: ${activity.details['old_status']} → ${activity.details['new_status']}`,
           timestamp,
           type: statusType,
           icon: '🔄'
@@ -500,7 +503,7 @@ export class ActivityUtils {
       case 'photo_uploaded':
         return {
           title: 'Photo Uploaded',
-          description: `${activity.details.photo_type} photo for pin #${activity.details.pin_sequence}`,
+          description: `${activity.details['photo_type']} photo for pin #${activity.details['pin_sequence']}`,
           timestamp,
           type: 'success',
           icon: '📷'
@@ -509,7 +512,7 @@ export class ActivityUtils {
       default:
         return {
           title: activity.action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          description: activity.details.description || 'Activity occurred',
+          description: activity.details['description'] || 'Activity occurred',
           timestamp,
           type: 'info',
           icon: '📝'

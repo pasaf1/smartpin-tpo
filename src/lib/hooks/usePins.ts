@@ -1,7 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { supabase } from '../supabase'
-import type { Database, Pin, PinChild, PinInsert, PinUpdate, PinWithRelations, PinStatus } from '../database.types'
+import type { Database } from '../database.types'
+
+// Define types locally using Database schema
+type Pin = Database['public']['Tables']['pins']['Row']
+type PinInsert = Database['public']['Tables']['pins']['Insert']
+type PinUpdate = Database['public']['Tables']['pins']['Update']
+type PinChild = Database['public']['Tables']['pin_children']['Row']
+type PinStatus = Database['public']['Enums']['pin_status']
+
+// PinWithRelations is just Pin for now (relations loaded separately)
+type PinWithRelations = Pin
 
 export const QUERY_KEYS = {
   pins: ['pins'] as const,

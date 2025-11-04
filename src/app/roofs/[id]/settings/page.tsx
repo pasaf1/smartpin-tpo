@@ -50,6 +50,9 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
   
   const handleFiles = (files: FileList) => {
     const file = files[0]
+    if (!file) {
+      return
+    }
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (JPG, PNG, WebP)')
       return

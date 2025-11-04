@@ -31,9 +31,12 @@ export function parseMentions(text: string, users: User[]): Mention[] {
   while ((match = mentionRegex.exec(text)) !== null) {
     const username = match[1]
     const mentionText = match[0]
-    
+
+    // Skip if username is undefined
+    if (!username) continue
+
     // Find user by name (case insensitive) or email
-    const user = users.find(u => 
+    const user = users.find(u =>
       u.name.toLowerCase().replace(/\s+/g, '').includes(username.toLowerCase()) ||
       u.email.toLowerCase().split('@')[0] === username.toLowerCase() ||
       u.name.toLowerCase().replace(/\s+/g, '') === username.toLowerCase()

@@ -206,15 +206,17 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
           user_name: 'You',
           user_avatar: '👤',
           roof_id: roofId,
-          pin_id: pinId,
-          pin_item_id: pinItemId,
+          ...(pinId ? { pin_id: pinId } : {}),
+          ...(pinItemId ? { pin_item_id: pinItemId } : {}),
           message_type: messageData.message_type || 'text',
-          mentions: messageData.mentions,
-          reply_to: messageData.reply_to,
-          attachments: messageData.attachments?.map((att, index) => ({
-            ...att,
-            id: `demo-att-${Date.now()}-${index}`
-          })),
+          ...(messageData.mentions ? { mentions: messageData.mentions } : {}),
+          ...(messageData.reply_to ? { reply_to: messageData.reply_to } : {}),
+          ...(messageData.attachments ? {
+            attachments: messageData.attachments.map((att, index) => ({
+              ...att,
+              id: `demo-att-${Date.now()}-${index}`
+            }))
+          } : {}),
           created_at: new Date().toISOString()
         }
 
@@ -230,7 +232,7 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
           scope: pinItemId ? 'pin' : pinId ? 'pin' : 'roof',
           scope_id: pinItemId || pinId || roofId,
           mentions: messageData.mentions || [],
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: (await supabase.auth.getUser()).data.user?.id || null
         }])
         .select()
         .single()
@@ -318,6 +320,8 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
       const interval = setInterval(() => {
         if (Math.random() > 0.8) { // 20% chance every 5 seconds
           const demoUser = DEMO_USERS[Math.floor(Math.random() * DEMO_USERS.length)]
+          if (!demoUser) return // Skip if undefined
+
           setTypingUsers(prev => {
             const filtered = prev.filter(u => u.user_id !== demoUser.user_id)
             return [...filtered, {
@@ -361,7 +365,7 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
 
     // Subscribe to typing indicators
     channel.on('broadcast', { event: 'typing' }, (payload) => {
-      const { user_id, user_name, action } = payload.payload
+      const { user_id, user_name, action } = payload['payload']
       
       if (action === 'start') {
         setTypingUsers(prev => {
@@ -377,9 +381,11 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
     channel.on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState()
       const presenceList: UserPresence[] = []
-      
+
       for (const user in state) {
-        const presence = state[user][0] as any
+        const presence = state[user]?.[0] as any
+        if (!presence) continue
+
         presenceList.push({
           user_id: presence.user_id,
           user_name: presence.user_name,
@@ -388,7 +394,7 @@ export function useChat(roofId: string, pinId?: string, pinItemId?: string) {
           last_seen: presence.last_seen
         })
       }
-      
+
       setUserPresence(presenceList)
     })
 

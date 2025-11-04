@@ -227,12 +227,13 @@ export class MobileGestureHandler {
     if (touchCount === 1 && this.config.enableTapGesture) {
       this.touchState.gestureType = 'tap'
     } else if (touchCount === 2 && this.config.enablePinchZoom) {
-      this.touchState.gestureType = 'pinch'
-      this.touchState.distance = this.calculateDistance(
-        this.touchState.currentPoints[0],
-        this.touchState.currentPoints[1]
-      )
-      this.touchState.scale = 1
+      const point0 = this.touchState.currentPoints[0]
+      const point1 = this.touchState.currentPoints[1]
+      if (point0 && point1) {
+        this.touchState.gestureType = 'pinch'
+        this.touchState.distance = this.calculateDistance(point0, point1)
+        this.touchState.scale = 1
+      }
     }
   }
 
@@ -255,6 +256,9 @@ export class MobileGestureHandler {
 
     const startPoint = this.touchState.startPoints[0]
     const currentPoint = this.touchState.currentPoints[0]
+
+    if (!startPoint || !currentPoint) return
+
     const distance = this.calculateDistance(startPoint, currentPoint)
 
     // If movement exceeds threshold, convert to pan gesture
@@ -266,10 +270,12 @@ export class MobileGestureHandler {
   private handlePinchMove(): void {
     if (this.touchState.currentPoints.length !== 2) return
 
-    const currentDistance = this.calculateDistance(
-      this.touchState.currentPoints[0],
-      this.touchState.currentPoints[1]
-    )
+    const point0 = this.touchState.currentPoints[0]
+    const point1 = this.touchState.currentPoints[1]
+
+    if (!point0 || !point1) return
+
+    const currentDistance = this.calculateDistance(point0, point1)
 
     if (this.touchState.distance > 0) {
       const newScale = currentDistance / this.touchState.distance
@@ -322,8 +328,11 @@ export class MobileGestureHandler {
     if (this.touchState.startPoints.length !== 1) return
 
     const startPoint = this.touchState.startPoints[0]
-    const distance = this.touchState.currentPoints.length > 0
-      ? this.calculateDistance(startPoint, this.touchState.currentPoints[0])
+    if (!startPoint) return
+
+    const currentPoint = this.touchState.currentPoints[0]
+    const distance = currentPoint
+      ? this.calculateDistance(startPoint, currentPoint)
       : 0
 
     // Check if this is a valid tap (short duration, minimal movement)
@@ -354,7 +363,8 @@ export class MobileGestureHandler {
     }
 
     const current = this.touchState.currentPoints[0]
-    const previous = this.touchHistory[this.touchHistory.length - 2][0]
+    const previousArray = this.touchHistory[this.touchHistory.length - 2]
+    const previous = previousArray?.[0]
 
     if (current && previous) {
       const timeDelta = current.timestamp - previous.timestamp

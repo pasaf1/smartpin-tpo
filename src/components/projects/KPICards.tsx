@@ -14,7 +14,7 @@ interface KPICard {
   hint: string
 }
 
-interface KPICardsProps {
+export interface KPICardsProps {
   className?: string
   onFilterChange?: (filter: string) => void
   activeFilter?: string

@@ -310,10 +310,10 @@ export class ViewportCuller {
             id: item.id,
             x: item.x,
             y: item.y,
-            width: item.width,
-            height: item.height,
-            radius: item.radius,
-            priority: item.priority
+            ...(item.width !== undefined ? { width: item.width } : {}),
+            ...(item.height !== undefined ? { height: item.height } : {}),
+            ...(item.radius !== undefined ? { radius: item.radius } : {}),
+            ...(item.priority !== undefined ? { priority: item.priority } : {})
           })
         }
       }
@@ -357,7 +357,7 @@ export function createViewportCuller(config: CullingConfig = {}): ViewportCuller
     padding: 50, // Smaller padding for better performance
     enableFrustumCulling: true,
     enableOcclusionCulling: false, // Disabled for performance
-    debug: process.env.NODE_ENV === 'development',
+    debug: process.env['NODE_ENV'] === 'development',
     ...config
   })
 }

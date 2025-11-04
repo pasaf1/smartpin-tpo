@@ -114,10 +114,14 @@ export class ChatExporter {
     doc.text(`Total Messages: ${filteredMessages.length}`, 15, 60)
     const uniqueUsers = new Set(filteredMessages.map(m => m.user_name)).size
     doc.text(`Participants: ${uniqueUsers}`, 15, 70)
-    
+
     if (filteredMessages.length > 0) {
-      const dateRange = `${format(new Date(filteredMessages[0].created_at), 'PP')} - ${format(new Date(filteredMessages[filteredMessages.length - 1].created_at), 'PP')}`
-      doc.text(`Date Range: ${dateRange}`, 15, 80)
+      const firstMsg = filteredMessages[0]
+      const lastMsg = filteredMessages[filteredMessages.length - 1]
+      if (firstMsg && lastMsg) {
+        const dateRange = `${format(new Date(firstMsg.created_at), 'PP')} - ${format(new Date(lastMsg.created_at), 'PP')}`
+        doc.text(`Date Range: ${dateRange}`, 15, 80)
+      }
     }
 
     // Messages table
@@ -261,8 +265,8 @@ export class ProjectExporter {
     
     let yPos = 95
     doc.setFontSize(10)
-    
-    const summaryData = [
+
+    const summaryData: Array<[string, string]> = [
       ['Location', data.roof.location || 'Not specified'],
       ['Completion', `${data.roof.completion_percentage || 0}%`],
       ['Total Pins', (data.roof.total_pins || 0).toString()],
@@ -320,7 +324,7 @@ export class ProjectExporter {
       doc.text('Team Members', 15, 20)
 
       const usersTableData = data.users.map(user => [
-        user.user_metadata?.full_name || user.email,
+        user.user_metadata?.['full_name'] || user.email,
         user.email,
         user.user_metadata?.['role'] || 'User',
         user.confirmed_at ? 'Active' : 'Pending',
@@ -410,8 +414,8 @@ export class ImageExporter {
     }
 
     const canvas = await html2canvas(element, {
-      width: options.width,
-      height: options.height,
+      ...(options.width !== undefined ? { width: options.width } : {}),
+      ...(options.height !== undefined ? { height: options.height } : {}),
       scale: options.scale || 2,
       backgroundColor: options.backgroundColor || '#ffffff',
       useCORS: true,

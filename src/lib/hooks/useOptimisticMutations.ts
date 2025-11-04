@@ -2,8 +2,73 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { Pin, PinInsert, PinUpdate } from '@/lib/database.types'
 import { QUERY_KEYS } from './usePins'
+
+// Define Pin types locally (must match database schema)
+type PinStatus = 'Open' | 'ReadyForInspection' | 'Closed'
+
+// Database schema for insert - matches database.types exactly
+interface PinInsert {
+  roof_id: string
+  seq_number: number        // Required
+  x: number                 // Required
+  y: number                 // Required
+  children_closed?: number | null
+  children_open?: number | null
+  children_ready?: number | null
+  children_total?: number | null
+  group_count?: number | null
+  id?: string
+  last_activity_at?: string | null
+  opened_at?: string | null
+  opened_by?: string | null
+  parent_mix_state?: string | null
+  status?: PinStatus | null
+  status_parent_manual?: PinStatus | null
+  zone?: string | null
+}
+
+// Database schema for update - matches database.types exactly
+interface PinUpdate {
+  children_closed?: number | null
+  children_open?: number | null
+  children_ready?: number | null
+  children_total?: number | null
+  group_count?: number | null
+  id?: string
+  last_activity_at?: string | null
+  opened_at?: string | null
+  opened_by?: string | null
+  parent_mix_state?: string | null
+  roof_id?: string
+  seq_number?: number          // Optional but NOT null
+  status?: PinStatus | null
+  status_parent_manual?: PinStatus | null
+  x?: number                   // Optional but NOT null
+  y?: number                   // Optional but NOT null
+  zone?: string | null
+}
+
+// For reading from database - matches Row type from database.types
+interface Pin {
+  id: string
+  roof_id: string
+  seq_number: number
+  x: number
+  y: number
+  children_closed: number | null
+  children_open: number | null
+  children_ready: number | null
+  children_total: number | null
+  group_count: number | null
+  last_activity_at: string | null
+  opened_at: string | null
+  opened_by: string | null
+  parent_mix_state: string | null
+  status: PinStatus | null
+  status_parent_manual: PinStatus | null
+  zone: string | null
+}
 
 // 2025 Enhancement: Optimistic Updates for Pin Mutations
 
@@ -32,24 +97,23 @@ export function useCreatePinOptimistic(roofId: string) {
       // Optimistically update to the new value
       if (previousPins) {
         const optimisticPin: Pin = {
-          ...newPin,
           id: `temp-${Date.now()}`, // Temporary ID
           roof_id: roofId,
-          seq_number: (previousPins.length || 0) + 1,
-          zone: newPin.zone || 'A',
-          x: newPin.x || 0,
-          y: newPin.y || 0,
-          status: 'Open',
-          status_parent_manual: 'Open',
-          group_count: 0,
-          children_total: 0,
-          children_open: 0,
-          children_ready: 0,
-          children_closed: 0,
-          parent_mix_state: null,
-          opened_by: null,
-          opened_at: new Date().toISOString(),
-          last_activity_at: new Date().toISOString(),
+          seq_number: newPin.seq_number,  // Required field
+          zone: newPin.zone ?? 'A',
+          x: newPin.x,  // Required field
+          y: newPin.y,  // Required field
+          status: newPin.status ?? 'Open',
+          status_parent_manual: newPin.status_parent_manual ?? 'Open',
+          group_count: newPin.group_count ?? 0,
+          children_total: newPin.children_total ?? 0,
+          children_open: newPin.children_open ?? 0,
+          children_ready: newPin.children_ready ?? 0,
+          children_closed: newPin.children_closed ?? 0,
+          parent_mix_state: newPin.parent_mix_state ?? null,
+          opened_by: newPin.opened_by ?? null,
+          opened_at: newPin.opened_at ?? new Date().toISOString(),
+          last_activity_at: newPin.last_activity_at ?? new Date().toISOString(),
         }
 
         queryClient.setQueryData<Pin[]>(

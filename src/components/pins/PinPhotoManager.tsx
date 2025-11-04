@@ -95,7 +95,7 @@ export const PinPhotoManager: React.FC<PinPhotoManagerProps> = ({
       const newPreviews: PhotoPreview[] = validFiles.map(file => ({
         id: `temp-${Date.now()}-${Math.random()}`,
         pin_id: pin.id,
-        child_pin_id: childPin?.child_id,
+        ...(childPin?.child_id ? { child_pin_id: childPin.child_id } : {}),
         type: activePhotoType,
         url: URL.createObjectURL(file),
         thumbnail_url: URL.createObjectURL(file),

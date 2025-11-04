@@ -1,12 +1,13 @@
 import { useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Database, PinChild, Photo, Pin } from '@/lib/database.types'
+import type { Database } from '@/lib/database.types'
 
 type PinRow = Database['public']['Tables']['pins']['Row']
 type PinChildRow = Database['public']['Tables']['pin_children']['Row']
 type PinChildInsert = Database['public']['Tables']['pin_children']['Insert']
 type PinChildUpdate = Database['public']['Tables']['pin_children']['Update']
+type PhotoRow = Database['public']['Tables']['photos']['Row']
 type PhotoInsert = Database['public']['Tables']['photos']['Insert']
 
 const QK = {
@@ -86,7 +87,7 @@ export function useCreatePinChild(pinId: string) {
 export function useUpdatePinChildStatus(pinId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ childId, status }: { childId: string; status: PinChild['status_child'] }): Promise<PinChildRow> => {
+    mutationFn: async ({ childId, status }: { childId: string; status: PinChildRow['status_child'] }): Promise<PinChildRow> => {
       // Guard: if trying to close, ensure closure image exists
       if (status === 'Closed') {
         const { data: photos } = await supabase
@@ -124,14 +125,14 @@ export function useUpdatePinChildStatus(pinId: string) {
 export function useChildPhotos(childId: string) {
   return useQuery({
     queryKey: QK.childPhotos(childId),
-    queryFn: async (): Promise<Photo[]> => {
+    queryFn: async (): Promise<PhotoRow[]> => {
       const { data, error } = await supabase
         .from('photos')
         .select('*')
         .eq('child_id', childId)
         .order('uploaded_at', { ascending: false })
       if (error) throw error
-      return (data || []) as Photo[]
+      return data || []
     },
     enabled: !!childId,
   })

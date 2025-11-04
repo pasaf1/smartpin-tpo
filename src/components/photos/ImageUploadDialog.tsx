@@ -80,11 +80,17 @@ export function ImageUploadDialog({
 
     // Auto-generate title from first file if empty
     if (!metadata.title && newFiles.length > 0) {
-      const fileName = newFiles[0].name.split('.')[0]
-      setMetadata(prev => ({
-        ...prev,
-        title: fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      }))
+      const firstFile = newFiles[0]
+      if (firstFile) {
+        const nameParts = firstFile.name.split('.')
+        const fileName = nameParts[0]
+        if (fileName) {
+          setMetadata(prev => ({
+            ...prev,
+            title: fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          }))
+        }
+      }
     }
   }, [files.length, maxFiles, metadata.title])
 
@@ -131,14 +137,15 @@ export function ImageUploadDialog({
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        
+        if (!file) continue
+
         // Update progress for processing
         setUploadProgress((i / (files.length * 2)) * 100)
-        
+
         // Process each image (creates original + prepared for annotation)
         const result = await processor.processImage(file, [])
         processingResults.push(result)
-        
+
         // Update progress for upload preparation
         setUploadProgress(((i + 1) / files.length) * 50)
       }
@@ -196,7 +203,8 @@ export function ImageUploadDialog({
     const k = 1024
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    const unit = sizes[i] || 'Bytes'
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + unit
   }
 
   return (

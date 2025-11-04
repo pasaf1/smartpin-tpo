@@ -86,10 +86,7 @@ export type {
   ImageKind,
   PinValidationRule,
   PinValidationResult,
-  StatusWorkflowRule,
-
-  // Complete type collection
-  SmartPinTypes
+  StatusWorkflowRule
 } from './types'
 
 // Utility Functions

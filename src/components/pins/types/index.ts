@@ -155,8 +155,9 @@ export interface SmartPin extends Omit<Pin, 'status' | 'zone' | 'priority' | 'se
 
 // ===== Enhanced SmartChildPin (augmentation over DB row) =====
 // קריטי: שמירה על תאימות מול ה־DB. לפי השגיאה, defect_type חייב להיות string | null.
+// Using Omit to exclude properties we want to redefine with extended types
 
-export interface SmartChildPin extends ChildPin {
+export interface SmartChildPin extends Omit<ChildPin, 'status_child'> {
   // Hierarchy
   parent_pin: SmartPin | null
   child_code: string // e.g., "1.1", "1.2", "2.3"
@@ -170,7 +171,7 @@ export interface SmartChildPin extends ChildPin {
 
   // Status & Workflow
   status_child: PinStatus
-  severity?: PinSeverity
+  // severity is inherited from ChildPin
 
   // Classification (מיישר ל־DB: null במקום undefined)
   defect_type: string | null
@@ -189,7 +190,7 @@ export interface SmartChildPin extends ChildPin {
   updated_at: string
 
   // Notes & Documentation
-  notes?: string
+  // notes is inherited from ChildPin (string | null)
   resolution_notes?: string
 
   // Business Logic
@@ -458,25 +459,5 @@ export interface StatusWorkflowRule {
 }
 
 // ===== Aggregate type exports =====
-export const SmartPinTypes = {
-  Pin,
-  PinInsert,
-  PinUpdate,
-  ChildPin,
-  ChildPinInsert,
-  ChildPinUpdate,
-  SmartPin,
-  SmartChildPin,
-  PinStatus,
-  PinSeverity,
-  PinPriority,
-  UserRole,
-  PhotoUpload,
-  PinActivity,
-  UserPresence,
-  PinError,
-  StatusTransition,
-  ExtendedPinStatus,
-  DefectLayer,
-  ImageKind
-} as const
+// Note: Types cannot be exported as runtime values
+// All types are already exported individually above

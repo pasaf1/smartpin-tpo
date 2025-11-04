@@ -42,9 +42,12 @@ export function MobileBottomSheet({
   const findClosestSnap = (yPosition: number, velocity: number) => {
     const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 1000
     const currentPercent = ((windowHeight - yPosition) / windowHeight) * 100
-    
+
+    const firstSnap = snapPoints[0]
+    if (firstSnap === undefined) return 0
+
     let closestIndex = 0
-    let closestDistance = Math.abs(snapPoints[0] - currentPercent)
+    let closestDistance = Math.abs(firstSnap - currentPercent)
 
     snapPoints.forEach((snap, index) => {
       const distance = Math.abs(snap - currentPercent)
@@ -74,6 +77,7 @@ export function MobileBottomSheet({
   // Touch event handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
+    if (!touch) return
     setStartY(touch.clientY)
     setCurrentY(touch.clientY)
     setDragStartTime(Date.now())
@@ -82,22 +86,28 @@ export function MobileBottomSheet({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return
-    
+
     const touch = e.touches[0]
+    if (!touch) return
     setCurrentY(touch.clientY)
-    
+
     const sheet = sheetRef.current
     if (sheet) {
       const deltaY = touch.clientY - startY
       const windowHeight = window.innerHeight
-      const currentHeight = snapPoints[currentSnap] / 100 * windowHeight
+      const currentSnapValue = snapPoints[currentSnap]
+      if (currentSnapValue === undefined) return
+      const currentHeight = currentSnapValue / 100 * windowHeight
       const newY = windowHeight - currentHeight + deltaY
-      
+
       // Constrain movement
-      const minY = windowHeight - (snapPoints[snapPoints.length - 1] / 100 * windowHeight)
-      const maxY = windowHeight - (snapPoints[0] / 100 * windowHeight)
+      const lastSnapValue = snapPoints[snapPoints.length - 1]
+      const firstSnapValue = snapPoints[0]
+      if (lastSnapValue === undefined || firstSnapValue === undefined) return
+      const minY = windowHeight - (lastSnapValue / 100 * windowHeight)
+      const maxY = windowHeight - (firstSnapValue / 100 * windowHeight)
       const constrainedY = Math.max(minY, Math.min(maxY, newY))
-      
+
       sheet.style.transform = `translateY(${constrainedY}px)`
     }
   }

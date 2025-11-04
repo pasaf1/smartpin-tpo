@@ -576,7 +576,7 @@ export const exportUtils = {
     return dataExportManager.exportData({
       format,
       reportType: 'project_summary',
-      filters: projectId ? { projectId } : undefined,
+      ...(projectId ? { filters: { projectId } } : {}),
       includePhotos: false,
       includeCharts: true
     })
@@ -587,7 +587,7 @@ export const exportUtils = {
     return dataExportManager.exportData({
       format,
       reportType: 'issue_tracking',
-      filters,
+      ...(filters ? { filters } : {}),
       includePhotos: false
     })
   },

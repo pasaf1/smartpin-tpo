@@ -73,7 +73,10 @@ export function MentionInput({
         case 'Enter':
         case 'Tab':
           e.preventDefault()
-          selectSuggestion(suggestions[selectedSuggestionIndex])
+          const selectedUser = suggestions[selectedSuggestionIndex]
+          if (selectedUser) {
+            selectSuggestion(selectedUser)
+          }
           break
         case 'Escape':
           setShowSuggestions(false)

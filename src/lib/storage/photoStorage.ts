@@ -114,7 +114,10 @@ export class PhotoStorageService {
     try {
       const validation = this.validateFile(file)
       if (!validation.valid) {
-        return { success: false, error: validation.error }
+        return {
+          success: false,
+          ...(validation.error !== undefined ? { error: validation.error } : {})
+        }
       }
 
       const { data, error } = await this.supabase.storage
@@ -130,9 +133,9 @@ export class PhotoStorageService {
 
       return { success: true, data }
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Upload failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Upload failed'
       }
     }
   }

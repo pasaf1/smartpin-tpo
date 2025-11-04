@@ -43,9 +43,9 @@ export function ActivityFeed({
         if (pinId || roofId || projectId) {
           // Load filtered activities
           const filteredActivities = await getActivityHistory({
-            pin_id: pinId,
-            roof_id: roofId,
-            project_id: projectId,
+            ...(pinId ? { pin_id: pinId } : {}),
+            ...(roofId ? { roof_id: roofId } : {}),
+            ...(projectId ? { project_id: projectId } : {}),
             limit
           })
           setActivities(filteredActivities)
@@ -68,9 +68,9 @@ export function ActivityFeed({
     setIsRefreshing(true)
     try {
       const freshActivities = await getActivityHistory({
-        pin_id: pinId,
-        roof_id: roofId,
-        project_id: projectId,
+        ...(pinId ? { pin_id: pinId } : {}),
+        ...(roofId ? { roof_id: roofId } : {}),
+        ...(projectId ? { project_id: projectId } : {}),
         limit
       })
       setActivities(freshActivities)
@@ -256,10 +256,10 @@ export function ActivityFeed({
                             <Clock className="w-3 h-3" />
                             {formatted.timestamp}
                           </div>
-                          {activity.details?.pin_sequence && (
+                          {activity.details?.['pin_sequence'] && (
                             <div className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
-                              Pin #{activity.details.pin_sequence}
+                              Pin #{activity.details['pin_sequence']}
                             </div>
                           )}
                         </div>

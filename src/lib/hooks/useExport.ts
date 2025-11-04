@@ -6,7 +6,15 @@ import { supabase } from '@/lib/supabase'
 import { CSVExporter } from '@/lib/export/CSVExporter'
 import { PDFExporter } from '@/lib/export/PDFExporter'
 import { ActivityLogger } from '@/lib/activity/ActivityLogger'
-import type { PinWithRelations, PinChild } from '@/lib/database.types'
+import type { PinWithRelations } from '@/lib/database.types'
+
+// Define PinChild type locally (must match database schema)
+interface PinChild {
+  child_id: string
+  child_code: string | null
+  defect_type: string | null
+  created_at: string | null
+}
 
 interface ExportOptions {
   includePhotos?: boolean
@@ -107,6 +115,11 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
         mttrHours = (closed.getTime() - created.getTime()) / (1000 * 60 * 60)
       }
 
+      const severity = getSeverityNumber((pin as any).severity)
+      const roofName = roofInfo?.name
+      const projectName = projectInfo?.name
+      const contractor = projectInfo?.contractor
+
       return {
         id: pin.id,
         seq_number: pin.seq_number,
@@ -114,17 +127,17 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
         issue_type: (pin as any).issue_type,
         defect_type: (pin as any).defect_type,
         defect_layer: (pin as any).defect_layer,
-        severity: getSeverityNumber(pin.severity),
+        ...(severity !== undefined ? { severity } : {}),
         created_at: (pin as any).created_at,
         closed_at: pin.status === 'Closed' ? (pin as any).updated_at : undefined,
-        mttr_hours: mttrHours,
+        ...(mttrHours !== undefined ? { mttr_hours: mttrHours } : {}),
         x_position: pin.x || 0,
         y_position: pin.y || 0,
         created_by: (pin as any).created_by,
         updated_at: (pin as any).updated_at,
-        roof_name: roofInfo?.name,
-        project_name: projectInfo?.name,
-        contractor: projectInfo?.contractor || undefined
+        ...(roofName ? { roof_name: roofName } : {}),
+        ...(projectName ? { project_name: projectName } : {}),
+        ...(contractor ? { contractor } : {})
       }
     })
   }, [projectData, roofData])
@@ -168,10 +181,10 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       setExportProgress(50)
       
       exporter.exportPins(exportData, filename, {
-        includePhotos: options.includePhotos,
-        includeTechnicalDetails: options.includeTechnicalDetails,
-        includeTimestamps: options.includeTimestamps,
-        dateFormat: options.dateFormat
+        ...(options.includePhotos !== undefined ? { includePhotos: options.includePhotos } : {}),
+        ...(options.includeTechnicalDetails !== undefined ? { includeTechnicalDetails: options.includeTechnicalDetails } : {}),
+        ...(options.includeTimestamps !== undefined ? { includeTimestamps: options.includeTimestamps } : {}),
+        ...(options.dateFormat ? { dateFormat: options.dateFormat } : {})
       })
 
       setExportProgress(100)
@@ -212,8 +225,8 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       setExportProgress(50)
       
       exporter.exportProjects(exportData, filename, {
-        includeTimestamps: options.includeTimestamps,
-        dateFormat: options.dateFormat
+        ...(options.includeTimestamps !== undefined ? { includeTimestamps: options.includeTimestamps } : {}),
+        ...(options.dateFormat ? { dateFormat: options.dateFormat } : {})
       })
 
       setExportProgress(100)
@@ -260,7 +273,7 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       exporter.exportAnalytics({
         projects: projectsData,
         pins: pinsData,
-        timeRange
+        ...(timeRange ? { timeRange } : {})
       }, filename)
 
       setExportProgress(100)
@@ -299,6 +312,11 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       setExportProgress(30)
 
       // Convert pin data to PDF format
+      const severity = getSeverityNumber((pin as any).severity)
+      const mttrHours = pin.status === 'Closed' && (pin as any).created_at && (pin as any).updated_at ?
+        (new Date((pin as any).updated_at).getTime() - new Date((pin as any).created_at).getTime()) / (1000 * 60 * 60) :
+        undefined
+
       const pdfPin = {
         id: pin.id,
         seq_number: pin.seq_number,
@@ -306,15 +324,13 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
         issue_type: (pin as any).issue_type,
         defect_type: (pin as any).defect_type,
         defect_layer: (pin as any).defect_layer,
-        severity: getSeverityNumber(pin.severity),
+        ...(severity !== undefined ? { severity } : {}),
         created_at: (pin as any).created_at,
         x_position: pin.x || 0,
         y_position: pin.y || 0,
         opening_photo_url: (pin as any).opening_photo_url,
         closing_photo_url: (pin as any).closing_photo_url,
-        mttr_hours: pin.status === 'Closed' && (pin as any).created_at && (pin as any).updated_at ? 
-          (new Date((pin as any).updated_at).getTime() - new Date((pin as any).created_at).getTime()) / (1000 * 60 * 60) : 
-          undefined
+        ...(mttrHours !== undefined ? { mttr_hours: mttrHours } : {})
       }
 
       const pdfChildren = children.map(child => ({
@@ -323,7 +339,7 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
         status: (child as any).status || 'Open',
         opening_photo_url: (child as any).opening_photo_url,
         closing_photo_url: (child as any).closing_photo_url,
-        defect_type: child.defect_type || undefined,
+        ...(child.defect_type ? { defect_type: child.defect_type } : {}),
         created_at: child.created_at ?? new Date().toISOString()
       }))
 
@@ -333,9 +349,9 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
         includeMap: true,
         includePhotos: options.includePhotos ?? true,
         includeDetails: options.includeTechnicalDetails ?? true,
-        projectName: options.projectName,
-        contractorName: options.contractorName,
-        companyLogo: options.companyLogo
+        ...(options.projectName ? { projectName: options.projectName } : {}),
+        ...(options.contractorName ? { contractorName: options.contractorName } : {}),
+        ...(options.companyLogo ? { companyLogo: options.companyLogo } : {})
       })
 
       setExportProgress(100)
@@ -373,23 +389,28 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
       setExportProgress(20)
 
       // Convert pins data to PDF format
-      const pdfPins = pins.map(pin => ({
-        id: pin.id,
-        seq_number: pin.seq_number,
-        status: pin.status ?? 'Open',
-        issue_type: (pin as any).issue_type,
-        defect_type: (pin as any).defect_type,
-        defect_layer: (pin as any).defect_layer,
-        severity: getSeverityNumber(pin.severity),
-        created_at: (pin as any).created_at,
-        x_position: pin.x || 0,
-        y_position: pin.y || 0,
-        opening_photo_url: (pin as any).opening_photo_url,
-        closing_photo_url: (pin as any).closing_photo_url,
-        mttr_hours: pin.status === 'Closed' && (pin as any).created_at && (pin as any).updated_at ? 
-          (new Date((pin as any).updated_at).getTime() - new Date((pin as any).created_at).getTime()) / (1000 * 60 * 60) : 
+      const pdfPins = pins.map(pin => {
+        const severity = getSeverityNumber((pin as any).severity)
+        const mttrHours = pin.status === 'Closed' && (pin as any).created_at && (pin as any).updated_at ?
+          (new Date((pin as any).updated_at).getTime() - new Date((pin as any).created_at).getTime()) / (1000 * 60 * 60) :
           undefined
-      }))
+
+        return {
+          id: pin.id,
+          seq_number: pin.seq_number,
+          status: pin.status ?? 'Open',
+          issue_type: (pin as any).issue_type,
+          defect_type: (pin as any).defect_type,
+          defect_layer: (pin as any).defect_layer,
+          ...(severity !== undefined ? { severity } : {}),
+          created_at: (pin as any).created_at,
+          x_position: pin.x || 0,
+          y_position: pin.y || 0,
+          opening_photo_url: (pin as any).opening_photo_url,
+          closing_photo_url: (pin as any).closing_photo_url,
+          ...(mttrHours !== undefined ? { mttr_hours: mttrHours } : {})
+        }
+      })
 
       setExportProgress(60)
 
@@ -398,9 +419,9 @@ export function useExport({ projectId, roofId, activityLogger }: UseExportProps 
         includePhotos: options.includePhotos ?? false,
         includeDetails: options.includeTechnicalDetails ?? true,
         includeSummary: true,
-        projectName: options.projectName,
-        contractorName: options.contractorName,
-        companyLogo: options.companyLogo
+        ...(options.projectName ? { projectName: options.projectName } : {}),
+        ...(options.contractorName ? { contractorName: options.contractorName } : {}),
+        ...(options.companyLogo ? { companyLogo: options.companyLogo } : {})
       })
 
       setExportProgress(100)

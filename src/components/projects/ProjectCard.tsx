@@ -130,3 +130,6 @@ export function RoofCard({ roof, onViewDetails, className }: RoofCardProps) {
     </div>
   )
 }
+
+// Default export for index.ts
+export default RoofCard

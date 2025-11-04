@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
-import type { PinStatus } from "@/lib/database.types"
+
+type PinStatus = 'Open' | 'ReadyForInspection' | 'Closed' | 'InDispute'
 
 interface StatusBadgeProps {
   status: PinStatus
@@ -21,6 +22,11 @@ const statusConfig = {
     label: 'Closed',
     className: 'status-badge-closed',
     icon: '🟢',
+  },
+  InDispute: {
+    label: 'In Dispute',
+    className: 'status-badge-dispute',
+    icon: '🔶',
   },
 } as const
 

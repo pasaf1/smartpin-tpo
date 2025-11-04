@@ -389,7 +389,7 @@ export function useChatPro(scope: Scope, scopeId: string | null, opts?: {
     // typing
     if (opts?.enableTyping) {
       ch.on('broadcast', { event: 'typing' }, (payload) => {
-        const { action } = payload.payload as { action: 'start' | 'stop' }
+        const { action } = payload['payload'] as { action: 'start' | 'stop' }
         const id = 'someone'
         const name = 'Someone'
         if (action === 'start') {

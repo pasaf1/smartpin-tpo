@@ -384,7 +384,7 @@ export function ChatExamples({ onUseTemplate, className }: ChatExampleProps) {
                 <TemplateCard
                   key={template.id}
                   template={template}
-                  onUse={onUseTemplate}
+                  {...(onUseTemplate ? { onUse: onUseTemplate } : {})}
                   onCopy={handleCopyTemplate}
                 />
               ))}

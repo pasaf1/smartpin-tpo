@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabase'
-import type { Database, PinStatus } from '../database.types'
+import type { Database } from '../database.types'
 
 type PinItem = Database['public']['Tables']['pin_items']['Row']
 type PinItemInsert = Database['public']['Tables']['pin_items']['Insert']
@@ -104,7 +104,7 @@ export function useUpdatePinItemStatus() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: PinStatus }): Promise<PinItem> => {
+    mutationFn: async ({ id, status }: { id: string; status: PinItem['status'] }): Promise<PinItem> => {
       const updates: PinItemUpdate = {
         status,
         last_activity_at: new Date().toISOString(),

@@ -86,7 +86,7 @@ export class AnalyticsManager {
         page_title: typeof document !== 'undefined' ? document.title : undefined,
         referrer: typeof document !== 'undefined' ? document.referrer : undefined,
       },
-      userId,
+      ...(userId ? { userId } : {}),
       sessionId: this.sessionId,
       timestamp: new Date(),
       metadata: this.getMetadata()
@@ -98,9 +98,9 @@ export class AnalyticsManager {
     // Send to external analytics if available
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', event, {
-        custom_parameter_1: properties?.category,
-        custom_parameter_2: properties?.label,
-        value: properties?.value,
+        custom_parameter_1: properties?.['category'],
+        custom_parameter_2: properties?.['label'],
+        value: properties?.['value'],
         user_id: userId,
         session_id: this.sessionId
       })
@@ -253,7 +253,8 @@ export class AnalyticsManager {
   }
 
   private getSessionDuration(): number {
-    const sessionStart = parseInt(this.sessionId.split('_')[1])
+    const parts = this.sessionId.split('_')
+    const sessionStart = parts[1] ? parseInt(parts[1]) : Date.now()
     return Date.now() - sessionStart
   }
 

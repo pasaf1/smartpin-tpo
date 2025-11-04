@@ -19,7 +19,7 @@ export function dynamicImport<T = {}>(
   } = options
 
   return dynamic(importFunction, {
-    loading: loading ? () => React.createElement(loading as any) : undefined,
+    ...(loading ? { loading: () => React.createElement(loading as any) } : {}),
     ssr,
   })
 }
@@ -73,9 +73,10 @@ export const BundleAnalytics = {
 // Preload critical components
 export const preloadCriticalComponents = async () => {
   // Preload components that are likely to be used soon
-  const criticalComponents = [
-    () => import('@/components/dashboard/InteractiveRoofPlan'),
-    () => import('@/components/canvas/PinCanvas'),
+  const criticalComponents: Array<() => Promise<any>> = [
+    // TODO: Add actual critical component imports here
+    // Example: () => import('@/components/dashboard/InteractiveRoofPlan'),
+    // Example: () => import('@/components/canvas/PinCanvas'),
   ]
 
   // Use requestIdleCallback if available, otherwise setTimeout
@@ -112,8 +113,9 @@ export const ImageOptimization = {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target as HTMLImageElement
-            if (img.dataset.src) {
-              img.src = img.dataset.src
+            const imgSrc = img.dataset['src']
+            if (imgSrc) {
+              img.src = imgSrc
               img.classList.remove('lazy')
               observer.unobserve(img)
             }
@@ -150,12 +152,15 @@ export const PerformanceMonitoring = {
   trackBundleSize: () => {
     if (typeof window !== 'undefined' && 'PerformanceNavigationTiming' in window) {
       window.addEventListener('load', () => {
-        const navTiming = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+        const navTimingEntry = performance.getEntriesByType('navigation')[0]
+        if (!navTimingEntry) return
+
+        const navTiming = navTimingEntry as PerformanceNavigationTiming
         const resourceTiming = performance.getEntriesByType('resource')
-        
+
         let totalJSSize = 0
         let totalCSSSize = 0
-        
+
         resourceTiming.forEach(resource => {
           if (resource.name.includes('.js')) {
             totalJSSize += (resource as any).transferSize || 0

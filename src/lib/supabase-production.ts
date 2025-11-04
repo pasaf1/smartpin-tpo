@@ -1,23 +1,23 @@
 // Production Supabase integration utilities
 import { supabase } from './supabase'
-import type { 
-  Database, 
-  Project, 
-  Roof, 
-  Pin, 
-  PinChild, 
-  Photo, 
-  PinChat,
-  Chat,
-  ChatInsert,
-  User,
-  ProjectInsert,
-  RoofInsert,
-  PinInsert,
-  PinChildInsert,
-  PhotoInsert,
-  PinChatInsert
-} from './database.types'
+import type { Database } from './database.types'
+
+// Define types locally using Database schema
+type Project = Database['public']['Tables']['projects']['Row']
+type ProjectInsert = Database['public']['Tables']['projects']['Insert']
+type Roof = Database['public']['Tables']['roofs']['Row']
+type RoofInsert = Database['public']['Tables']['roofs']['Insert']
+type Pin = Database['public']['Tables']['pins']['Row']
+type PinInsert = Database['public']['Tables']['pins']['Insert']
+type PinChild = Database['public']['Tables']['pin_children']['Row']
+type PinChildInsert = Database['public']['Tables']['pin_children']['Insert']
+type Photo = Database['public']['Tables']['photos']['Row']
+type PhotoInsert = Database['public']['Tables']['photos']['Insert']
+type Chat = Database['public']['Tables']['chats']['Row']
+type ChatInsert = Database['public']['Tables']['chats']['Insert']
+type PinChat = Database['public']['Tables']['pin_chat']['Row']
+type PinChatInsert = Database['public']['Tables']['pin_chat']['Insert']
+type User = Database['public']['Tables']['users']['Row']
 
 // Production-ready database operations with proper error handling and types
 

@@ -28,7 +28,7 @@ export interface NotificationSubscription {
 export class PushNotificationService {
   private registration: ServiceWorkerRegistration | null = null
   private subscription: PushSubscription | null = null
-  private vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
+  private vapidPublicKey = process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'] || ''
 
   async initialize(): Promise<boolean> {
     try {
@@ -206,7 +206,10 @@ export class PushNotificationService {
     const bytes = new Uint8Array(buffer)
     let binary = ''
     for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i])
+      const byte = bytes[i]
+      if (byte !== undefined) {
+        binary += String.fromCharCode(byte)
+      }
     }
     return window.btoa(binary)
   }
@@ -214,15 +217,15 @@ export class PushNotificationService {
   // Show local notification (for testing)
   async showLocalNotification(payload: NotificationPayload): Promise<void> {
     const permission = await this.requestPermission()
-    
+
     if (permission === 'granted') {
       new Notification(payload.title, {
         body: payload.body,
         icon: payload.icon || '/icons/icon-192x192.png',
-        tag: payload.tag,
-        data: payload.data,
-        requireInteraction: payload.requireInteraction,
-        silent: payload.silent
+        ...(payload.tag !== undefined ? { tag: payload.tag } : {}),
+        ...(payload.data !== undefined ? { data: payload.data } : {}),
+        ...(payload.requireInteraction !== undefined ? { requireInteraction: payload.requireInteraction } : {}),
+        ...(payload.silent !== undefined ? { silent: payload.silent } : {})
       })
     }
   }
@@ -230,8 +233,8 @@ export class PushNotificationService {
 
 // Utility functions for server-side push notifications
 export class ServerPushService {
-  private vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || ''
-  private vapidPublicKey = process.env.VAPID_PUBLIC_KEY || ''
+  private vapidPrivateKey = process.env['VAPID_PRIVATE_KEY'] || ''
+  private vapidPublicKey = process.env['VAPID_PUBLIC_KEY'] || ''
 
   async sendNotification(
     subscriptions: NotificationSubscription[],

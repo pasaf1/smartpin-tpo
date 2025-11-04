@@ -51,3 +51,6 @@ export function LuxuryHeader() {
     </header>
   )
 }
+
+// Default export for index.ts
+export default LuxuryHeader

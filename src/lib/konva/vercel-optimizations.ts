@@ -285,7 +285,7 @@ export class VercelKonvaOptimizer {
   createVercelPerformanceMonitor() {
     return {
       // Minimal monitoring for production
-      enableMonitoring: process.env.NODE_ENV === 'development',
+      enableMonitoring: process.env['NODE_ENV'] === 'development',
       sampleRate: 0.1, // 10% sampling in production
       reportingEndpoint: '/api/performance', // Custom endpoint for Vercel
 
@@ -331,7 +331,7 @@ export class VercelKonvaOptimizer {
     // Check for Vercel Edge Runtime specific globals
     return (
       typeof (globalThis as any).EdgeRuntime !== 'undefined' ||
-      (typeof process !== 'undefined' && process.env.VERCEL_REGION !== undefined) ||
+      (typeof process !== 'undefined' && process.env['VERCEL_REGION'] !== undefined) ||
       (typeof navigator !== 'undefined' && navigator.userAgent.includes('Vercel-Edge-Runtime'))
     )
   }
@@ -371,7 +371,7 @@ export class VercelDeploymentHelper {
     return {
       // Environment variables for Vercel
       env: {
-        NEXT_PUBLIC_KONVA_PERFORMANCE_MODE: process.env.NODE_ENV === 'production' ? 'true' : 'false',
+        NEXT_PUBLIC_KONVA_PERFORMANCE_MODE: process.env['NODE_ENV'] === 'production' ? 'true' : 'false',
         NEXT_PUBLIC_ENABLE_CANVAS_OPTIMIZATION: 'true'
       },
 
@@ -403,8 +403,8 @@ export class VercelDeploymentHelper {
    * Generate Vercel-specific environment configuration
    */
   static getEnvironmentConfig() {
-    const isProduction = process.env.NODE_ENV === 'production'
-    const isVercel = process.env.VERCEL === '1'
+    const isProduction = process.env['NODE_ENV'] === 'production'
+    const isVercel = process.env['VERCEL'] === '1'
 
     return {
       // Canvas optimizations

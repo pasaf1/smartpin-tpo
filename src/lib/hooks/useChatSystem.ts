@@ -5,7 +5,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { useChat } from './useChat';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import type { User } from '@/lib/database.types';
 
 export interface ChatNotification {
   id: string;
@@ -28,7 +27,7 @@ export interface ChatScope {
 }
 
 export function useChatSystem(scopes: ChatScope[]) {
-  const [activeScope, setActiveScope] = useState<ChatScope>(scopes[0]);
+  const [activeScope, setActiveScope] = useState<ChatScope>(scopes[0] || { type: 'global', name: 'Global Chat' });
   const [notifications, setNotifications] = useState<ChatNotification[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const { user } = useAuth();
@@ -179,6 +178,6 @@ export function useChatSystem(scopes: ChatScope[]) {
     clearNotifications,
     markNotificationAsRead,
     detectMentions,
-    availableUsers: [] as User[]
+    availableUsers: [] as any[]
   };
 }

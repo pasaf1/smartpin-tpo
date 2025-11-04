@@ -51,10 +51,10 @@ export function ActivityProvider({
     try {
       const context: LoggerContext = {
         user_id: user.id,
-        user_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
+        user_name: user.user_metadata?.['full_name'] || user.email?.split('@')[0] || 'Unknown User',
         user_email: user.email || '',
-        project_id: projectId,
-        roof_id: roofId
+        ...(projectId ? { project_id: projectId } : {}),
+        ...(roofId ? { roof_id: roofId } : {})
       }
 
       const activityLogger = new ActivityLogger(context, {
@@ -82,8 +82,8 @@ export function ActivityProvider({
       try {
         const activities = await logger.getActivityHistory(
           {
-            project_id: loggerContext.project_id,
-            roof_id: loggerContext.roof_id
+            ...(loggerContext.project_id ? { project_id: loggerContext.project_id } : {}),
+            ...(loggerContext.roof_id ? { roof_id: loggerContext.roof_id } : {})
           },
           { limit: 20 }
         )
@@ -118,7 +118,7 @@ export function ActivityProvider({
         subscription = supabase
           .channel('activity-updates')
           .on('broadcast', { event: 'activity' }, (payload) => {
-            const newActivity = payload.payload as ActivityLogEntry
+            const newActivity = payload['payload'] as ActivityLogEntry
             if (newActivity && newActivity.action) {
               setRecentActivities(prev => [newActivity, ...prev.slice(0, 19)])
             }
@@ -156,15 +156,20 @@ export function ActivityProvider({
     if (!logger) return []
 
     try {
+      const pinId = filters?.pin_id
+      const roofId = filters?.roof_id || loggerContext?.roof_id
+      const projectId = filters?.project_id || loggerContext?.project_id
+      const since = filters?.since
+
       return await logger.getActivityHistory(
         {
-          pin_id: filters?.pin_id,
-          roof_id: filters?.roof_id || loggerContext?.roof_id,
-          project_id: filters?.project_id || loggerContext?.project_id
+          ...(pinId ? { pin_id: pinId } : {}),
+          ...(roofId ? { roof_id: roofId } : {}),
+          ...(projectId ? { project_id: projectId } : {})
         },
         {
           limit: filters?.limit || 50,
-          since: filters?.since
+          ...(since ? { since } : {})
         }
       )
     } catch (err) {

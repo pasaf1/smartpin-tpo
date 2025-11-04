@@ -153,8 +153,9 @@ export class MobileOptimizer {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target as HTMLImageElement
-            if (img.dataset.src) {
-              img.src = img.dataset.src
+            const imgSrc = img.dataset['src']
+            if (imgSrc) {
+              img.src = imgSrc
               img.classList.remove('lazy')
               observer.unobserve(img)
             }

@@ -2,7 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { PinStatus, Severity as PinSeverity } from '@/lib/database.types'
+
+// Define types locally (must match database enums)
+type PinStatus = 'Open' | 'ReadyForInspection' | 'Closed' | 'InDispute'
+type PinSeverity = 'Low' | 'Medium' | 'High' | 'Critical'
 
 export interface RiskQualityCell {
   severity: PinSeverity
@@ -89,8 +92,8 @@ const generateDemoRiskMatrix = (): RiskQualityMatrix => {
         items: Array.from({ length: Math.min(count, 5) }, (_, i) => ({
           pin_id: `demo-pin-${severity.toLowerCase()}-${status.toLowerCase()}-${i}`,
           pin_title: `${severity} ${status} Issue #${i + 1}`,
-          pin_item_id: Math.random() > 0.5 ? `demo-item-${i}` : undefined,
-          pin_item_title: Math.random() > 0.5 ? `Repair Item #${i + 1}` : undefined,
+          ...(Math.random() > 0.5 ? { pin_item_id: `demo-item-${i}` } : {}),
+          ...(Math.random() > 0.5 ? { pin_item_title: `Repair Item #${i + 1}` } : {}),
           created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
         }))
@@ -110,11 +113,11 @@ const generateDemoRiskMatrix = (): RiskQualityMatrix => {
   })
   
   // Calculate composite scores
-  const openCritical = cells[0][0].count + cells[1][0].count // Critical + High Open
-  const totalOpen = cells.reduce((sum, row) => sum + row[0].count, 0)
+  const openCritical = (cells[0]?.[0]?.count || 0) + (cells[1]?.[0]?.count || 0) // Critical + High Open
+  const totalOpen = cells.reduce((sum, row) => sum + (row[0]?.count || 0), 0)
   const riskScore = Math.max(0, 100 - Math.round((openCritical / totalOpen) * 100))
-  
-  const closedItems = cells.reduce((sum, row) => sum + row[2].count, 0) // Closed is index 2 now
+
+  const closedItems = cells.reduce((sum, row) => sum + (row[2]?.count || 0), 0) // Closed is index 2 now
   const qualityScore = Math.round((closedItems / totalPins) * 100)
   
   return {
@@ -140,7 +143,7 @@ const generateDemoTrends = (days: number = 30): QualityTrend[] => {
     const closedPins = totalPins - openPins
     
     trends.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split('T')[0] || '',
       totalPins,
       openPins,
       criticalPins,
@@ -172,7 +175,7 @@ const generateDemoCategoryAnalysis = (): CategoryAnalysis[] => {
     averageSeverityScore: Math.round((Math.random() * 2 + 2) * 10) / 10, // 2.0-4.0
     averageResolutionTime: Math.floor(Math.random() * 72) + 12, // 12-84 hours
     trendsLast30Days: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0] || '',
       count: Math.floor(Math.random() * 5) + 1,
       severity: Math.round((Math.random() * 3 + 1) * 10) / 10
     })).reverse()

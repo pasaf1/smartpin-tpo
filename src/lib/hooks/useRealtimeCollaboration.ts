@@ -61,7 +61,9 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
         const presence: Record<string, PresenceUser> = {}
         
         Object.keys(presenceState).forEach((key) => {
-          const user = presenceState[key][0] as any as PresenceUser
+          const presenceArray = presenceState[key]
+          if (!presenceArray || !presenceArray[0]) return
+          const user = presenceArray[0] as any as PresenceUser
           if (user.user_id !== currentUser.id) {
             presence[key] = user
           }
@@ -91,7 +93,7 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
         const event: RealtimeEvent = {
           type: 'pin_created',
           data: payload.new,
-          user_id: payload.new.created_by || 'system',
+          user_id: payload.new['created_by'] || 'system',
           user_name: 'User',
           timestamp: new Date().toISOString(),
           roof_id: roofId,
@@ -106,9 +108,9 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
         filter: `roof_id=eq.${roofId}`
       }, (payload) => {
         const event: RealtimeEvent = {
-          type: payload.new.status !== payload.old.status ? 'status_changed' : 'pin_updated',
+          type: payload.new['status'] !== payload.old['status'] ? 'status_changed' : 'pin_updated',
           data: { new: payload.new, old: payload.old },
-          user_id: payload.new.updated_by || 'system',
+          user_id: payload.new['updated_by'] || 'system',
           user_name: 'User',
           timestamp: new Date().toISOString(),
           roof_id: roofId,
@@ -121,11 +123,11 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
         schema: 'public',
         table: 'photos'
       }, (payload) => {
-        if (payload.new.roof_id === roofId) {
+        if (payload.new['roof_id'] === roofId) {
           const event: RealtimeEvent = {
             type: 'photo_uploaded',
             data: payload.new,
-            user_id: payload.new.uploaded_by || 'system',
+            user_id: payload.new['uploaded_by'] || 'system',
             user_name: 'User',
             timestamp: new Date().toISOString(),
             roof_id: roofId,
@@ -138,7 +140,7 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
     // Broadcast events for real-time interactions
     channel
       .on('broadcast', { event: 'cursor_move' }, (payload) => {
-        const { user_id, position } = payload.payload
+        const { user_id, position } = payload['payload']
         if (user_id !== currentUser.id) {
           setState(prev => ({
             ...prev,
@@ -153,7 +155,7 @@ export function useRealtimeCollaboration(roofId: string, currentUser: any) {
         }
       })
       .on('broadcast', { event: 'user_activity' }, (payload) => {
-        const { user_id, activity } = payload.payload
+        const { user_id, activity } = payload['payload']
         console.log('User activity:', user_id, activity)
       })
     

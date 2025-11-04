@@ -121,7 +121,7 @@ export const createPinError = (
   severity,
   recoverable: severity !== 'critical',
   timestamp: new Date().toISOString(),
-  context
+  ...(context ? { context } : {})
 })
 
 // Async error handler with retry logic

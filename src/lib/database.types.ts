@@ -1025,4 +1025,4 @@ export const Constants = {
 // Re-export relation types and handlers
 export type { PinWithRelations, IssueRowStatus } from './types/relations'
 export type { ChildPinWithUIFields, PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler } from './types/handlers'
-export type { TablesInsert } from './types/tables'
+// TablesInsert is already exported above at line 920

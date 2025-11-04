@@ -176,7 +176,7 @@ function ChildRow({ parentSeq, child, onPickPhoto, onAdvance }: {
   )
 }
 
-function ImageBox({ title, url, onPick }: { title: string; url?: string; onPick: () => void }) {
+function ImageBox({ title, url, onPick }: { title: string; url?: string | undefined; onPick: () => void }) {
   return (
     <div className="border border-luxury-200 rounded-lg p-3">
       <div className="text-sm text-luxury-700 font-semibold mb-2">{title}</div>

@@ -3,21 +3,28 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabaseService, db } from '../supabase-production'
 import { supabase } from '../supabase'
-import type { 
-  Project, 
-  Roof, 
-  Pin, 
-  PinChild, 
-  Photo, 
-  PinChat,
-  Chat,
-  ChatInsert,
-  ProjectInsert,
-  PinInsert,
-  PinChildInsert,
-  PhotoInsert,
-  PinChatInsert
-} from '../database.types'
+import type { Database } from '../database.types'
+
+// Define types locally using Database schema
+type Project = Database['public']['Tables']['projects']['Row']
+type ProjectInsert = Database['public']['Tables']['projects']['Insert']
+
+type Roof = Database['public']['Tables']['roofs']['Row']
+
+type Pin = Database['public']['Tables']['pins']['Row']
+type PinInsert = Database['public']['Tables']['pins']['Insert']
+
+type PinChild = Database['public']['Tables']['pin_children']['Row']
+type PinChildInsert = Database['public']['Tables']['pin_children']['Insert']
+
+type Photo = Database['public']['Tables']['photos']['Row']
+type PhotoInsert = Database['public']['Tables']['photos']['Insert']
+
+type Chat = Database['public']['Tables']['chats']['Row']
+type ChatInsert = Database['public']['Tables']['chats']['Insert']
+
+type PinChat = Database['public']['Tables']['pin_chat']['Row']
+type PinChatInsert = Database['public']['Tables']['pin_chat']['Insert']
 
 // Query keys factory
 export const queryKeys = {
@@ -415,14 +422,14 @@ export function useRealTimeRoof(roofId: string) {
       if (payload.table === 'pins') {
         // Pin was added/updated/deleted
         queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
-        
+
         // Also invalidate any specific pin queries that might be cached
-        if (payload.new?.id) {
+        if (payload.new?.['id']) {
           queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(payload.new['id']) })
         }
       } else if (payload.table === 'pin_children') {
         // Pin child status changed - need to recompute parent aggregations
-        if (payload.new?.pin_id) {
+        if (payload.new?.['pin_id']) {
           queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(payload.new['pin_id']) })
           queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
         }
@@ -531,25 +538,25 @@ export function useRealTimePinManagement(roofId: string, pinId?: string) {
       // Handle different types of updates
       if (payload.table === 'pins') {
         queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
-        
+
         // If we're viewing a specific pin and it was updated
-        if (pinId && payload.new?.id === pinId) {
+        if (pinId && payload.new?.['id'] === pinId) {
           queryClient.invalidateQueries({ queryKey: queryKeys.pinWithChildren(pinId) })
         }
       } else if (payload.table === 'pin_children') {
         // Child item updated - invalidate parent pin and roof overview
         queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
-        
-        if (payload.new?.pin_id) {
-          queryClient.invalidateQueries({ 
-            queryKey: queryKeys.pinWithChildren(payload.new['pin_id']) 
+
+        if (payload.new?.['pin_id']) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.pinWithChildren(payload.new['pin_id'])
           })
         }
       } else if (payload.table === 'photos') {
         // Photo added/updated - might affect pin status
-        if (payload.new?.pin_id) {
-          queryClient.invalidateQueries({ 
-            queryKey: queryKeys.pinWithChildren(payload.new['pin_id']) 
+        if (payload.new?.['pin_id']) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.pinWithChildren(payload.new['pin_id'])
           })
           queryClient.invalidateQueries({ queryKey: queryKeys.pinsByRoof(roofId) })
         }

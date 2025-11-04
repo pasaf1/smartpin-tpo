@@ -27,7 +27,7 @@ export interface CanvasSize {
 export class CanvasCore {
   private viewport: Viewport
   private canvasSize: CanvasSize
-  private resizeObserver?: ResizeObserver
+  private resizeObserver: ResizeObserver | null = null
 
   constructor() {
     this.viewport = {
@@ -319,7 +319,7 @@ export class CanvasCore {
   destroy(): void {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
-      this.resizeObserver = undefined
+      this.resizeObserver = null
     }
   }
 }

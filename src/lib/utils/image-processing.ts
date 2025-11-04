@@ -201,10 +201,17 @@ export class ImageProcessor {
 
   private drawFreehand(a: AnnotationData): void {
     if (!a.points || a.points.length < 2) return
+
+    const firstPoint = a.points[0]
+    if (!firstPoint) return
+
     this.ctx.beginPath()
-    this.ctx.moveTo(a.points[0].x, a.points[0].y)
+    this.ctx.moveTo(firstPoint.x, firstPoint.y)
     for (let i = 1; i < a.points.length; i++) {
-      this.ctx.lineTo(a.points[i].x, a.points[i].y)
+      const point = a.points[i]
+      if (point) {
+        this.ctx.lineTo(point.x, point.y)
+      }
     }
     this.ctx.stroke()
   }
@@ -227,13 +234,25 @@ export class ImageProcessor {
     // }
 
     console.debug('Upload planned', { originalPath, annotatedPath, metadata })
-    return { originalPath, annotatedPath }
+    return {
+      originalPath,
+      ...(annotatedPath !== undefined ? { annotatedPath } : {})
+    }
   }
 
   dataURLToBlob(dataURL: string): Blob {
-    const [meta, b64] = dataURL.split(',')
+    const parts = dataURL.split(',')
+    const meta = parts[0]
+    const b64 = parts[1]
+
+    if (!meta || !b64) {
+      throw new Error('Invalid data URL format')
+    }
+
     const mimeMatch = meta.match(/data:(.*?);base64/)
-    const mime = mimeMatch ? mimeMatch[1] : 'image/png'
+    const mimeGroup = mimeMatch?.[1]
+    const mime = mimeGroup || 'image/png'
+
     const bin = atob(b64)
     const len = bin.length
     const u8 = new Uint8Array(len)

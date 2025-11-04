@@ -54,7 +54,7 @@ export const MentionInput = forwardRef<
     const mentionMatch = textBeforeCursor.match(new RegExp(`\\${mentionTrigger}(\\w*)$`))
     
     if (mentionMatch) {
-      setMentionQuery(mentionMatch[1])
+      setMentionQuery(mentionMatch[1] || '')
       setShowSuggestions(true)
       setSuggestionIndex(0)
     } else {
@@ -116,7 +116,10 @@ export const MentionInput = forwardRef<
         case 'Enter':
           if (!e.shiftKey) {
             e.preventDefault()
-            insertMention(filteredUsers[suggestionIndex])
+            const selectedUser = filteredUsers[suggestionIndex]
+            if (selectedUser) {
+              insertMention(selectedUser)
+            }
             return
           }
           break
@@ -127,7 +130,10 @@ export const MentionInput = forwardRef<
           break
         case 'Tab':
           e.preventDefault()
-          insertMention(filteredUsers[suggestionIndex])
+          const selectedUser = filteredUsers[suggestionIndex]
+          if (selectedUser) {
+            insertMention(selectedUser)
+          }
           break
       }
     }

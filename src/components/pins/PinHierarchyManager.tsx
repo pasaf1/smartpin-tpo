@@ -71,6 +71,7 @@ export const PinHierarchyManager: React.FC<PinHierarchyManagerProps> = ({
 
     const items = Array.from(pin.children)
     const [reorderedItem] = items.splice(result.source.index, 1)
+    if (!reorderedItem) return
     items.splice(result.destination.index, 0, reorderedItem)
 
     // Update display_order for all items

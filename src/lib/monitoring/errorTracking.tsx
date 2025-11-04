@@ -29,7 +29,7 @@ export class ErrorTracker {
     window.addEventListener('error', (event) => {
       this.captureError({
         message: event.message,
-        stack: event.error?.stack,
+        ...(event.error?.stack !== undefined ? { stack: event.error.stack } : {}),
         component: 'global',
         severity: 'high',
         metadata: {
@@ -43,7 +43,7 @@ export class ErrorTracker {
     window.addEventListener('unhandledrejection', (event) => {
       this.captureError({
         message: `Unhandled Promise Rejection: ${event.reason}`,
-        stack: event.reason?.stack,
+        ...(event.reason?.stack !== undefined ? { stack: event.reason.stack } : {}),
         component: 'global',
         severity: 'high',
         metadata: {
@@ -57,14 +57,14 @@ export class ErrorTracker {
     const errorReport: ErrorReport = {
       id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       message: error.message || 'Unknown error',
-      stack: error.stack,
-      component: error.component || 'unknown',
-      action: error.action,
-      userId: error.userId,
+      ...(error.stack !== undefined ? { stack: error.stack } : {}),
+      ...(error.component !== undefined ? { component: error.component } : { component: 'unknown' }),
+      ...(error.action !== undefined ? { action: error.action } : {}),
+      ...(error.userId !== undefined ? { userId: error.userId } : {}),
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
       url: typeof window !== 'undefined' ? window.location.href : 'server',
       timestamp: new Date().toISOString(),
-      metadata: error.metadata,
+      ...(error.metadata !== undefined ? { metadata: error.metadata } : {}),
       severity: error.severity || 'medium'
     }
 
@@ -87,9 +87,9 @@ export class ErrorTracker {
     return this.captureError({
       message,
       component,
-      action,
+      ...(action !== undefined ? { action } : {}),
       severity: 'medium',
-      metadata
+      ...(metadata !== undefined ? { metadata } : {})
     })
   }
 
@@ -102,7 +102,7 @@ export class ErrorTracker {
       metadata: {
         url,
         status,
-        ...metadata
+        ...(metadata !== undefined ? metadata : {})
       }
     })
   }
@@ -195,10 +195,10 @@ export function withErrorBoundary<P extends object>(
       return { hasError: true, error }
     }
 
-    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
       errorTracker.captureError({
         message: error.message,
-        stack: error.stack,
+        ...(error.stack !== undefined ? { stack: error.stack } : {}),
         component: Component.name || 'Unknown',
         severity: 'high',
         metadata: {
@@ -208,7 +208,7 @@ export function withErrorBoundary<P extends object>(
       })
     }
 
-    render() {
+    override render() {
       if (this.state.hasError && this.state.error) {
         if (FallbackComponent) {
           return (

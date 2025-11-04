@@ -260,7 +260,12 @@ export const LayerManager: React.FC<LayerManagerProps> = ({
                   </div>
                   <Slider
                     value={[layer.opacity * 100]}
-                    onValueChange={([value]) => handleOpacityChange(layer.id, value)}
+                    onValueChange={(values) => {
+                      const value = values[0]
+                      if (value !== undefined) {
+                        handleOpacityChange(layer.id, value)
+                      }
+                    }}
                     min={10}
                     max={100}
                     step={10}

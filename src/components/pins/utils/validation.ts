@@ -12,8 +12,21 @@ import {
   UserRole,
   PinValidationRule,
   PinValidationResult,
-  StatusWorkflowRule
+  StatusWorkflowRule,
+  PhotoUpload
 } from '../types'
+
+// Helper function to map ImageKind to PhotoUpload type
+function mapImageKindToPhotoType(imageKind: ImageKind): PhotoUpload['type'] | null {
+  const mapping: Record<ImageKind, PhotoUpload['type'] | null> = {
+    'Open': 'opening',
+    'Close': 'closing',
+    'Progress': 'progress',
+    'Documentation': 'documentation',
+    'Issue': null // Issue type doesn't have a direct PhotoUpload equivalent
+  }
+  return mapping[imageKind]
+}
 
 // Default validation rules for pin fields
 export const DEFAULT_PIN_VALIDATION_RULES: PinValidationRule[] = [
@@ -57,7 +70,7 @@ export const DEFAULT_PIN_VALIDATION_RULES: PinValidationRule[] = [
  * Validates a pin object against the given rules
  */
 export function validatePin(pin: Partial<SmartPin>, rules: PinValidationRule[] = DEFAULT_PIN_VALIDATION_RULES): PinValidationResult {
-  const errors: Array<{ field: keyof SmartPin; message: string }> = []
+  const errors: Array<{ field: keyof SmartPin | string; message: string }> = []
 
   for (const rule of rules) {
     const value = getNestedValue(pin, rule.field as string)
@@ -164,7 +177,8 @@ export function validateStatusTransition(
   // Check required photos
   if (rule.requiredPhotos) {
     rule.requiredPhotos.forEach(photoType => {
-      const hasPhoto = pin.photos.some(photo => photo.type === photoType)
+      const mappedType = mapImageKindToPhotoType(photoType)
+      const hasPhoto = mappedType ? pin.photos.some(photo => photo.type === mappedType) : false
       if (!hasPhoto) {
         errors.push(`Required ${photoType.toLowerCase()} photo missing`)
         requiredActions.push(`Please upload a ${photoType.toLowerCase()} photo`)
@@ -176,7 +190,7 @@ export function validateStatusTransition(
   switch (targetStatus) {
     case 'ReadyForInspection':
       if (pin.status === 'Open') {
-        if (!pin.photos.some(p => p.type === 'Close')) {
+        if (!pin.photos.some(p => p.type === 'closing')) {
           errors.push('Close photo is required before marking as Ready for Inspection')
         }
       }
@@ -185,9 +199,9 @@ export function validateStatusTransition(
     case 'Closed':
       // Check if all child pins are closed
       if (pin.children.length > 0) {
-        const openChildren = pin.children.filter(child => child.status === 'Open')
-        const readyChildren = pin.children.filter(child => child.status === 'ReadyForInspection')
-        const disputedChildren = pin.children.filter(child => child.status === 'InDispute')
+        const openChildren = pin.children.filter(child => child.status_child === 'Open')
+        const readyChildren = pin.children.filter(child => child.status_child === 'ReadyForInspection')
+        const disputedChildren = pin.children.filter(child => child.status_child === 'InDispute')
 
         if (openChildren.length > 0) {
           errors.push(`Cannot close pin: ${openChildren.length} child issues are still open`)
@@ -238,7 +252,7 @@ export function validateStatusTransition(
     canTransition: errors.length === 0,
     errors,
     warnings,
-    requiredActions: requiredActions.length > 0 ? requiredActions : undefined
+    ...(requiredActions.length > 0 ? { requiredActions } : {})
   }
 }
 
@@ -279,7 +293,8 @@ export function validatePhotoUpload(
   }
 
   // Check photo count limit
-  const existingPhotosOfType = pin.photos.filter(photo => photo.type === photoType)
+  const mappedPhotoType = mapImageKindToPhotoType(photoType)
+  const existingPhotosOfType = mappedPhotoType ? pin.photos.filter(photo => photo.type === mappedPhotoType) : []
   if (existingPhotosOfType.length >= maxPhotosPerType) {
     errors.push(`Maximum ${maxPhotosPerType} ${photoType.toLowerCase()} photos allowed`)
   }
@@ -293,7 +308,7 @@ export function validatePhotoUpload(
       break
 
     case 'Close':
-      if (pin.status === 'Open' && !pin.photos.some(p => p.type === 'Open')) {
+      if (pin.status === 'Open' && !pin.photos.some(p => p.type === 'opening')) {
         warnings.push('Consider adding an open photo before adding close photo')
       }
       break
@@ -346,12 +361,12 @@ export function validateChildPinCreation(
   }
 
   // Check for duplicate defect types
-  if (childData.defectType) {
+  if (childData.defect_type) {
     const duplicateDefect = parentPin.children.some(child =>
-      child.defectType === childData.defectType
+      child.defect_type === childData.defect_type
     )
     if (duplicateDefect) {
-      warnings.push(`A child pin with defect type "${childData.defectType}" already exists`)
+      warnings.push(`A child pin with defect type "${childData.defect_type}" already exists`)
     }
   }
 
@@ -397,7 +412,7 @@ export function validateHierarchyOperation(
 
     case 'delete':
       if (pin.children.length > 0) {
-        const openChildren = pin.children.filter(child => child.status === 'Open').length
+        const openChildren = pin.children.filter(child => child.status_child === 'Open').length
         if (openChildren > 0) {
           errors.push(`Cannot delete pin: ${openChildren} child pins are still open`)
         }
@@ -447,16 +462,16 @@ export function formatFileSize(bytes: number): string {
 export function evaluateAutoTriggerCondition(pin: SmartPin, condition: string): boolean {
   switch (condition) {
     case 'close_photo_uploaded':
-      return pin.photos.some(photo => photo.type === 'Close')
+      return pin.photos.some(photo => photo.type === 'closing')
 
     case 'all_children_closed':
-      return pin.children.length > 0 && pin.children.every(child => child.status === 'Closed')
+      return pin.children.length > 0 && pin.children.every(child => child.status_child === 'Closed')
 
     case 'sla_overdue':
       return pin.sla.isOverdue
 
     case 'has_open_photo':
-      return pin.photos.some(photo => photo.type === 'Open')
+      return pin.photos.some(photo => photo.type === 'opening')
 
     default:
       console.warn(`Unknown auto-trigger condition: ${condition}`)
@@ -478,9 +493,13 @@ export function validateUserPermissions(
   const roleHierarchy: Record<UserRole, number> = {
     'Admin': 5,
     'QA_Manager': 4,
-    'Supervisor': 3,
-    'Foreman': 2,
-    'Viewer': 1
+    'Inspector': 3,
+    'Contractor': 2,
+    'PM': 1,
+    'CEO': 1,
+    'OM': 1,
+    'CM': 1,
+    'Site_Manager': 2
   }
 
   const userLevel = roleHierarchy[userRole] || 0
@@ -489,32 +508,32 @@ export function validateUserPermissions(
     case 'create':
       return {
         hasPermission: userLevel >= 2,
-        reason: userLevel < 2 ? 'Insufficient permissions to create pins' : undefined
+        ...(userLevel < 2 ? { reason: 'Insufficient permissions to create pins' } : {})
       }
 
     case 'update':
       return {
         hasPermission: userLevel >= 2,
-        reason: userLevel < 2 ? 'Insufficient permissions to update pins' : undefined
+        ...(userLevel < 2 ? { reason: 'Insufficient permissions to update pins' } : {})
       }
 
     case 'delete':
       return {
         hasPermission: userLevel >= 3,
-        reason: userLevel < 3 ? 'Only supervisors and above can delete pins' : undefined
+        ...(userLevel < 3 ? { reason: 'Only supervisors and above can delete pins' } : {})
       }
 
     case 'status_change':
       // Status change permissions depend on the target status
       return {
         hasPermission: userLevel >= 2,
-        reason: userLevel < 2 ? 'Insufficient permissions to change pin status' : undefined
+        ...(userLevel < 2 ? { reason: 'Insufficient permissions to change pin status' } : {})
       }
 
     case 'photo_upload':
       return {
         hasPermission: userLevel >= 2,
-        reason: userLevel < 2 ? 'Insufficient permissions to upload photos' : undefined
+        ...(userLevel < 2 ? { reason: 'Insufficient permissions to upload photos' } : {})
       }
 
     default:
@@ -529,31 +548,35 @@ export function validateUserPermissions(
  * Comprehensive pin data sanitization
  */
 export function sanitizePinData(data: Partial<SmartPin>): Partial<SmartPin> {
-  const sanitized: Partial<SmartPin> = { ...data }
+  const sanitized: any = { ...data }
 
   // Sanitize strings
-  if (sanitized.defectType) {
-    sanitized.defectType = sanitized.defectType.trim().slice(0, 100)
+  if (sanitized.defect_type && typeof sanitized.defect_type === 'string') {
+    sanitized.defect_type = sanitized.defect_type.trim().slice(0, 100)
   }
-  if (sanitized.description) {
+  if (sanitized.description && typeof sanitized.description === 'string') {
     sanitized.description = sanitized.description.trim().slice(0, 1000)
   }
-  if (sanitized.notes) {
+  if (sanitized.notes && typeof sanitized.notes === 'string') {
     sanitized.notes = sanitized.notes.trim().slice(0, 1000)
   }
 
   // Sanitize position coordinates
-  if (sanitized.position) {
-    sanitized.position.x = Math.max(0, Math.min(1, sanitized.position.x))
-    sanitized.position.y = Math.max(0, Math.min(1, sanitized.position.y))
+  if (sanitized.position && typeof sanitized.position === 'object') {
+    if (typeof sanitized.position.x === 'number') {
+      sanitized.position.x = Math.max(0, Math.min(1, sanitized.position.x))
+    }
+    if (typeof sanitized.position.y === 'number') {
+      sanitized.position.y = Math.max(0, Math.min(1, sanitized.position.y))
+    }
   }
 
   // Remove any undefined or null values
   Object.keys(sanitized).forEach(key => {
-    if (sanitized[key as keyof SmartPin] === undefined || sanitized[key as keyof SmartPin] === null) {
-      delete sanitized[key as keyof SmartPin]
+    if (sanitized[key] === undefined || sanitized[key] === null) {
+      delete sanitized[key]
     }
   })
 
-  return sanitized
+  return sanitized as Partial<SmartPin>
 }

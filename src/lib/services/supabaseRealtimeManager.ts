@@ -28,6 +28,11 @@ class SupabaseRealtimeManager {
   }
 
   private setupConnectionMonitoring() {
+    // Only setup monitoring in browser environment
+    if (typeof window === 'undefined') {
+      return
+    }
+
     // Monitor connection status
     window.addEventListener('online', () => {
       console.log('🌐 Network back online, reconnecting channels...')

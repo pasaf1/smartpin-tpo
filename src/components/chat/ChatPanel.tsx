@@ -135,7 +135,7 @@ export function ChatPanel({ roofId, roof, pinId, pinItemId, className }: ChatPan
                   user_name: users.find(u => u.id === message.created_by)?.name || 'Unknown',
                   scope: message.scope,
                   scope_id: message.scope_id,
-                  mentions: message.mentions ?? undefined,
+                  ...(message.mentions ? { mentions: message.mentions } : {}),
                   created_at: message.created_at ?? new Date().toISOString(),
                   roof_id: roofId, // Use roofId directly since message does not have roof_id
                   message_type: "text" as const

@@ -81,7 +81,7 @@ export function ImageEditor({
   const containerRef = useRef<HTMLDivElement>(null)
   
   const [tool, setTool] = useState<Annotation['type']>('arrow')
-  const [color, setColor] = useState(COLORS[0])
+  const [color, setColor] = useState(COLORS[0] || '#DC2626')
   const [strokeWidth, setStrokeWidth] = useState(3)
   const [severity, setSeverity] = useState<Annotation['severity']>('High')
   const [isDrawing, setIsDrawing] = useState(false)
@@ -196,12 +196,15 @@ export function ImageEditor({
         
       case 'freehand':
         if (annotation.points && annotation.points.length > 1) {
-          ctx.beginPath()
-          ctx.moveTo(annotation.points[0].x, annotation.points[0].y)
-          annotation.points.forEach(point => {
-            ctx.lineTo(point.x, point.y)
-          })
-          ctx.stroke()
+          const firstPoint = annotation.points[0]
+          if (firstPoint) {
+            ctx.beginPath()
+            ctx.moveTo(firstPoint.x, firstPoint.y)
+            annotation.points.forEach(point => {
+              ctx.lineTo(point.x, point.y)
+            })
+            ctx.stroke()
+          }
         }
         break
     }
@@ -258,7 +261,7 @@ export function ImageEditor({
       y: pos.y,
       color,
       strokeWidth,
-      severity,
+      ...(severity ? { severity } : {}),
       timestamp: Date.now(),
       author: 'current-user', // TODO: Get from auth context
     }
@@ -354,15 +357,15 @@ export function ImageEditor({
         type: ann.type,
         x: ann.x / scale, // Convert back to original image coordinates
         y: ann.y / scale,
-        width: ann.width ? ann.width / scale : undefined,
-        height: ann.height ? ann.height / scale : undefined,
+        ...(ann.width !== undefined ? { width: ann.width / scale } : {}),
+        ...(ann.height !== undefined ? { height: ann.height / scale } : {}),
         color: ann.color,
         strokeWidth: ann.strokeWidth,
-        text: ann.text,
-        severity: ann.severity,
+        ...(ann.text ? { text: ann.text } : {}),
+        ...(ann.severity ? { severity: ann.severity } : {}),
         timestamp: ann.timestamp,
         author: ann.author,
-        points: ann.points?.map(p => ({ x: p.x / scale, y: p.y / scale }))
+        ...(ann.points ? { points: ann.points.map(p => ({ x: p.x / scale, y: p.y / scale })) } : {})
       }))
 
       // Process the image to get both original and annotated versions
@@ -451,7 +454,12 @@ export function ImageEditor({
             <div className="flex items-center gap-2 w-24">
               <Slider
                 value={[strokeWidth]}
-                onValueChange={(value) => setStrokeWidth(value[0])}
+                onValueChange={(values) => {
+                  const value = values[0]
+                  if (value !== undefined) {
+                    setStrokeWidth(value)
+                  }
+                }}
                 min={1}
                 max={10}
                 step={1}
@@ -464,7 +472,7 @@ export function ImageEditor({
           {/* Severity */}
           <div className="flex items-center gap-1">
             <label className="text-sm font-medium">Severity:</label>
-            <Select value={severity} onValueChange={(value) => setSeverity(value as Annotation['severity'])}>
+            <Select value={severity || 'High'} onValueChange={(value) => setSeverity(value as Annotation['severity'])}>
               <SelectTrigger className="w-24">
                 <SelectValue />
               </SelectTrigger>

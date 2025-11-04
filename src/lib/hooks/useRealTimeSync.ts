@@ -48,43 +48,43 @@ export function useRealTimeSync(options: UseRealTimeSyncOptions) {
 
     const subscription = supabase
       .channel(channelName)
-      .on('postgres_changes', {
+      .on('postgres_changes' as any, {
         event: 'INSERT',
         schema,
         table,
-        filter
-      }, (payload) => {
+        ...(filter ? { filter } : {})
+      } as any, (payload: any) => {
         console.log(`🔄 Real-time INSERT on ${table}:`, payload.new)
         onInsert?.(payload)
-        
+
         // Invalidate related queries
         queryKeysToInvalidate.forEach(queryKey => {
           queryClient.invalidateQueries({ queryKey: Array.isArray(queryKey) ? queryKey : [queryKey] })
         })
       })
-      .on('postgres_changes', {
+      .on('postgres_changes' as any, {
         event: 'UPDATE',
         schema,
         table,
-        filter
-      }, (payload) => {
+        ...(filter ? { filter } : {})
+      } as any, (payload: any) => {
         console.log(`🔄 Real-time UPDATE on ${table}:`, payload.new)
         onUpdate?.(payload)
-        
+
         // Invalidate related queries
         queryKeysToInvalidate.forEach(queryKey => {
           queryClient.invalidateQueries({ queryKey: Array.isArray(queryKey) ? queryKey : [queryKey] })
         })
       })
-      .on('postgres_changes', {
+      .on('postgres_changes' as any, {
         event: 'DELETE',
         schema,
         table,
-        filter
-      }, (payload) => {
+        ...(filter ? { filter } : {})
+      } as any, (payload: any) => {
         console.log(`🔄 Real-time DELETE on ${table}:`, payload.old)
         onDelete?.(payload)
-        
+
         // Invalidate related queries
         queryKeysToInvalidate.forEach(queryKey => {
           queryClient.invalidateQueries({ queryKey: Array.isArray(queryKey) ? queryKey : [queryKey] })

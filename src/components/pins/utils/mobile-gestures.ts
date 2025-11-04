@@ -3,7 +3,7 @@
  * Touch gesture recognition and PWA support for mobile devices
  */
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState, useEffect, createElement } from 'react'
 import { TouchGesture, PWAInstallPrompt } from '../types'
 
 interface MobileGesturesConfig {
@@ -55,6 +55,9 @@ export const useMobileGestures = (config: MobileGesturesConfig) => {
   // Get touch position
   const getTouchPosition = useCallback((e: React.TouchEvent | TouchEvent): { x: number; y: number } => {
     const touch = e.touches[0] || e.changedTouches[0]
+    if (!touch) {
+      return { x: 0, y: 0 }
+    }
     return {
       x: touch.clientX,
       y: touch.clientY
@@ -67,6 +70,7 @@ export const useMobileGestures = (config: MobileGesturesConfig) => {
 
     const touch1 = e.touches[0]
     const touch2 = e.touches[1]
+    if (!touch1 || !touch2) return 0
 
     return Math.sqrt(
       Math.pow(touch2.clientX - touch1.clientX, 2) +
@@ -80,6 +84,7 @@ export const useMobileGestures = (config: MobileGesturesConfig) => {
 
     const touch1 = e.touches[0]
     const touch2 = e.touches[1]
+    if (!touch1 || !touch2) return getTouchPosition(e)
 
     return {
       x: (touch1.clientX + touch2.clientX) / 2,
@@ -91,7 +96,7 @@ export const useMobileGestures = (config: MobileGesturesConfig) => {
   const clearLongPressTimer = useCallback(() => {
     if (gestureState.current.longPressTimer) {
       clearTimeout(gestureState.current.longPressTimer)
-      gestureState.current.longPressTimer = undefined
+      delete gestureState.current.longPressTimer
     }
   }, [])
 
@@ -114,7 +119,7 @@ export const useMobileGestures = (config: MobileGesturesConfig) => {
       lastPosition: position,
       isLongPress: false,
       isMultiTouch,
-      initialDistance: isMultiTouch ? getTouchDistance(e) : undefined
+      ...(isMultiTouch ? { initialDistance: getTouchDistance(e) } : {})
     }
 
     // Handle double tap detection
@@ -272,11 +277,11 @@ export const useMobileGestures = (config: MobileGesturesConfig) => {
 
 // PWA installation utilities
 export const usePWAInstall = (): PWAInstallPrompt => {
-  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null)
-  const [isInstalled, setIsInstalled] = React.useState(false)
-  const [platform, setPlatform] = React.useState<PWAInstallPrompt['platform']>('unknown')
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isInstalled, setIsInstalled] = useState(false)
+  const [platform, setPlatform] = useState<PWAInstallPrompt['platform']>('unknown')
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Detect platform
     const userAgent = navigator.userAgent.toLowerCase()
     if (/iphone|ipad|ipod/.test(userAgent)) {
@@ -356,9 +361,9 @@ export const hasTouchSupport = (): boolean => {
 
 // Screen orientation utilities
 export const useScreenOrientation = () => {
-  const [orientation, setOrientation] = React.useState<'portrait' | 'landscape'>('portrait')
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
 
-  React.useEffect(() => {
+  useEffect(() => {
     const updateOrientation = () => {
       setOrientation(window.innerHeight > window.innerWidth ? 'portrait' : 'landscape')
     }

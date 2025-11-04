@@ -79,7 +79,7 @@ export class PDFExporter {
     }
 
     // Save the PDF
-    const filename = `SmartPin_Issue_${pin.seq_number}_${new Date().toISOString().split('T')[0]}.pdf`
+    const filename = `SmartPin_Issue_${pin.seq_number}_${new Date().toISOString().split('T')[0] || ''}.pdf`
     this.doc.save(filename)
   }
 
@@ -105,20 +105,22 @@ export class PDFExporter {
         this.doc.addPage()
         this.currentY = this.margin
       }
-      
+
       const pin = pins[i]
+      if (!pin) continue
+
       await this.addHeader(pin, options, false) // No logo on subsequent pages
-      
+
       if (options.includeDetails) {
         this.addPinDetails(pin)
       }
-      
+
       if (options.includeMap) {
         await this.addMapSnapshot(pin)
       }
     }
 
-    const filename = `SmartPin_Issues_Report_${new Date().toISOString().split('T')[0]}.pdf`
+    const filename = `SmartPin_Issues_Report_${new Date().toISOString().split('T')[0] || ''}.pdf`
     this.doc.save(filename)
   }
 
@@ -188,9 +190,9 @@ export class PDFExporter {
 
     details.forEach(([label, value]) => {
       this.doc.setFont('helvetica', 'bold')
-      this.doc.text(label, this.margin, this.currentY)
+      this.doc.text(label || '', this.margin, this.currentY)
       this.doc.setFont('helvetica', 'normal')
-      this.doc.text(value, this.margin + 35, this.currentY)
+      this.doc.text(value || '', this.margin + 35, this.currentY)
       this.currentY += 6
     })
 
@@ -359,9 +361,9 @@ export class PDFExporter {
 
     summaryData.forEach(([label, value]) => {
       this.doc.setFont('helvetica', 'bold')
-      this.doc.text(label, this.margin, this.currentY)
+      this.doc.text(label || '', this.margin, this.currentY)
       this.doc.setFont('helvetica', 'normal')
-      this.doc.text(value, this.margin + 50, this.currentY)
+      this.doc.text(value || '', this.margin + 50, this.currentY)
       this.currentY += 7
     })
 

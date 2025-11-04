@@ -3,8 +3,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePinActivityLogger } from '@/lib/activity/ActivityContext'
 import { supabase } from '@/lib/supabase'
-import type { Pin, PinInsert, PinUpdate, PinStatus } from '@/lib/database.types'
+import type { Database } from '@/lib/database.types'
 import { QUERY_KEYS } from './usePins'
+
+// Define types locally using Database schema
+type Pin = Database['public']['Tables']['pins']['Row']
+type PinInsert = Database['public']['Tables']['pins']['Insert']
+type PinUpdate = Database['public']['Tables']['pins']['Update']
+type PinStatus = Database['public']['Enums']['pin_status']
 
 type CreatePinInput = Omit<PinInsert, 'seq_number'>
 
@@ -307,7 +313,7 @@ export function useCreateChildPinWithActivity() {
         {
           id: childPin.child_id,
           child_seq: childData.child_code || `${parentPin.seq_number}.${childPin.child_id.slice(-2)}`,
-          defect_type: childData.defect_type
+          ...(childData.defect_type ? { defect_type: childData.defect_type } : {})
         }
       )
 

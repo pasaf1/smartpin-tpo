@@ -62,9 +62,9 @@ export class CSVExporter {
     
     // Generate CSV content
     const csvContent = this.generateCSV(headers, rows)
-    
+
     // Download file
-    const defaultFilename = `smartpin_issues_${new Date().toISOString().split('T')[0]}.csv`
+    const defaultFilename = `smartpin_issues_${new Date().toISOString().split('T')[0] || ''}.csv`
     this.downloadCSV(csvContent, filename || defaultFilename)
   }
 
@@ -76,10 +76,10 @@ export class CSVExporter {
     
     const headers = this.getProjectHeaders(opts)
     const rows = projects.map(project => this.projectToRow(project, opts))
-    
+
     const csvContent = this.generateCSV(headers, rows)
-    const defaultFilename = `smartpin_projects_${new Date().toISOString().split('T')[0]}.csv`
-    
+    const defaultFilename = `smartpin_projects_${new Date().toISOString().split('T')[0] || ''}.csv`
+
     this.downloadCSV(csvContent, filename || defaultFilename)
   }
 
@@ -112,8 +112,8 @@ export class CSVExporter {
     // Analytics summary
     csvContent += '\n\n'
     csvContent += this.generateAnalyticsSummary(projects, pins)
-    
-    const defaultFilename = `smartpin_detailed_report_${new Date().toISOString().split('T')[0]}.csv`
+
+    const defaultFilename = `smartpin_detailed_report_${new Date().toISOString().split('T')[0] || ''}.csv`
     this.downloadCSV(csvContent, filename || defaultFilename)
   }
 
@@ -156,8 +156,8 @@ export class CSVExporter {
     Object.entries(analytics.trends).forEach(([category, counts]) => {
       csvContent += `"${category}","${counts.open}","${counts.ready}","${counts.closed}","${counts.dispute}"\n`
     })
-    
-    const defaultFilename = `smartpin_analytics_${new Date().toISOString().split('T')[0]}.csv`
+
+    const defaultFilename = `smartpin_analytics_${new Date().toISOString().split('T')[0] || ''}.csv`
     this.downloadCSV(csvContent, filename || defaultFilename)
   }
 
@@ -343,7 +343,7 @@ export class CSVExporter {
 
     switch (format) {
       case 'ISO':
-        return date.toISOString().split('T')[0]
+        return date.toISOString().split('T')[0] || ''
       case 'EU':
         return date.toLocaleDateString('en-GB') // DD/MM/YYYY
       case 'US':

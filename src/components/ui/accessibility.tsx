@@ -63,7 +63,10 @@ export function FocusTrap({ children, isActive = true, className, initialFocus }
     if (initialFocus?.current) {
       initialFocus.current.focus()
     } else if (focusableElements.length > 0) {
-      focusableElements[0].focus()
+      const firstElement = focusableElements[0]
+      if (firstElement) {
+        firstElement.focus()
+      }
     }
 
     const handleTabKey = (e: KeyboardEvent) => {
@@ -72,6 +75,8 @@ export function FocusTrap({ children, isActive = true, className, initialFocus }
       const focusableElements = getFocusableElements(containerRef.current)
       const firstElement = focusableElements[0]
       const lastElement = focusableElements[focusableElements.length - 1]
+
+      if (!firstElement || !lastElement) return
 
       if (e.shiftKey) {
         // Shift + Tab: move to previous element

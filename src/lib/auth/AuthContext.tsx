@@ -3,7 +3,9 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
-import type { Role } from '../database.types'
+
+// Define Role type locally (must match database enum)
+type Role = 'Admin' | 'QA_Manager' | 'Supervisor' | 'Foreman' | 'Viewer'
 
 interface UserProfile {
   id: string
@@ -92,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               id: session.user.id,
               auth_user_id: session.user.id,
               email: session.user.email || '',
-              full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Google User',
+              full_name: session.user.user_metadata?.['full_name'] || session.user.email?.split('@')[0] || 'Google User',
               role: 'Viewer',
               address: null,
               birth_date: null,
@@ -233,7 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: userId,
         auth_user_id: userId,
         email: user.email || '',
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown User',
+        full_name: user.user_metadata?.['full_name'] || user.email?.split('@')[0] || 'Unknown User',
         role: user.user_metadata?.['role'] || 'Viewer',
         address: null,
         birth_date: null,

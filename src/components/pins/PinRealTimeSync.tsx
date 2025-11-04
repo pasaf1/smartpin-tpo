@@ -131,7 +131,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
         // Pin updates (PostgreSQL changes)
         .on(
-          'postgres_changes',
+          'postgres_changes' as any,
           {
             event: '*',
             schema: 'public',
@@ -142,7 +142,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
               ? `roof_id=eq.${roofId}`
               : undefined
           },
-          (payload) => {
+          (payload: any) => {
             console.log('[PinRealTimeSync] Pin database change:', payload)
 
             if (payload.eventType === 'UPDATE' && payload.new) {
@@ -172,14 +172,14 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
       // Child pin updates (only subscribe when we have a specific pinId)
       if (pinId) {
         channel.on(
-          'postgres_changes',
+          'postgres_changes' as any,
           {
             event: '*',
             schema: 'public',
             table: 'pin_children',
             filter: `pin_id=eq.${pinId}`
           },
-          (payload) => {
+          (payload: any) => {
             console.log('[PinRealTimeSync] Child pin database change:', payload)
 
             if (payload.eventType === 'UPDATE' && payload.new) {
@@ -212,14 +212,14 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
       // Activity logs (only subscribe when we have a specific pinId)
       if (pinId) {
         channel.on(
-          'postgres_changes',
+          'postgres_changes' as any,
           {
             event: 'INSERT',
             schema: 'public',
             table: 'activity_logs',
             filter: `pin_id=eq.${pinId}`
           },
-          (payload) => {
+          (payload: any) => {
             console.log('[PinRealTimeSync] New activity log:', payload)
 
             if (payload.new) {
@@ -297,18 +297,24 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
           console.log('[PinRealTimeSync] Presence sync')
 
           const presenceState = channel.presenceState()
-          const presenceList: UserPresence[] = Object.keys(presenceState).map(userId => {
-            const presence = presenceState[userId][0] as any
-            return {
-              user_id: userId,
-              user_name: presence.user_name || 'Unknown User',
-              project_id: projectId || 'unknown',
-              pin_id: pinId,
-              last_seen: new Date().toISOString(),
-              is_online: true,
-              current_action: presence.current_action
-            }
-          })
+          const presenceList = Object.keys(presenceState)
+            .map(userId => {
+              const presenceArray = presenceState[userId]
+              if (!presenceArray) return null
+              const presence = presenceArray[0]
+              if (!presence) return null
+
+              return {
+                user_id: userId,
+                user_name: (presence as any).user_name || 'Unknown User',
+                project_id: projectId || 'unknown',
+                ...(pinId ? { pin_id: pinId } : {}),
+                last_seen: new Date().toISOString(),
+                is_online: true,
+                current_action: (presence as any).current_action
+              } as UserPresence
+            })
+            .filter((p): p is UserPresence => p !== null)
 
           onPresenceUpdate(presenceList)
         })
@@ -327,7 +333,7 @@ export const PinRealTimeSync: React.FC<PinRealTimeSyncProps> = ({
 
         if (status === 'SUBSCRIBED') {
           stateRef.current.isConnected = true
-          stateRef.current.connectionError = undefined
+          delete stateRef.current.connectionError
 
           // Track presence
           await channel.track({
