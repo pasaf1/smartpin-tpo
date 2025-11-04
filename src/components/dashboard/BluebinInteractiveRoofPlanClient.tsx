@@ -1,28 +1,37 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import type { ComponentProps } from 'react'
-
-// Import the actual component type for proper typing
-type BluebinInteractiveRoofPlanProps = ComponentProps<typeof import('./BluebinInteractiveRoofPlan').BluebinInteractiveRoofPlan>
 
 // Dynamic import with SSR disabled to prevent Konva from loading on server
+// Use 'any' for props to avoid importing types that reference Konva
 const BluebinInteractiveRoofPlan = dynamic(
   () => import('./BluebinInteractiveRoofPlan').then(mod => ({ default: mod.BluebinInteractiveRoofPlan })),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-luxury-50 to-luxury-100 rounded-xl">
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-gray-100 rounded-xl">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">Loading interactive roof plan...</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-600">Loading interactive roof plan...</p>
         </div>
       </div>
     ),
   }
 )
 
-// Re-export with proper typing
-export function BluebinInteractiveRoofPlanClient(props: BluebinInteractiveRoofPlanProps) {
+// Re-export with any type to prevent server-side evaluation
+export function BluebinInteractiveRoofPlanClient(props: any) {
+  // Only render on client side
+  if (typeof window === 'undefined') {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-600">Loading interactive roof plan...</p>
+        </div>
+      </div>
+    )
+  }
+
   return <BluebinInteractiveRoofPlan {...props} />
 }
