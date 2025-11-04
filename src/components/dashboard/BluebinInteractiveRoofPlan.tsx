@@ -6,7 +6,8 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import { cn } from '@/lib/utils'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
 import { getSupabase } from '@/lib/supabase'
-import type { PinWithRelations, ChildPinWithUIFields, PinClickHandler, AddChildPinHandler } from '@/lib/database.types'
+import type { PinWithRelations, ChildPinWithUIFields } from '@/lib/database.types'
+import type { PinClickHandler, AddChildPinHandler } from '@/lib/types/handlers'
 
 // UIChildPin is same as ChildPinWithUIFields
 type UIChildPin = ChildPinWithUIFields
