@@ -40,30 +40,11 @@ export function useUsers() {
 }
 
 // HOC שמקיף קומפוננטה ומפנה ל-/login אם אין משתמש מחובר
+// TEMPORARILY DISABLED - Allow access without authentication
 export function withAuth<P extends object>(Component: React.ComponentType<P>) {
   const Wrapped: React.FC<P> = (props) => {
-    const { user, profile, loading } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-      console.log('🔐 withAuth check:', { user: !!user, profile: !!profile, loading })
-      
-      if (!loading && !user) {
-        console.log('🚪 No user found, redirecting to login...')
-        router.replace('/login');
-      }
-    }, [loading, user, router]);
-
-    if (loading) {
-      return null; // Simple loading state - no duplicate auth screen
-    }
-    
-    if (!user) {
-      console.log('❌ No user authenticated, blocking access')
-      return null; // or a fallback component, but router.replace should handle it
-    }
-
-    console.log('✅ User authenticated, rendering component')
+    // DISABLED: Auth checks are bypassed - render component directly
+    console.log('⚠️ withAuth DISABLED - Allowing access without authentication')
     return <Component {...props} />;
   };
 
