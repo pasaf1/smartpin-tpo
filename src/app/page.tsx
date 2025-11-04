@@ -716,5 +716,6 @@ function RoofDashboardPage() {
   )
 }
 
-// Export with authentication wrapper
-export default withAuth(RoofDashboardPage)
+// Export without authentication (temporarily disabled)
+// TODO: Re-enable authentication later: export default withAuth(RoofDashboardPage)
+export default RoofDashboardPage

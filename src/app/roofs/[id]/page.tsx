@@ -786,5 +786,6 @@ function RoofDashboardPage() {
   )
 }
 
-// Protect this route - require authentication
-export default withAuth(RoofDashboardPage)
+// Protect this route - require authentication (temporarily disabled)
+// TODO: Re-enable authentication later: export default withAuth(RoofDashboardPage)
+export default RoofDashboardPage
