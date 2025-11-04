@@ -23,7 +23,8 @@ import ChatInterface from '@/components/chat/ChatInterface'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
 import { ConnectionStatus as RealtimeStatus } from '@/components/shared'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations, PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler, ChildPinWithUIFields, TablesInsert } from '@/lib/database.types'
+import type { PinWithRelations, ChildPinWithUIFields, TablesInsert } from '@/lib/database.types'
+import type { PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler } from '@/lib/types/handlers'
 import { DockedChat } from '@/components/chat/DockedChat'
 
 function RoofDashboardPage() {
