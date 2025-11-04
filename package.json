@@ -114,7 +114,7 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "pnpm exec eslint --max-warnings=0",
-      "pnpm exec tsc -p tsconfig.json --noEmit"
+      "bash -c 'npx tsc --noEmit'"
     ]
   }
 }

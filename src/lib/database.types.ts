@@ -1027,6 +1027,17 @@ export type PinWithRelations = Database['public']['Tables']['pins']['Row'] & {
 }
 
 export type ChildPinWithUIFields = Database['public']['Tables']['pin_children']['Row'] & {
-  x?: number | null
-  y?: number | null
+  // UI compatibility fields that components expect
+  id?: string // maps to child_id for components expecting this field
+  parent_id?: string // maps to pin_id for components expecting this field
+  seq?: string // maps to child_code for components expecting this field
+  x: number | null // UI positioning (not in database) - required for canvas rendering
+  y: number | null // UI positioning (not in database) - required for canvas rendering
+  status?: Database["public"]["Enums"]["pin_status"] // maps to status_child for components expecting this field
+  title?: string | null
+  description?: string | null
+  open_pic_url?: string | null // maps to openpic_id lookup
+  close_pic_url?: string | null // maps to closurepic_id lookup
+  metadata?: Record<string, any> // additional UI data
+  defect_layer?: string // additional UI field
 }
