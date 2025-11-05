@@ -10,6 +10,7 @@ type PinStatus = 'Open' | 'ReadyForInspection' | 'Closed'
 // Database schema for insert - matches database.types exactly
 interface PinInsert {
   roof_id: string
+  layer_id: string          // Required
   seq_number: number        // Required
   x: number                 // Required
   y: number                 // Required
@@ -53,6 +54,7 @@ interface PinUpdate {
 interface Pin {
   id: string
   roof_id: string
+  layer_id: string
   seq_number: number
   x: number
   y: number
@@ -99,6 +101,7 @@ export function useCreatePinOptimistic(roofId: string) {
         const optimisticPin: Pin = {
           id: `temp-${Date.now()}`, // Temporary ID
           roof_id: roofId,
+          layer_id: newPin.layer_id,  // Required field
           seq_number: newPin.seq_number,  // Required field
           zone: newPin.zone ?? 'A',
           x: newPin.x,  // Required field

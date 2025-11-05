@@ -122,10 +122,9 @@ CREATE POLICY "Users can create child pins with parent access" ON public.child_p
 CREATE POLICY "Users can view annotations in accessible roofs" ON public.annotations
   FOR SELECT USING (
     roof_id IN (
-      SELECT r.id FROM public.roofs r 
+      SELECT r.id FROM public.roofs r
       JOIN public.projects p ON p.project_id = r.project_id
-      WHERE p.created_by = auth.uid() OR 
+      WHERE p.created_by = auth.uid() OR
             EXISTS (SELECT 1 FROM public.users u WHERE u.auth_user_id = auth.uid() AND u.role IN ('Admin', 'QA_Manager'))
-      )
     )
   );

@@ -119,28 +119,31 @@ ALTER TABLE public.child_pins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.annotations ENABLE ROW LEVEL SECURITY;
 
 -- Layers policies
+DROP POLICY IF EXISTS "Users can view layers in accessible roofs" ON public.layers;
 CREATE POLICY "Users can view layers in accessible roofs" ON public.layers
   FOR SELECT USING (
     roof_id IN (
-      SELECT r.id FROM public.roofs r 
+      SELECT r.id FROM public.roofs r
       JOIN public.projects p ON p.project_id = r.project_id
-      WHERE p.created_by = auth.uid() OR 
+      WHERE p.created_by = auth.uid() OR
             EXISTS (SELECT 1 FROM public.users u WHERE u.auth_user_id = auth.uid() AND u.role IN ('Admin', 'QA_Manager'))
     )
   );
 
 -- Child pins policies (inherit from parent pins access)
+DROP POLICY IF EXISTS "Users can view child pins via parent access" ON public.child_pins;
 CREATE POLICY "Users can view child pins via parent access" ON public.child_pins
   FOR SELECT USING (
     parent_id IN (
-      SELECT pins.id FROM public.pins 
+      SELECT pins.id FROM public.pins
       JOIN public.roofs r ON r.id = pins.roof_id
       JOIN public.projects p ON p.project_id = r.project_id
-      WHERE p.created_by = auth.uid() OR 
+      WHERE p.created_by = auth.uid() OR
             EXISTS (SELECT 1 FROM public.users u WHERE u.auth_user_id = auth.uid() AND u.role IN ('Admin', 'QA_Manager'))
     )
   );
 
+DROP POLICY IF EXISTS "Users can create child pins with parent access" ON public.child_pins;
 CREATE POLICY "Users can create child pins with parent access" ON public.child_pins
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -148,30 +151,32 @@ CREATE POLICY "Users can create child pins with parent access" ON public.child_p
       JOIN public.roofs r ON r.id = pin.roof_id
       JOIN public.projects p ON p.project_id = r.project_id
       WHERE pin.id = parent_id AND (
-        p.created_by = auth.uid() OR 
+        p.created_by = auth.uid() OR
         EXISTS (SELECT 1 FROM public.users u WHERE u.auth_user_id = auth.uid() AND u.role IN ('Admin', 'QA_Manager'))
       )
     )
   );
 
 -- Plan regions policies
+DROP POLICY IF EXISTS "Users can view plan regions in accessible roofs" ON public.plan_regions;
 CREATE POLICY "Users can view plan regions in accessible roofs" ON public.plan_regions
   FOR SELECT USING (
     roof_id IN (
-      SELECT r.id FROM public.roofs r 
+      SELECT r.id FROM public.roofs r
       JOIN public.projects p ON p.project_id = r.project_id
-      WHERE p.created_by = auth.uid() OR 
+      WHERE p.created_by = auth.uid() OR
             EXISTS (SELECT 1 FROM public.users u WHERE u.auth_user_id = auth.uid() AND u.role IN ('Admin', 'QA_Manager'))
     )
   );
 
 -- Annotations policies
+DROP POLICY IF EXISTS "Users can view annotations in accessible roofs" ON public.annotations;
 CREATE POLICY "Users can view annotations in accessible roofs" ON public.annotations
   FOR SELECT USING (
     roof_id IN (
-      SELECT r.id FROM public.roofs r 
+      SELECT r.id FROM public.roofs r
       JOIN public.projects p ON p.project_id = r.project_id
-      WHERE p.created_by = auth.uid() OR 
+      WHERE p.created_by = auth.uid() OR
             EXISTS (SELECT 1 FROM public.users u WHERE u.auth_user_id = auth.uid() AND u.role IN ('Admin', 'QA_Manager'))
     )
   );
