@@ -13,8 +13,8 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect to roofs page immediately
-    router.replace('/roofs')
+    // Redirect to projects page immediately
+    router.replace('/projects')
   }, [router])
 
   // Show loading state while redirecting
