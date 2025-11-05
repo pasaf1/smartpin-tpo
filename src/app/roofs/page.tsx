@@ -2,13 +2,216 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { formatDistanceToNow } from 'date-fns'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useRoofs } from '@/lib/hooks/useRoofs'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useRoofs, useCreateRoof, useProjects } from '@/lib/hooks/useRoofs'
+import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/lib/database.types'
+
+function CreateRoofDialog() {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [code, setCode] = useState('')
+  const [projectId, setProjectId] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
+  const createRoof = useCreateRoof()
+  const { data: projects = [], isLoading: projectsLoading } = useProjects()
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name || !code || !projectId) {
+      alert('אנא מלא את כל השדות הנדרשים')
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      let imageUrl = null
+
+      // Upload image if provided
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop()
+        const fileName = `${code}-${Date.now()}.${fileExt}`
+        const { data, error } = await supabase.storage
+          .from('roof-plans')
+          .upload(fileName, imageFile)
+
+        if (error) {
+          console.error('Image upload error:', error)
+          alert('שגיאה בהעלאת התמונה')
+          setIsUploading(false)
+          return
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('roof-plans')
+          .getPublicUrl(fileName)
+
+        imageUrl = publicUrl
+      }
+
+      // Create roof
+      await createRoof.mutateAsync({
+        name,
+        code,
+        project_id: projectId,
+        plan_image_url: imageUrl,
+        is_active: true,
+      })
+
+      // Reset form and close dialog
+      setName('')
+      setCode('')
+      setProjectId('')
+      setImageFile(null)
+      setImagePreview(null)
+      setOpen(false)
+      alert('הגג נוצר בהצלחה!')
+    } catch (error) {
+      console.error('Error creating roof:', error)
+      alert('שגיאה ביצירת הגג')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          גג חדש
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] bg-slate-900 text-white border-white/20">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle className="text-2xl">יצירת גג חדש</DialogTitle>
+            <DialogDescription className="text-white/70">
+              הזן את פרטי הגג והעלה תמונת תוכנית
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {/* Project Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="project" className="text-white">פרויקט *</Label>
+              <Select value={projectId} onValueChange={setProjectId} disabled={projectsLoading}>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                  <SelectValue placeholder="בחר פרויקט" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/20">
+                  {projects.map((project) => (
+                    <SelectItem
+                      key={project.project_id}
+                      value={project.project_id}
+                      className="text-white hover:bg-white/10"
+                    >
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Roof Name */}
+            <div className="grid gap-2">
+              <Label htmlFor="name" className="text-white">שם הגג *</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="לדוגמה: גג בניין A"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                required
+              />
+            </div>
+
+            {/* Roof Code */}
+            <div className="grid gap-2">
+              <Label htmlFor="code" className="text-white">קוד הגג *</Label>
+              <Input
+                id="code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="לדוגמה: ROOF-001"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                required
+              />
+            </div>
+
+            {/* Image Upload */}
+            <div className="grid gap-2">
+              <Label htmlFor="image" className="text-white">תמונת תוכנית הגג</Label>
+              <Input
+                id="image"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="bg-white/10 border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
+              />
+              {imagePreview && (
+                <div className="mt-2 relative aspect-video rounded-lg overflow-hidden bg-white/5">
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              disabled={isUploading}
+            >
+              ביטול
+            </Button>
+            <Button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+              disabled={isUploading}
+            >
+              {isUploading ? 'שומר...' : 'צור גג'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 function RoofCard({ roof }: { roof: Tables<'roofs'> }) {
   const hasPlanImage = roof.plan_image_url && roof.plan_image_url.length > 0
@@ -43,13 +246,14 @@ function RoofCard({ roof }: { roof: Tables<'roofs'> }) {
           {/* Plan image preview */}
           <div className="relative">
             {hasPlanImage ? (
-              <div className="aspect-[3/2] rounded-lg overflow-hidden bg-muted">
-                <img 
-                  src={roof.plan_image_url || ''} 
+              <div className="aspect-[3/2] rounded-lg overflow-hidden bg-muted relative">
+                <Image
+                  src={roof.plan_image_url || ''}
                   alt={`${roof.name} plan image`}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-300 hover:scale-105"
                 />
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 z-10">
                   <Badge className="text-xs bg-blue-500/20 text-blue-200 border-blue-400/30">
                     Plan Image
                   </Badge>
@@ -146,6 +350,7 @@ export default function RoofsPage() {
             </div>
             
             <div className="flex items-center gap-4">
+              <CreateRoofDialog />
               <Link href="/">
                 <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                   ← Back to Dashboard
