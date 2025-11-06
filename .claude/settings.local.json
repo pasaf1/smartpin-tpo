@@ -121,7 +121,9 @@
       "mcp__supabase__get_logs",
       "Bash(supabase:*)",
       "Bash(for:*)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "mcp__supabase__list_migrations",
+      "Bash(timeout 5 sleep 5)"
     ],
     "deny": [],
     "ask": []
