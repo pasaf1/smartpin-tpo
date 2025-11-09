@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/lib/hooks/useChat';
 import { useUsers } from '@/lib/hooks/useAuth';
+import { useRoofPresence } from '@/lib/hooks/useRoofPresence';
 
 interface DockedChatProps {
   roofId: string;
@@ -23,6 +24,7 @@ export function DockedChat({ roofId, className }: DockedChatProps) {
 
   const { messages = [], sendMessage, isSending } = useChat(roofId);
   const { data: users = [] } = useUsers();
+  const { onlineCount } = useRoofPresence(roofId);
 
   const handleSendMessage = async () => {
     if (!message.trim() || isSending) return;
@@ -146,8 +148,15 @@ export function DockedChat({ roofId, className }: DockedChatProps) {
               
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                  <span>{users.filter(u => u.is_active).length} online</span>
+                  <div className={cn(
+                    'w-1.5 h-1.5 rounded-full',
+                    onlineCount > 0 ? 'bg-green-500' : 'bg-muted-foreground/60'
+                  )} />
+                  {onlineCount > 0 ? (
+                    <span>{onlineCount} team member{onlineCount === 1 ? '' : 's'} online</span>
+                  ) : (
+                    <span>No teammates online</span>
+                  )}
                 </div>
                 <span>Press Enter to send</span>
               </div>
