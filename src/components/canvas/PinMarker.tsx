@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import type { PinWithRelations } from '@/lib/database.types'
+import type { PinWithRelations } from '@/lib/types/relations'
 
 type ExtendedPin = PinWithRelations & {
   parent_pin_id?: string | null

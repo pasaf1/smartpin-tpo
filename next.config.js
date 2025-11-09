@@ -8,8 +8,8 @@ const nextConfig = {
   // Remove standalone output for standard Vercel deployment
   // output: 'standalone',
   
-  // Prevent Konva from loading on server - SSR fix
-  serverComponentsExternalPackages: ['konva', 'react-konva', 'canvas'],
+  // Prevent Konva from loading on server - SSR fix (Next.js 15 uses serverExternalPackages)
+  serverExternalPackages: ['konva', 'react-konva', 'canvas'],
 
   // Simplified experimental features for Vercel compatibility
   experimental: {
@@ -197,7 +197,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://*.supabase.com; font-src 'self' data:; worker-src 'self' blob:;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://*.supabase.com wss://*.supabase.co wss://*.supabase.com https://vercel.live; font-src 'self' data:; worker-src 'self' blob:;"
           }
         ]
       },

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { CSVExporter } from '@/lib/export/CSVExporter'
 import { PDFExporter } from '@/lib/export/PDFExporter'
 import { ActivityLogger } from '@/lib/activity/ActivityLogger'
-import type { PinWithRelations } from '@/lib/database.types'
+import type { PinWithRelations } from '@/lib/types/relations'
 
 // Define PinChild type locally (must match database schema)
 interface PinChild {

@@ -2238,6 +2238,3 @@ export const Constants = {
     },
   },
 } as const
-
-// Re-export custom types from relations.ts for convenience
-export type { PinWithRelations, ChildPinWithUIFields } from './types/relations'

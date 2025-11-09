@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { BluebinInteractiveRoofPlanClient as BluebinInteractiveRoofPlan } from '@/components/dashboard/BluebinInteractiveRoofPlanClient'
 import { MobileBottomSheet } from '@/components/ui/MobileBottomSheet'
 import { MobileFAB, defaultBluebinTools } from '@/components/ui/MobileFAB'
 import { BluebinPinDetailsCard } from '@/components/pins/BluebinPinDetailsCard'
@@ -23,9 +23,28 @@ import ChatInterface from '@/components/chat/ChatInterface'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
 import { ConnectionStatus as RealtimeStatus } from '@/components/shared'
 import { cn } from '@/lib/utils'
-import type { PinWithRelations, ChildPinWithUIFields, TablesInsert } from '@/lib/database.types'
+import type { PinWithRelations, ChildPinWithUIFields } from '@/lib/types/relations'
+import type { TablesInsert } from '@/lib/database.types'
 import type { PinClickHandler, AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler, StatusChangeHandler } from '@/lib/types/handlers'
 import { DockedChat } from '@/components/chat/DockedChat'
+
+// Dynamic import for Konva-based component to prevent SSR issues
+const BluebinInteractiveRoofPlan = dynamic(
+  () => import('@/components/dashboard/BluebinInteractiveRoofPlanClient').then(mod => ({
+    default: mod.BluebinInteractiveRoofPlanClient
+  })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-white/5 backdrop-blur-sm rounded-xl">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-white/80">Loading interactive roof plan...</p>
+        </div>
+      </div>
+    ),
+  }
+)
 
 function RoofDashboardPage() {
   const params = useParams()

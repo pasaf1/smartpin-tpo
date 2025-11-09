@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { getSupabase } from '@/lib/supabase'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
 
-import type { PinWithRelations, ChildPinWithUIFields } from '@/lib/database.types'
+import type { PinWithRelations, ChildPinWithUIFields } from '@/lib/types/relations'
 import type { AddChildPinHandler, UpdateChildPinHandler, DeleteChildPinHandler } from '@/lib/types/handlers'
 
 interface BluebinPinDetailsCardProps {

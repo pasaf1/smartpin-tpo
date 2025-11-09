@@ -1,4 +1,5 @@
-import type { Database, PinWithRelations, ChildPinWithUIFields } from '../database.types'
+import type { Database } from '../database.types'
+import type { PinWithRelations, ChildPinWithUIFields } from './relations'
 
 // Base types from database
 export type PinChild = Database["public"]["Tables"]["pin_children"]["Row"]

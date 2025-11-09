@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react'
 import { cn } from '@/lib/utils'
 import { useBluebinRealtimeSync } from '@/lib/hooks/useBluebinRealtimeSync'
-import type { PinWithRelations, ChildPinWithUIFields } from '@/lib/database.types'
+import type { PinWithRelations, ChildPinWithUIFields } from '@/lib/types/relations'
 import type { PinClickHandler, AddChildPinHandler } from '@/lib/types/handlers'
 import { KonvaPerformanceMonitor } from '@/lib/konva/performance-monitor'
 import { KonvaMemoryManager } from '@/lib/konva/memory-manager'

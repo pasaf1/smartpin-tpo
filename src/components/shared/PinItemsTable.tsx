@@ -39,7 +39,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { Database, PinWithRelations } from '@/lib/database.types'
+import type { Database } from '@/lib/database.types'
+import type { PinWithRelations } from '@/lib/types/relations'
 
 type PinItem = Database['public']['Tables']['pin_items']['Row']
 
