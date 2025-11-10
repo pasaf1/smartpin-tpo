@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRoofs, useCreateRoof, useProjects } from '@/lib/hooks/useRoofs'
+import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/lib/database.types'
 
 function CreateRoofDialog() {
@@ -25,6 +26,19 @@ function CreateRoofDialog() {
 
   const createRoof = useCreateRoof()
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
+
+  // Check session when dialog opens
+  const handleOpenChange = async (isOpen: boolean) => {
+    if (isOpen) {
+      // Verify session exists before opening
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        alert('אין חיבור פעיל. אנא רענן את הדף והתחבר מחדש')
+        return
+      }
+    }
+    setOpen(isOpen)
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -52,24 +66,42 @@ function CreateRoofDialog() {
 
       // Upload image if provided
       if (imageFile) {
-        const formData = new FormData()
-        formData.append('image', imageFile)
+        console.log('📤 Starting image upload...')
 
-        const response = await fetch('/api/roofplans/upload', {
-          method: 'POST',
-          body: formData
-        })
+        // Try direct upload to Supabase Storage (client-side)
+        try {
+          const fileExt = imageFile.name.split('.').pop()
+          const fileName = `${code}-${Date.now()}.${fileExt}`
+          const filePath = `roof-plans/${fileName}`
 
-        if (!response.ok) {
-          const error = await response.json()
-          console.error('Image upload error:', error)
-          alert(`שגיאה בהעלאת התמונה: ${error.error || 'Unknown error'}`)
+          console.log('📤 Uploading to:', filePath)
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('roof-plans')
+            .upload(filePath, imageFile, {
+              cacheControl: '3600',
+              upsert: false
+            })
+
+          if (uploadError) {
+            console.error('❌ Direct upload failed:', uploadError)
+            throw uploadError
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('roof-plans')
+            .getPublicUrl(filePath)
+
+          imageUrl = publicUrl
+          console.log('✅ Image uploaded successfully:', imageUrl)
+
+        } catch (uploadError: any) {
+          console.error('❌ Upload error:', uploadError)
+          alert(`שגיאה בהעלאת התמונה: ${uploadError.message || 'Unknown error'}`)
           setIsUploading(false)
           return
         }
-
-        const data = await response.json()
-        imageUrl = data.url
       }
 
       // Create roof
@@ -98,7 +130,7 @@ function CreateRoofDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="bg-blue-500 hover:bg-blue-600 text-white">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
