@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -178,9 +178,12 @@ export function PinItemsTable({
     setUseSemanticSearch(true)
   }
 
-  const handleStatusChange = async (itemId: string, newStatus: 'Open' | 'ReadyForInspection' | 'Closed') => {
-    await updateStatusMutation.mutateAsync({ id: itemId, status: newStatus as any })
-  }
+  const handleStatusChange = useCallback(
+    async (itemId: string, newStatus: 'Open' | 'ReadyForInspection' | 'Closed') => {
+      await updateStatusMutation.mutateAsync({ id: itemId, status: newStatus as any })
+    },
+    [updateStatusMutation]
+  )
 
   type RowType = PinItem & { zone: string }
 
@@ -292,7 +295,7 @@ export function PinItemsTable({
       },
       // Actions column can be re-added when wired
     ],
-    [updateStatusMutation.isPending, useSemanticSearch]
+    [updateStatusMutation.isPending, useSemanticSearch, handleStatusChange]
   )
 
   const table = useReactTable({
@@ -301,7 +304,7 @@ export function PinItemsTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    ...(showPagination ? { getPaginationRowModel: getPaginationRowModel() } : {}),
+    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
