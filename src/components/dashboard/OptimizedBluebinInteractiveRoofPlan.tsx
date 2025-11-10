@@ -12,8 +12,8 @@ import { createViewportCuller } from '@/lib/konva/viewport-culling'
 // Selective imports for smaller bundle size
 import dynamic from 'next/dynamic'
 
-// Dynamic import for Konva components to reduce initial bundle
-const KonvaComponents = dynamic(() => import('@/lib/konva/optimized-components'), {
+// Dynamic import for Konva components with client-side-only wrapper to prevent SSR
+const KonvaComponents = dynamic(() => import('@/lib/konva/konva-stage-client'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full bg-gradient-to-br from-luxury-50 to-luxury-100 rounded-xl">
@@ -329,7 +329,7 @@ export function OptimizedBluebinInteractiveRoofPlan({
 
     setPerformanceStats(prev => ({ ...prev, visiblePins: filteredPins.length }))
     return filteredPins.slice(0, maxRenderItems)
-  }, [pins, layers, viewport, scale, enableViewportCulling, maxRenderItems, normalizedToCanvas])
+  }, [pins, viewport, scale, enableViewportCulling, maxRenderItems, normalizedToCanvas])
 
   const visibleChildPins = useMemo(() => {
     if (!enableViewportCulling) {
@@ -347,7 +347,7 @@ export function OptimizedBluebinInteractiveRoofPlan({
       const canvasPos = normalizedToCanvas({ x: childPin.x || 0.5, y: childPin.y || 0.5 })
       return viewportCuller.current.isInViewport(canvasPos, viewport, scale)
     }).slice(0, maxRenderItems)
-  }, [childPins, pins, layers, viewport, scale, enableViewportCulling, maxRenderItems, normalizedToCanvas])
+  }, [childPins, pins, viewport, scale, enableViewportCulling, maxRenderItems, normalizedToCanvas])
 
   // Performance-optimized touch handlers
   const handleTouchStart = useCallback((e: any) => {

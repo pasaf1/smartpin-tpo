@@ -123,7 +123,17 @@
       "Bash(for:*)",
       "Bash(head:*)",
       "mcp__supabase__list_migrations",
-      "Bash(timeout 5 sleep 5)"
+      "Bash(timeout 5 sleep 5)",
+      "Bash(npx tsx:*)",
+      "Bash(set:*)",
+      "Bash(nul)",
+      "Bash(start https://supabase.com/dashboard/project/vhtbinssqbzcjmbgkseo/sql/new)",
+      "Bash(clip:*)",
+      "Bash(rd /s /q .next 2)",
+      "Bash(timeout 10 sleep:*)",
+      "Bash(rd /s /q node_modules 2)",
+      "Bash(del package-lock.json 2)",
+      "Bash(src/lib/database.types.ts)"
     ],
     "deny": [],
     "ask": []
