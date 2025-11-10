@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRoofs, useCreateRoof, useProjects } from '@/lib/hooks/useRoofs'
-import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/lib/database.types'
 
 function CreateRoofDialog() {
@@ -53,25 +52,24 @@ function CreateRoofDialog() {
 
       // Upload image if provided
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop()
-        const fileName = `${code}-${Date.now()}.${fileExt}`
-        const { data, error } = await supabase.storage
-          .from('roof-plans')
-          .upload(fileName, imageFile)
+        const formData = new FormData()
+        formData.append('image', imageFile)
 
-        if (error) {
+        const response = await fetch('/api/roofplans/upload', {
+          method: 'POST',
+          body: formData
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
           console.error('Image upload error:', error)
-          alert('שגיאה בהעלאת התמונה')
+          alert(`שגיאה בהעלאת התמונה: ${error.error || 'Unknown error'}`)
           setIsUploading(false)
           return
         }
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('roof-plans')
-          .getPublicUrl(fileName)
-
-        imageUrl = publicUrl
+        const data = await response.json()
+        imageUrl = data.url
       }
 
       // Create roof

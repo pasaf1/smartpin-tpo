@@ -91,7 +91,10 @@ function RoofDashboardPage() {
       roof: !!roof,
       roofLoading,
       roofError: roofError?.message || roofError,
-      environment: process.env.NODE_ENV
+      environment: process.env.NODE_ENV,
+      plan_image_url: roof?.plan_image_url,
+      roof_plan_url: roof?.roof_plan_url,
+      imageUrlToUse: (roof?.plan_image_url ?? roof?.roof_plan_url)
     })
   }, [roofId, roof, roofLoading, roofError])
   const { data: pins = [] } = usePins(roofId) as { data: PinWithRelations[] }

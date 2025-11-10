@@ -48,7 +48,7 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
     }
   }
   
-  const handleFiles = (files: FileList) => {
+  const handleFiles = async (files: FileList) => {
     const file = files[0]
     if (!file) {
       return
@@ -57,25 +57,44 @@ function BaseMapUpload({ currentImageUrl, onImageUpdate, isUploading }: BaseMapU
       alert('Please upload an image file (JPG, PNG, WebP)')
       return
     }
-    
+
     if (file.size > 10 * 1024 * 1024) {
       alert('File size must be less than 10MB')
       return
     }
-    
-    // Create preview URL and get image dimensions
-    const reader = new FileReader()
-    reader.onload = (e) => {
+
+    try {
+      // Upload to Supabase Storage via API
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/roofplans/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Upload failed')
+      }
+
+      const data = await response.json()
+
+      // Get image dimensions for canvas setup
       const img = new Image()
       img.onload = () => {
-        // For demo purposes, use the file URL directly
-        // In production, this would upload to Supabase Storage
-        const imageUrl = e.target?.result as string
-        onImageUpdate(imageUrl, img.width, img.height)
+        onImageUpdate(data.url, img.width, img.height)
       }
-      img.src = e.target?.result as string
+      img.onerror = () => {
+        // If we can't load dimensions, use default
+        onImageUpdate(data.url, 1920, 1080)
+      }
+      img.src = data.url
+
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      alert(`Failed to upload image: ${error.message}`)
     }
-    reader.readAsDataURL(file)
   }
   
   return (
